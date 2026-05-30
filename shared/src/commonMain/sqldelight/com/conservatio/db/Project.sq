@@ -1,0 +1,36 @@
+CREATE TABLE ProjectEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    client_id TEXT,
+    object_ids TEXT NOT NULL,
+    status TEXT NOT NULL,
+    start_date INTEGER,
+    end_date INTEGER,
+    description TEXT,
+    total_budget REAL,
+    currency TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    sync_status TEXT NOT NULL DEFAULT 'PENDING'
+);
+
+selectAll:
+SELECT * FROM ProjectEntity ORDER BY updated_at DESC;
+
+selectById:
+SELECT * FROM ProjectEntity WHERE id = ?;
+
+selectByClient:
+SELECT * FROM ProjectEntity WHERE client_id = ? ORDER BY updated_at DESC;
+
+insertProject:
+INSERT OR REPLACE INTO ProjectEntity(
+    id, title, client_id, object_ids, status, start_date, end_date,
+    description, total_budget, currency, created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM ProjectEntity WHERE id = ?;
+
+selectPending:
+SELECT * FROM ProjectEntity WHERE sync_status = 'PENDING';

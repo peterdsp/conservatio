@@ -1,0 +1,38 @@
+CREATE TABLE ClientEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    contact_person TEXT,
+    email TEXT,
+    phone TEXT,
+    address TEXT,
+    notes TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    sync_status TEXT NOT NULL DEFAULT 'PENDING'
+);
+
+selectAll:
+SELECT * FROM ClientEntity ORDER BY name ASC;
+
+selectById:
+SELECT * FROM ClientEntity WHERE id = ?;
+
+insertClient:
+INSERT OR REPLACE INTO ClientEntity(
+    id, name, type, contact_person, email, phone, address, notes,
+    created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM ClientEntity WHERE id = ?;
+
+search:
+SELECT * FROM ClientEntity
+WHERE name LIKE '%' || ? || '%'
+   OR contact_person LIKE '%' || ? || '%'
+   OR email LIKE '%' || ? || '%'
+ORDER BY name ASC;
+
+selectPending:
+SELECT * FROM ClientEntity WHERE sync_status = 'PENDING';

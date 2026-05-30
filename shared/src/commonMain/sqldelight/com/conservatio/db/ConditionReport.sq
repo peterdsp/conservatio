@@ -1,0 +1,38 @@
+CREATE TABLE ConditionReportEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    object_id TEXT NOT NULL,
+    report_type TEXT NOT NULL,
+    overall_condition TEXT NOT NULL,
+    examiner TEXT NOT NULL,
+    examination_date INTEGER NOT NULL,
+    damage_annotations TEXT NOT NULL,
+    notes TEXT,
+    recommendations TEXT,
+    image_ids TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    sync_status TEXT NOT NULL DEFAULT 'PENDING',
+    FOREIGN KEY (object_id) REFERENCES ConservationObjectEntity(id) ON DELETE CASCADE
+);
+
+selectAll:
+SELECT * FROM ConditionReportEntity ORDER BY examination_date DESC;
+
+selectByObject:
+SELECT * FROM ConditionReportEntity WHERE object_id = ? ORDER BY examination_date DESC;
+
+selectById:
+SELECT * FROM ConditionReportEntity WHERE id = ?;
+
+insertReport:
+INSERT OR REPLACE INTO ConditionReportEntity(
+    id, object_id, report_type, overall_condition, examiner, examination_date,
+    damage_annotations, notes, recommendations, image_ids,
+    created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM ConditionReportEntity WHERE id = ?;
+
+selectPending:
+SELECT * FROM ConditionReportEntity WHERE sync_status = 'PENDING';
