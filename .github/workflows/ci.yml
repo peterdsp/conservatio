@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  no-em-dash:
+    name: No em-dash
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid em-dash
+        run: |
+          MATCHES=$(grep -RIn --binary-files=without-match -P '—' \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude-dir=.gradle \
+            --exclude-dir=build \
+            --exclude='*.png' \
+            --exclude='*.jpg' \
+            --exclude='*.svg' \
+            --exclude='ci.yml' . || true)
+          if [ -n "$MATCHES" ]; then
+            echo "$MATCHES"
+            echo
+            echo "Em-dash found. Use commas, periods, parens, colons, or a regular hyphen."
+            exit 1
+          fi
+          echo "No em-dash."
+
+  web-lint:
+    name: Web lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit

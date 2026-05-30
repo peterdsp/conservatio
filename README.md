@@ -1,3 +1,12 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/Conservatio-v0.1.0-C25B3A?style=for-the-badge&labelColor=1a1a2e" alt="Version" />
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge&labelColor=1a1a2e" alt="License" />
+  <img src="https://img.shields.io/badge/kotlin-2.0-7F52FF?style=for-the-badge&logo=kotlin&labelColor=1a1a2e" alt="Kotlin" />
+  <img src="https://img.shields.io/badge/swift-5.9-F05138?style=for-the-badge&logo=swift&labelColor=1a1a2e" alt="Swift" />
+  <img src="https://img.shields.io/badge/compose-Material3-4285F4?style=for-the-badge&logo=jetpackcompose&labelColor=1a1a2e" alt="Compose" />
+  <img src="https://img.shields.io/badge/next.js-14-000?style=for-the-badge&logo=nextdotjs&labelColor=1a1a2e" alt="Next.js" />
+</p>
+
 # Conservatio
 
 Professional conservation documentation platform for cultural heritage professionals.
@@ -137,4 +146,4 @@ conservatio/
 
 ## License
 
-Proprietary. All rights reserved.
+MIT. See [LICENSE](LICENSE) for details.
