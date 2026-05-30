@@ -1,0 +1,47 @@
+CREATE TABLE ConservationObjectEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    object_type TEXT NOT NULL,
+    materials TEXT NOT NULL,
+    height REAL,
+    width REAL,
+    depth REAL,
+    diameter REAL,
+    weight REAL,
+    measurement_unit TEXT,
+    owner_name TEXT,
+    location_description TEXT,
+    acquisition_date INTEGER,
+    inventory_number TEXT,
+    description TEXT,
+    image_ids TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    sync_status TEXT NOT NULL DEFAULT 'PENDING'
+);
+
+selectAll:
+SELECT * FROM ConservationObjectEntity ORDER BY updated_at DESC;
+
+selectById:
+SELECT * FROM ConservationObjectEntity WHERE id = ?;
+
+insertObject:
+INSERT OR REPLACE INTO ConservationObjectEntity(
+    id, title, object_type, materials, height, width, depth, diameter, weight,
+    measurement_unit, owner_name, location_description, acquisition_date,
+    inventory_number, description, image_ids, created_at, updated_at, sync_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM ConservationObjectEntity WHERE id = ?;
+
+search:
+SELECT * FROM ConservationObjectEntity
+WHERE title LIKE '%' || ? || '%'
+   OR description LIKE '%' || ? || '%'
+   OR inventory_number LIKE '%' || ? || '%'
+ORDER BY updated_at DESC;
+
+selectPending:
+SELECT * FROM ConservationObjectEntity WHERE sync_status = 'PENDING';
