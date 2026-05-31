@@ -40,11 +40,13 @@ dependencies {
 }
 
 tasks.register<Jar>("fatJar") {
+    dependsOn(tasks.jar)
     archiveClassifier.set("all")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         attributes["Main-Class"] = "com.conservatio.server.ApplicationKt"
     }
-    from(sourceSets.main.get().output)
+    val jarFile = tasks.jar.get().archiveFile
+    from(zipTree(jarFile))
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
 }
