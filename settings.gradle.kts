@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 rootProject.name = "Conservatio"
 include(":shared")
 include(":androidApp")
+include(":server")
