@@ -45,6 +45,6 @@ tasks.register<Jar>("fatJar") {
     manifest {
         attributes["Main-Class"] = "com.conservatio.server.ApplicationKt"
     }
+    from(sourceSets.main.get().output)
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
-    with(tasks.jar.get())
 }
