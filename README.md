@@ -7,11 +7,24 @@
   <img src="https://img.shields.io/badge/next.js-14-000?style=for-the-badge&logo=nextdotjs&labelColor=1a1a2e" alt="Next.js" />
 </p>
 
-# Conservatio
+<p align="center">
+  <img src="site/assets/conservatio-logo.jpeg" alt="Conservatio - All Conservation: Paintings, Frescos, Buildings, Sites" width="500">
+</p>
+
+<h1 align="center">Conservatio</h1>
+
+<p align="center">
+  <strong>Document heritage. Protect history.</strong><br>
+  <a href="https://conservatio.peterdsp.dev">Website</a> · <a href="https://github.com/peterdsp/conservatio/releases">Releases</a> · <a href="docs/CASE_STUDY.md">Case Study</a> · <a href="docs/MARKETING_PLAN.md">Marketing Plan</a>
+</p>
 
 Professional conservation documentation platform for cultural heritage professionals.
 
 Conservatio helps conservators, small museums, galleries, churches, and archaeological teams create structured condition reports, manage conservation projects, annotate damage on images, and generate professional PDF documentation.
+
+<p align="center">
+  <img src="site/assets/condition-report-mockup.jpeg" alt="Conservatio condition report with damage annotation" width="600">
+</p>
 
 ## Architecture
 
