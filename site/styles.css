@@ -113,57 +113,20 @@ a:hover { text-decoration: underline; }
 .button.secondary:hover { border-color: var(--primary); color: var(--primary); text-decoration: none; }
 
 .hero-visual {
-  flex: 0 0 420px; display: flex; justify-content: center;
+  flex: 0 0 460px; display: flex; justify-content: center;
 }
 
-.hero-mockup {
-  width: 300px; height: 580px;
-  background: var(--surface);
-  border-radius: 32px;
-  border: 3px solid rgba(121, 116, 126, 0.15);
-  box-shadow: 0 24px 80px rgba(0,0,0,0.08);
-  display: flex; flex-direction: column;
-  overflow: hidden;
+.hero-report-img {
+  width: 100%; max-width: 460px;
+  border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.12);
+  transform: rotate(1deg);
+  transition: transform 0.3s;
 }
 
-.mockup-status {
-  height: 44px; display: flex; align-items: center; justify-content: center;
-  font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
+.hero-report-img:hover {
+  transform: rotate(0deg) scale(1.02);
 }
-
-.mockup-content {
-  flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px;
-}
-
-.mockup-card {
-  background: var(--bg); border-radius: 12px; padding: 16px;
-}
-
-.mockup-card-title {
-  font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text);
-}
-
-.mockup-card-meta {
-  font-size: 0.7rem; color: var(--text-secondary);
-}
-
-.mockup-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 99px;
-  font-size: 0.65rem; font-weight: 600; margin-top: 8px;
-}
-
-.badge-good { background: #E8F5E9; color: #2E7D32; }
-.badge-fair { background: #FFF8E1; color: #F57F17; }
-.badge-poor { background: #FBE9E7; color: #BF360C; }
-
-.mockup-nav {
-  display: flex; justify-content: space-around;
-  padding: 12px 0; border-top: 1px solid rgba(121, 116, 126, 0.12);
-  font-size: 0.65rem; color: var(--text-secondary);
-}
-
-.mockup-nav-item { text-align: center; }
-.mockup-nav-active { color: var(--primary); font-weight: 600; }
 
 /* Features */
 .features {
@@ -262,7 +225,7 @@ a:hover { text-decoration: underline; }
   .hero { flex-direction: column; padding: 48px 24px; gap: 40px; }
   .hero h1 { font-size: 2.2rem; }
   .hero-visual { flex: none; }
-  .hero-mockup { width: 240px; height: 460px; }
+  .hero-report-img { max-width: 320px; transform: none; }
   .feature-grid, .platform-grid { grid-template-columns: 1fr; }
   .nav { display: none; }
   .site-header { padding: 12px 16px; }
