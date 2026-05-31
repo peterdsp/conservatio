@@ -14,6 +14,8 @@ kotlin {
         }
     }
 
+    jvm()
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -43,6 +45,11 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
             implementation(libs.kotlinx.coroutines.android)
+        }
+        val jvmMain by getting {
+            dependencies {
+                implementation(libs.ktor.client.okhttp)
+            }
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
