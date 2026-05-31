@@ -41,13 +41,12 @@ a:hover { text-decoration: underline; }
 }
 
 .brand {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 1.25rem; font-weight: 700;
-  color: var(--primary); text-decoration: none;
+  display: flex; align-items: center;
+  text-decoration: none;
 }
 
-.brand-icon {
-  width: 32px; height: 32px; border-radius: 6px;
+.brand-logo {
+  height: 40px; width: auto; border-radius: 4px;
 }
 
 .nav { display: flex; gap: 28px; }
