@@ -2,16 +2,18 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: Tab = .dashboard
+    @State private var objectStore = ObjectStore()
+    @State private var reportStore = ReportStore()
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            DashboardView()
+            DashboardView(objectStore: objectStore, reportStore: reportStore)
                 .tabItem {
                     Label("Home", systemImage: "house")
                 }
                 .tag(Tab.dashboard)
 
-            ObjectsListView()
+            ObjectsListView(objectStore: objectStore, reportStore: reportStore)
                 .tabItem {
                     Label("Objects", systemImage: "cube")
                 }
