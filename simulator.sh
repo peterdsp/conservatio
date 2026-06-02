@@ -20,16 +20,22 @@ case "${1:-}" in
         echo ""
         echo "  Conservatio Android"
         echo ""
-        # Check emulator
         if ! "$ANDROID_SDK/emulator/emulator" -list-avds 2>/dev/null | grep -q .; then
             echo "  No Android AVD found. Create one first:"
             echo "    avdmanager create avd -n Pixel_8 -k 'system-images;android-35;google_apis;arm64-v8a' -d pixel_8"
             exit 1
         fi
         AVD=$("$ANDROID_SDK/emulator/emulator" -list-avds 2>/dev/null | head -1)
+        # Kill any existing emulator
+        pkill -f "emulator.*$AVD" 2>/dev/null || true
+        pkill -f "qemu.*$AVD" 2>/dev/null || true
+        sleep 1
         echo "  Starting emulator: $AVD"
-        "$ANDROID_SDK/emulator/emulator" -avd "$AVD" -no-audio "$@" &
-        echo "  Emulator launching in background."
+        "$ANDROID_SDK/emulator/emulator" -avd "$AVD" -gpu swiftshader_indirect "$@" &
+        echo "  Emulator launching..."
+        echo "  Waiting for boot..."
+        adb wait-for-device 2>/dev/null
+        echo "  Emulator ready."
         echo "  To build and install: cd $ROOT_DIR && ./gradlew :androidApp:installDebug"
         exit 0
         ;;
@@ -56,19 +62,7 @@ case "$choice" in
         exec ~/git/personal/kujto/simulator.sh --project "$IOS_PROJECT" "$@"
         ;;
     2|android)
-        echo ""
-        echo "  Conservatio Android"
-        echo ""
-        if ! "$ANDROID_SDK/emulator/emulator" -list-avds 2>/dev/null | grep -q .; then
-            echo "  No Android AVD found."
-            exit 1
-        fi
-        AVD=$("$ANDROID_SDK/emulator/emulator" -list-avds 2>/dev/null | head -1)
-        echo "  Starting emulator: $AVD"
-        "$ANDROID_SDK/emulator/emulator" -avd "$AVD" -no-audio &
-        echo "  Emulator launching in background."
-        echo "  To build: cd $ROOT_DIR && ./gradlew :androidApp:installDebug"
-        exit 0
+        exec "$0" android "$@"
         ;;
     *)
         echo "  Invalid choice."
