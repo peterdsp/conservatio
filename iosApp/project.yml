@@ -28,3 +28,5 @@ targets:
         INFOPLIST_KEY_NSCameraUsageDescription: "Conservatio needs camera access to photograph conservation objects and damage"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Conservatio needs photo library access to import object images"
         INFOPLIST_KEY_CFBundleDisplayName: "Conservatio"
+    info:
+      path: Conservatio/Info.plist
