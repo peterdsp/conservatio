@@ -31,14 +31,18 @@ Conservatio helps conservators, small museums, galleries, churches, and archaeol
 ### iOS (iPhone 17, iOS 26)
 
 <p align="center">
-  <img src="docs/screenshots/ios-dashboard.png" alt="Dashboard" width="250">
+  <img src="docs/screenshots/ios-dashboard.png" alt="iOS Dashboard" width="250">
 </p>
 
 <p align="center">
   <em>Dashboard with stats, quick actions, and recent objects</em>
 </p>
 
-> More screenshots coming as features are built. Android screenshots will be added once Android Studio is set up.
+### Android (Pixel 8, Android 15)
+
+Android emulator configured and ready. App screenshots will be added after the first Gradle build.
+
+> The Android app has full feature parity with iOS: splash screen, dashboard, object creation, settings with sync/storage options, profile, and about screen.
 
 ## Architecture
 
