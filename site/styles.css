@@ -35,7 +35,7 @@ a:hover { text-decoration: underline; }
 }
 
 .brand { display: flex; align-items: center; text-decoration: none; }
-.brand-logo { height: 56px; width: auto; }
+.brand-logo { height: 80px; width: auto; }
 
 .nav { display: flex; gap: 28px; }
 .nav a {
@@ -191,5 +191,5 @@ a:hover { text-decoration: underline; }
   .feature-grid, .platform-grid { grid-template-columns: 1fr; }
   .nav { display: none; }
   .site-header { padding: 10px 16px; }
-  .brand-logo { height: 44px; }
+  .brand-logo { height: 60px; }
 }
