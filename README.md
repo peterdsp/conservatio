@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Conservatio-v0.1.0-C25B3A?style=for-the-badge&labelColor=1a1a2e" alt="Version" />
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge&labelColor=1a1a2e" alt="License" />
+  <img src="https://img.shields.io/badge/license-Proprietary-red?style=for-the-badge&labelColor=1a1a2e" alt="License" />
   <img src="https://img.shields.io/badge/kotlin-2.0-7F52FF?style=for-the-badge&logo=kotlin&labelColor=1a1a2e" alt="Kotlin" />
   <img src="https://img.shields.io/badge/swift-5.9-F05138?style=for-the-badge&logo=swift&labelColor=1a1a2e" alt="Swift" />
   <img src="https://img.shields.io/badge/compose-Material3-4285F4?style=for-the-badge&logo=jetpackcompose&labelColor=1a1a2e" alt="Compose" />
@@ -173,4 +173,8 @@ conservatio/
 
 ## License
 
-MIT. See [LICENSE](LICENSE) for details.
+Proprietary. Copyright (c) 2024-2026 Petros Dhespollari. All rights reserved.
+
+This software is source-available for educational purposes only. Commercial use, redistribution, derivative works, and use in competing products are strictly prohibited without written permission.
+
+See [LICENSE](LICENSE) for full terms. For commercial licensing, contact via [peterdsp.dev](https://peterdsp.dev).

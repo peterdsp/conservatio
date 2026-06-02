@@ -1,21 +1,94 @@
-MIT License
+Conservatio Proprietary License
+Copyright (c) 2024-2026 Petros Dhespollari. All rights reserved.
 
-Copyright (c) 2025 Petros Dhespollari
+1. DEFINITIONS
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+"Software" means the Conservatio source code, documentation, design assets,
+branding materials, database schemas, API specifications, and all associated
+files in this repository.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+"Author" means Petros Dhespollari (peterdsp).
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+"You" means any individual or entity accessing or using the Software.
+
+2. GRANT OF RIGHTS
+
+The Author grants You a limited, non-exclusive, non-transferable,
+non-sublicensable, revocable license to:
+
+  (a) View and study the source code for personal educational purposes only.
+  (b) Run a single private instance of the Software for personal,
+      non-commercial evaluation purposes only.
+
+3. RESTRICTIONS
+
+You may NOT, without prior written permission from the Author:
+
+  (a) Copy, reproduce, distribute, publish, or share any part of the Software.
+  (b) Modify, adapt, translate, or create derivative works based on the Software.
+  (c) Use the Software or any part of it in any commercial product or service.
+  (d) Use the Software or any part of it in any competing product or service.
+  (e) Sublicense, sell, rent, lease, lend, or otherwise transfer the Software.
+  (f) Remove, alter, or obscure any copyright, trademark, or proprietary notices.
+  (g) Use the Software's architecture, design patterns, database schemas,
+      API designs, or domain models as a basis for any other software.
+  (h) Use any branding, logos, icons, color schemes, or visual identity
+      elements from the Software.
+  (i) Reverse engineer, decompile, or disassemble the Software beyond what
+      is permitted by applicable law.
+  (j) Use the Software to train machine learning models or AI systems.
+  (k) Host, deploy, or offer the Software as a service to third parties.
+  (l) Fork this repository for any purpose other than submitting pull
+      requests back to the original repository.
+
+4. INTELLECTUAL PROPERTY
+
+All intellectual property rights in the Software, including but not limited
+to copyrights, trademarks, trade secrets, patents, design rights, and
+database rights, are and remain the exclusive property of the Author.
+
+The Conservatio name, logo (coat of arms), visual identity, and all
+associated branding are trademarks of Petros Dhespollari.
+
+5. CONTRIBUTIONS
+
+Any contributions submitted to this repository (via pull requests or
+otherwise) are subject to the following terms:
+
+  (a) You grant the Author a perpetual, irrevocable, worldwide, royalty-free,
+      exclusive license to use, modify, and incorporate your contribution.
+  (b) You represent that you have the right to grant this license.
+  (c) Contributions do not grant you any ownership rights in the Software.
+
+6. NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. THE AUTHOR DISCLAIMS ALL WARRANTIES INCLUDING MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+7. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM THE USE OF OR INABILITY TO USE THE SOFTWARE.
+
+8. TERMINATION
+
+This license terminates automatically if You violate any of its terms.
+Upon termination, You must destroy all copies of the Software in Your
+possession.
+
+9. GOVERNING LAW
+
+This license is governed by the laws of Greece and the European Union.
+Any disputes shall be resolved in the courts of Thessaloniki, Greece.
+
+10. COMMERCIAL LICENSING
+
+For commercial use, SaaS deployment, enterprise licensing, OEM licensing,
+or any use not covered by this license, contact:
+
+  Petros Dhespollari
+  Email: contact via https://peterdsp.dev
+  Website: https://conservatio.peterdsp.dev
+
+All rights not expressly granted herein are reserved by the Author.
