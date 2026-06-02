@@ -4,6 +4,8 @@ struct ObjectDetailView: View {
     let object: ConservationObject
     var reportStore: ReportStore
     @State private var showCreateReport = false
+    @State private var showPDFPreview = false
+    @State private var pdfData: Data?
 
     var body: some View {
         ScrollView {
@@ -21,15 +23,35 @@ struct ObjectDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showCreateReport = true
+                Menu {
+                    Button {
+                        showCreateReport = true
+                    } label: {
+                        Label("New Report", systemImage: "doc.badge.plus")
+                    }
+
+                    if let latestReport = reportStore.reports(for: object.id).first {
+                        Button {
+                            generatePDF(for: latestReport)
+                        } label: {
+                            Label("Export PDF", systemImage: "arrow.down.doc")
+                        }
+                    }
                 } label: {
-                    Label("New Report", systemImage: "doc.badge.plus")
+                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
         .sheet(isPresented: $showCreateReport) {
             CreateReportView(objectId: object.id, reportStore: reportStore)
+        }
+        .sheet(isPresented: $showPDFPreview) {
+            if let data = pdfData {
+                PDFPreviewView(
+                    pdfData: data,
+                    fileName: buildPDFFileName()
+                )
+            }
         }
     }
 
@@ -151,6 +173,31 @@ struct ObjectDetailView: View {
         .padding()
         .background(Color.conservatioSurface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - PDF Export
+
+    private func generatePDF(for report: ConditionReport) {
+        let images: [UIImage] = object.imageIds.compactMap { ImageStore.shared.load($0) }
+        let generator = PDFReportGenerator()
+        pdfData = generator.generateReport(
+            object: object,
+            report: report,
+            objectImages: images,
+            conservatorName: report.examiner.isEmpty ? "Conservator" : report.examiner
+        )
+        showPDFPreview = true
+    }
+
+    private func buildPDFFileName() -> String {
+        guard let latestReport = reportStore.reports(for: object.id).first else {
+            return "CR-\(object.title)"
+        }
+        let idPrefix = latestReport.id.uuidString.prefix(8)
+        let sanitizedTitle = object.title
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "-")
+        return "CR-\(idPrefix)-\(sanitizedTitle)"
     }
 }
 
