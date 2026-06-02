@@ -5,6 +5,8 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .dashboard
     @State private var objectStore = ObjectStore()
     @State private var reportStore = ReportStore()
+    @State private var projectStore = ProjectStore()
+    @State private var clientStore = ClientStore()
     @State private var showCreateObject = false
     @State private var showCreateReport = false
 
@@ -22,13 +24,13 @@ struct ContentView: View {
                 }
                 .tag(Tab.objects)
 
-            ProjectsListView()
+            ProjectsListView(projectStore: projectStore)
                 .tabItem {
                     Label("Projects", systemImage: "folder")
                 }
                 .tag(Tab.projects)
 
-            ClientsListView()
+            ClientsListView(clientStore: clientStore)
                 .tabItem {
                     Label("Clients", systemImage: "person.2")
                 }
