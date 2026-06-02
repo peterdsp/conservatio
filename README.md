@@ -1,180 +1,115 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Conservatio-v0.1.0-C25B3A?style=for-the-badge&labelColor=1a1a2e" alt="Version" />
   <img src="https://img.shields.io/badge/license-Proprietary-red?style=for-the-badge&labelColor=1a1a2e" alt="License" />
-  <img src="https://img.shields.io/badge/kotlin-2.0-7F52FF?style=for-the-badge&logo=kotlin&labelColor=1a1a2e" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/swift-5.9-F05138?style=for-the-badge&logo=swift&labelColor=1a1a2e" alt="Swift" />
-  <img src="https://img.shields.io/badge/compose-Material3-4285F4?style=for-the-badge&logo=jetpackcompose&labelColor=1a1a2e" alt="Compose" />
-  <img src="https://img.shields.io/badge/next.js-14-000?style=for-the-badge&logo=nextdotjs&labelColor=1a1a2e" alt="Next.js" />
+  <img src="https://img.shields.io/badge/iOS-17+-000?style=for-the-badge&logo=apple&labelColor=1a1a2e" alt="iOS" />
+  <img src="https://img.shields.io/badge/Android-15+-3DDC84?style=for-the-badge&logo=android&labelColor=1a1a2e" alt="Android" />
+  <img src="https://img.shields.io/badge/Web-Next.js-000?style=for-the-badge&logo=nextdotjs&labelColor=1a1a2e" alt="Web" />
 </p>
 
 <p align="center">
-  <img src="site/assets/conservatio-logo.jpeg" alt="Conservatio - All Conservation: Paintings, Frescos, Buildings, Sites" width="500">
+  <img src="site/assets/conservatio-logo.jpeg" alt="Conservatio" width="500">
 </p>
 
 <h1 align="center">Conservatio</h1>
 
 <p align="center">
-  <strong>Document heritage. Protect history.</strong><br>
-  <a href="https://conservatio.peterdsp.dev">Website</a> · <a href="https://github.com/peterdsp/conservatio/releases">Releases</a> · <a href="docs/CASE_STUDY.md">Case Study</a> · <a href="docs/MARKETING_PLAN.md">Marketing Plan</a>
+  <strong>Document heritage. Protect history.</strong>
 </p>
-
-Professional conservation documentation platform for cultural heritage professionals.
-
-Conservatio helps conservators, small museums, galleries, churches, and archaeological teams create structured condition reports, manage conservation projects, annotate damage on images, and generate professional PDF documentation.
 
 <p align="center">
-  <img src="site/assets/report-preview.jpeg" alt="Conservatio condition report with damage annotation" width="600">
+  <a href="https://conservatio.peterdsp.dev">Website</a> · <a href="https://github.com/peterdsp/conservatio/releases">Releases</a> · <a href="docs/CASE_STUDY.md">Case Study</a>
 </p>
+
+<p align="center">
+  <img src="docs/screenshots/conservatio-flow.gif" alt="Conservatio App" width="300">
+</p>
+
+Conservatio is a professional conservation documentation platform for cultural heritage. It replaces Word templates, scattered photos, and manual reporting with structured, searchable, offline-ready documentation that exports to beautiful PDF reports.
+
+Built for private conservators, small museums, galleries, churches, archaeological teams, and heritage authorities.
+
+<p align="center">
+  <img src="site/assets/report-preview.jpeg" alt="Professional condition report" width="600">
+</p>
+
+## What Conservatio Does
+
+**Condition Reports.** Structured damage checklists, controlled vocabulary, condition ratings, and annotated photos. Export professional branded PDFs in multiple languages.
+
+**Object Management.** Register conservation objects with type, materials, dimensions, photos, location, and ownership. Track the full lifecycle from acquisition to restoration.
+
+**Project Tracking.** Organize objects, reports, and clients into projects. Track status, timelines, budgets, and treatment progress.
+
+**Image Annotation.** Mark cracks, paint loss, corrosion, and other damage directly on photos. Each annotation links to damage type, severity, and notes.
+
+**Offline-First.** Works in churches, basements, excavation sites, and anywhere without signal. Everything syncs when you reconnect.
+
+**Self-Hosted.** Your conservation data stays on your own hardware. No cloud dependency. Runs on a Raspberry Pi.
+
+## Platforms
+
+| Platform | Technology | Status |
+|----------|-----------|--------|
+| **iOS** | SwiftUI, iOS 17+ | In development |
+| **Android** | Jetpack Compose, Material 3 | In development |
+| **Web** | Next.js, TypeScript, Tailwind | In development |
+| **Server** | Ktor, PostgreSQL, JWT Auth | Running on Raspberry Pi |
 
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/conservatio-flow.gif" alt="Conservatio iOS App Flow" width="300">
+  <img src="docs/screenshots/ios-flow-combined.png" alt="iOS App Flow" width="600">
 </p>
 
 <p align="center">
-  <em>iOS (iPhone 17, iOS 26.1): Dashboard and Settings flow</em>
+  <em>Dashboard and Settings (iPhone 17, iOS 26.1)</em>
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/ios-flow-combined.png" alt="Conservatio iOS screens side by side" width="600">
-</p>
+## Who Is This For
+
+- **Private conservators** who spend too much time formatting Word documents
+- **Small museums** that need affordable collection and conservation management
+- **Churches and heritage sites** that lack structured inventory and maintenance records
+- **Galleries and collectors** that need condition reports for loans, insurance, and transport
+- **Archaeological teams** that document under pressure in the field with unstable connectivity
+
+## Roadmap
+
+| Phase | Features | Status |
+|-------|----------|--------|
+| **1** | Object profiles, condition reports, damage checklists, photo capture, PDF export, offline storage | In progress |
+| **2** | Before/after comparison, report templates, team collaboration, client portal | Planned |
+| **3** | AI-assisted drafting, GIS for archaeological sites, environmental monitoring, Spectrum compliance | Future |
 
 ## Architecture
 
 ```
 conservatio/
-├── shared/          # KMP shared module (Kotlin)
-│   ├── domain/      #   Models, repository interfaces
-│   ├── data/        #   API client (Ktor), local DB (SQLDelight)
-│   ├── di/          #   Koin dependency injection
-│   └── design/      #   Shared design tokens
-├── androidApp/      # Android app (Jetpack Compose, Material 3)
-├── iosApp/          # iOS app (SwiftUI, HIG)
-├── web/             # Web companion (Next.js, TypeScript, Tailwind)
-├── backend/         # Supabase config and SQL migrations
-└── docs/            # Architecture and design documentation
+├── shared/       KMP shared module (domain models, repositories, API client, SQLDelight)
+├── iosApp/       Native iOS app (SwiftUI)
+├── androidApp/   Native Android app (Jetpack Compose)
+├── web/          Web companion (Next.js)
+├── server/       API server (Ktor + PostgreSQL)
+├── site/         Landing page (conservatio.peterdsp.dev)
+└── docs/         Architecture, design system, case study
 ```
 
-### Platform strategy
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Shared logic | Kotlin Multiplatform | Domain models, repositories, API client, local DB |
-| Android | Jetpack Compose + Material 3 | Native Android app |
-| iOS | SwiftUI + HIG | Native iOS app |
-| Web | Next.js + React + Tailwind | Desktop companion, dashboards, report editing |
-| Backend | Supabase (Postgres + Auth + Storage) | API, auth, image storage, sync |
-| Local DB | SQLDelight | Offline-first on mobile |
-
-### Design language
-
-- **Android:** Material 3 (Material You) with heritage-inspired warm palette
-- **iOS:** Apple Human Interface Guidelines with matching color tokens
-- **Web:** Clean SaaS dashboard style (Inter font, warm earth tones)
-
-**Color palette:**
-- Primary: Terracotta `#C25B3A` (heritage, craftsmanship)
-- Secondary: Stone Blue `#3A6B8C` (professional, trustworthy)
-- Tertiary: Warm Gold `#D4A843` (accent, highlights)
-- Background: Warm White `#FAF7F4`
-
-## Getting Started
-
-### Prerequisites
-
-- JDK 17+
-- Android Studio Hedgehog or later
-- Xcode 15.4+ (for iOS)
-- Node.js 18+ (for web)
-- A Supabase project (free tier works)
-
-### Setup
-
-1. **Clone the repo**
-   ```bash
-   git clone <repo-url>
-   cd conservatio
-   ```
-
-2. **Backend**
-   - Create a Supabase project at https://supabase.com
-   - Run `backend/supabase/migrations/001_initial_schema.sql` in the SQL Editor
-   - Create storage buckets: `conservation-images`, `report-exports`
-   - Copy your project URL and anon key
-
-3. **Android**
-   - Open the root project in Android Studio
-   - Sync Gradle
-   - Run the `androidApp` configuration
-
-4. **iOS**
-   - Build the shared framework: `./gradlew :shared:assembleXCFramework`
-   - Open `iosApp/` in Xcode
-   - Add the XCFramework to your project
-   - Build and run
-
-5. **Web**
-   ```bash
-   cd web
-   cp .env.example .env.local
-   # Fill in your Supabase credentials
-   npm install
-   npm run dev
-   ```
-
-## MVP Features
-
-### Phase 1 (Current)
-- [ ] Object profiles (title, type, materials, dimensions, photos)
-- [ ] Condition reports with damage checklists
-- [ ] Photo capture and image annotation
-- [ ] Treatment proposals
-- [ ] Client and project management
-- [ ] PDF report export (Greek + English)
-- [ ] Offline-first mobile with cloud sync
-
-### Phase 2 (Planned)
-- [ ] Before/after image comparison
-- [ ] Report templates (customizable per client/institution)
-- [ ] Team collaboration (multi-user projects)
-- [ ] Environmental monitoring dashboard
-- [ ] Public client portal
-
-### Phase 3 (Future)
-- [ ] AI-assisted report drafting
-- [ ] GIS integration for archaeological sites
-- [ ] Museum-lite CMS module
-- [ ] IIIF image compatibility
-- [ ] Spectrum standard compliance
-
-## Target Users
-
-- Private conservators and freelancers
-- Small conservation studios
-- Churches, monasteries, and local heritage owners
-- Galleries, auction houses, and collectors
-- Small and regional museums
-- Archaeological field teams
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Shared logic | Kotlin 2.0, KMP, Coroutines, Serialization |
-| Networking | Ktor Client |
-| Local DB | SQLDelight |
-| DI | Koin |
-| Android UI | Jetpack Compose, Material 3, Navigation Compose |
-| iOS UI | SwiftUI, NavigationStack |
+| Layer | Technology |
+|-------|-----------|
+| Shared logic | Kotlin Multiplatform, Coroutines, Serialization |
+| iOS | SwiftUI, NavigationStack, PDFKit |
+| Android | Jetpack Compose, Material 3, Navigation |
 | Web | Next.js 14, React 18, TypeScript, Tailwind CSS |
-| Backend | Supabase (Postgres, Auth, Storage, RLS) |
-| Image loading | Coil (Android), AsyncImage (iOS) |
+| Server | Ktor 3.0, Exposed ORM, PostgreSQL, JWT Auth |
+| Local DB | SQLDelight (offline-first) |
+| Hosting | Self-hosted on Raspberry Pi 4, Docker Compose |
 
 ## License
 
-Proprietary. Copyright (c) 2024-2026 Petros Dhespollari. All rights reserved.
+Copyright (c) 2024-2026 Petros Dhespollari. All rights reserved.
 
-This software is source-available for educational purposes only. Commercial use, redistribution, derivative works, and use in competing products are strictly prohibited without written permission.
+This software is proprietary. Source code is visible for transparency and educational review. Commercial use, redistribution, derivative works, and use in competing products are prohibited without written permission.
 
-See [LICENSE](LICENSE) for full terms. For commercial licensing, contact via [peterdsp.dev](https://peterdsp.dev).
+For commercial licensing inquiries, contact via [peterdsp.dev](https://peterdsp.dev).
+
+See [LICENSE](LICENSE) for full terms.
