@@ -23,8 +23,22 @@ Professional conservation documentation platform for cultural heritage professio
 Conservatio helps conservators, small museums, galleries, churches, and archaeological teams create structured condition reports, manage conservation projects, annotate damage on images, and generate professional PDF documentation.
 
 <p align="center">
-  <img src="site/assets/condition-report-mockup.jpeg" alt="Conservatio condition report with damage annotation" width="600">
+  <img src="site/assets/report-preview.jpeg" alt="Conservatio condition report with damage annotation" width="600">
 </p>
+
+## Screenshots
+
+### iOS (iPhone 17, iOS 26)
+
+<p align="center">
+  <img src="docs/screenshots/ios-dashboard.png" alt="Dashboard" width="250">
+</p>
+
+<p align="center">
+  <em>Dashboard with stats, quick actions, and recent objects</em>
+</p>
+
+> More screenshots coming as features are built. Android screenshots will be added once Android Studio is set up.
 
 ## Architecture
 
