@@ -32,6 +32,16 @@ Built for private conservators, small museums, galleries, churches, archaeologic
   <img src="site/assets/report-preview.jpeg" alt="Professional condition report" width="600">
 </p>
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/ios-android-combined.png" alt="Conservatio on iOS and Android" width="700">
+</p>
+
+<p align="center">
+  <em>iOS (iPhone 17) and Android (Pixel 8) running side by side</em>
+</p>
+
 ## What Conservatio Does
 
 **Condition Reports.** Structured damage checklists, controlled vocabulary, condition ratings, and annotated photos. Export professional branded PDFs in multiple languages.

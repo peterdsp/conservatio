@@ -9,6 +9,7 @@ datetime = "0.6.1"
 serialization = "1.7.3"
 compose-multiplatform = "1.7.1"
 compose-compiler = "1.5.15"
+compose-plugin = "2.0.21"
 androidx-activityCompose = "1.9.3"
 androidx-core = "1.15.0"
 uuid = "0.1.2"
@@ -47,3 +48,4 @@ kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
