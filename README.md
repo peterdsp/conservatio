@@ -33,7 +33,7 @@ Conservatio helps conservators, small museums, galleries, churches, and archaeol
 </p>
 
 <p align="center">
-  <em>iOS (iPhone 17): Dashboard, Objects, Create Object, Settings</em>
+  <em>iOS (iPhone 17): Dashboard and Settings</em>
 </p>
 
 ## Architecture
