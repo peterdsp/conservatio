@@ -5,7 +5,7 @@ class APIClient {
     static let shared = APIClient()
 
     var baseURL: String {
-        get { UserDefaults.standard.string(forKey: "serverURL") ?? "http://192.168.10.10:8080" }
+        get { UserDefaults.standard.string(forKey: "serverURL") ?? "https://api.conservatio.peterdsp.dev" }
         set { UserDefaults.standard.set(newValue, forKey: "serverURL") }
     }
 
