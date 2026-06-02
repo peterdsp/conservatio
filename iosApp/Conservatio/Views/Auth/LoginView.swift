@@ -13,69 +13,30 @@ struct LoginView: View {
     var onSuccess: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
             Spacer()
 
-            // Logo
+            // Logo (coat of arms)
+            Image("Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 88, height: 88)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
+
+            Text("Conservatio")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(Color.conservatioPrimary)
+                .padding(.top, 12)
+
+            Text("Document heritage. Protect history.")
+                .font(.conservatioBodySmall)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+                .padding(.bottom, 32)
+
+            // Form
             VStack(spacing: 12) {
-                Image(systemName: "shield.lefthalf.filled")
-                    .font(.system(size: 56))
-                    .foregroundStyle(Color.conservatioPrimary)
-
-                Text("Conservatio")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(Color.conservatioPrimary)
-
-                Text("Document heritage. Protect history.")
-                    .font(.conservatioBodyMedium)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Social login buttons
-            VStack(spacing: 12) {
-                SignInWithAppleButton(.signIn) { request in
-                    request.requestedScopes = [.fullName, .email]
-                } onCompletion: { result in
-                    handleAppleSignIn(result)
-                }
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 50)
-                .cornerRadius(12)
-
-                Button {
-                    Task { await signInWithGoogle() }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "g.circle.fill")
-                            .font(.title3)
-                        Text("Sign in with Google")
-                            .font(.system(size: 16, weight: .medium))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.white)
-                    .foregroundStyle(.primary)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-                }
-            }
-            .padding(.horizontal, 32)
-
-            // Divider
-            HStack {
-                Rectangle().frame(height: 1).foregroundStyle(.quaternary)
-                Text("or")
-                    .font(.conservatioLabelMedium)
-                    .foregroundStyle(.secondary)
-                Rectangle().frame(height: 1).foregroundStyle(.quaternary)
-            }
-            .padding(.horizontal, 32)
-
-            // Email/password form
-            VStack(spacing: 14) {
                 if isRegistering {
                     TextField("Full Name", text: $name)
                         .textFieldStyle(.roundedBorder)
@@ -96,7 +57,7 @@ struct LoginView: View {
 
                 if let error = errorMessage {
                     Text(error)
-                        .font(.conservatioBodySmall)
+                        .font(.caption2)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
                 }
@@ -107,11 +68,12 @@ struct LoginView: View {
                     if isLoading {
                         ProgressView()
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 6)
                     } else {
                         Text(isRegistering ? "Create Account" : "Sign In")
+                            .font(.system(size: 15, weight: .semibold))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 6)
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -123,33 +85,76 @@ struct LoginView: View {
                     errorMessage = nil
                 } label: {
                     Text(isRegistering ? "Already have an account? Sign In" : "New here? Create Account")
-                        .font(.conservatioBodySmall)
+                        .font(.caption)
                         .foregroundStyle(Color.conservatioPrimary)
                 }
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, 40)
+
+            // Divider
+            HStack(spacing: 12) {
+                Rectangle().frame(height: 0.5).foregroundStyle(.quaternary)
+                Text("or continue with")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Rectangle().frame(height: 0.5).foregroundStyle(.quaternary)
+            }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 20)
+
+            // Social login (icon-only, compact)
+            HStack(spacing: 16) {
+                // Apple
+                Button {
+                    triggerAppleSignIn()
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.black)
+                        Image(systemName: "apple.logo")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.white)
+                    }
+                    .frame(width: 56, height: 44)
+                }
+
+                // Google
+                Button {
+                    Task { await signInWithGoogle() }
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                            )
+                        Text("G")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(.blue)
+                    }
+                    .frame(width: 56, height: 44)
+                }
+            }
 
             Spacer()
 
-            // Offline mode
+            // Offline
             Button {
                 onSuccess()
             } label: {
                 Text("Continue Offline")
-                    .font(.conservatioLabelMedium)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 28)
         }
         .background(Color.conservatioBackground)
     }
 
-    // MARK: - Email/Password Auth
-
     private func authenticate() async {
         isLoading = true
         errorMessage = nil
-
         do {
             if isRegistering {
                 try await apiClient.register(email: email, password: password, name: name)
@@ -160,55 +165,71 @@ struct LoginView: View {
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
-            errorMessage = "Could not connect to server. Check your network or continue offline."
+            errorMessage = "Could not connect. Check your network or continue offline."
         }
-
         isLoading = false
     }
 
-    // MARK: - Sign in with Apple
+    private func triggerAppleSignIn() {
+        let provider = ASAuthorizationAppleIDProvider()
+        let request = provider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        let delegate = AppleSignInDelegate { result in
+            handleAppleSignIn(result)
+        }
+        controller.delegate = delegate
+        // Keep delegate alive
+        objc_setAssociatedObject(controller, "delegate", delegate, .OBJC_ASSOCIATION_RETAIN)
+        controller.performRequests()
+    }
 
     private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
         switch result {
         case .success(let authorization):
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
-
             let userId = credential.user
             let email = credential.email
             let fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
-                .compactMap { $0 }
-                .joined(separator: " ")
-            let identityToken = credential.identityToken.flatMap { String(data: $0, encoding: .utf8) }
-
+                .compactMap { $0 }.joined(separator: " ")
+            let idToken = credential.identityToken.flatMap { String(data: $0, encoding: .utf8) }
             Task {
                 isLoading = true
                 do {
                     try await apiClient.socialLogin(
-                        provider: "apple",
-                        providerUserId: userId,
-                        email: email,
-                        name: fullName.isEmpty ? nil : fullName,
-                        idToken: identityToken
+                        provider: "apple", providerUserId: userId,
+                        email: email, name: fullName.isEmpty ? nil : fullName, idToken: idToken
                     )
                     onSuccess()
                 } catch {
-                    errorMessage = "Apple sign in failed. Try email/password or continue offline."
+                    errorMessage = "Apple sign in failed. Try email or continue offline."
                 }
                 isLoading = false
             }
-
-        case .failure(let error):
-            if (error as NSError).code != ASAuthorizationError.canceled.rawValue {
-                errorMessage = "Apple sign in was cancelled."
-            }
+        case .failure:
+            break
         }
     }
 
-    // MARK: - Sign in with Google
-
     private func signInWithGoogle() async {
-        // TODO: integrate Google Sign-In SDK
-        // For now, show a message
-        errorMessage = "Google sign in coming soon. Use email/password or Apple."
+        errorMessage = "Google sign in coming soon."
+    }
+}
+
+// MARK: - Apple Sign In Delegate
+
+class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate {
+    let completion: (Result<ASAuthorization, Error>) -> Void
+
+    init(completion: @escaping (Result<ASAuthorization, Error>) -> Void) {
+        self.completion = completion
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        completion(.success(authorization))
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        completion(.failure(error))
     }
 }
