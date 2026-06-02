@@ -29,7 +29,11 @@ Conservatio helps conservators, small museums, galleries, churches, and archaeol
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/ios-dashboard-mockup.png" alt="Conservatio iOS Dashboard" width="280">
+  <img src="docs/screenshots/ios-dashboard-mockup.png" alt="Conservatio iOS - Dashboard" width="300">
+</p>
+
+<p align="center">
+  <em>iOS: Dashboard with stats, quick actions, and recent objects</em>
 </p>
 
 ## Architecture
