@@ -16,13 +16,11 @@ struct LoginView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Logo (coat of arms)
+            // Logo (coat of arms, transparent background)
             Image("Logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 88, height: 88)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
+                .frame(width: 100, height: 100)
 
             Text("Conservatio")
                 .font(.system(size: 24, weight: .bold))
@@ -36,24 +34,39 @@ struct LoginView: View {
                 .padding(.bottom, 32)
 
             // Form
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 if isRegistering {
                     TextField("Full Name", text: $name)
-                        .textFieldStyle(.roundedBorder)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.15), lineWidth: 1))
                         .textContentType(.name)
                         .autocorrectionDisabled()
+                        .font(.system(size: 15))
                 }
 
                 TextField("Email", text: $email)
-                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.15), lineWidth: 1))
                     .textContentType(.emailAddress)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
+                    .font(.system(size: 15))
 
                 SecureField("Password", text: $password)
-                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.15), lineWidth: 1))
                     .textContentType(isRegistering ? .newPassword : .password)
+                    .font(.system(size: 15))
 
                 if let error = errorMessage {
                     Text(error)
@@ -67,17 +80,23 @@ struct LoginView: View {
                 } label: {
                     if isLoading {
                         ProgressView()
+                            .tint(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, 14)
                     } else {
                         Text(isRegistering ? "Create Account" : "Sign In")
                             .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, 14)
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.conservatioPrimary)
+                .background(
+                    (email.isEmpty || password.isEmpty || isLoading)
+                    ? Color.gray.opacity(0.3)
+                    : Color.conservatioPrimary
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
                 .disabled(email.isEmpty || password.isEmpty || isLoading)
 
                 Button {
