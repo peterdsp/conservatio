@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.conservatio.android.androidApp-mergeDebugResources-62:/values-v16/values-v16.xml",
+            "map": [
+                {
+                    "source": "/Users/p.dhespollari/.gradle/caches/transforms-4/4254d2f119a986711102fdbe3cf106fd/transformed/appcompat-1.7.0/res/values-v16/values-v16.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "5",
+                        "endColumns": "12",
+                        "endOffsets": "223"
+                    }
+                }
+            ]
+        }
+    ]
+}

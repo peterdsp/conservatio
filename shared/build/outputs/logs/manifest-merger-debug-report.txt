@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml:2:13-83
+INJECTED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml:2:13-83
+	package
+		INJECTED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml
+	xmlns:android
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml:2:23-81
+uses-sdk
+INJECTED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml reason: use-sdk injection requested
+INJECTED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml
+INJECTED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml
+	android:targetSdkVersion
+		INJECTED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml
+	android:minSdkVersion
+		INJECTED from /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest11682130192478556773.xml

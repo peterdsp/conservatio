@@ -1,0 +1,155 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.conservatio.android"
+4    android:versionCode="1"
+5    android:versionName="0.1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="35" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:4:5-67
+11-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:4:22-64
+12    <uses-permission android:name="android.permission.CAMERA" />
+12-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:5:5-65
+12-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:5:22-62
+13    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+13-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:6:5-80
+13-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:6:22-77
+14    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+14-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:7:5-81
+14-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:7:22-78
+15
+16    <uses-feature
+16-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:9:5-85
+17        android:name="android.hardware.camera"
+17-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:9:19-57
+18        android:required="false" />
+18-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:9:58-82
+19
+20    <permission
+20-->[androidx.core:core:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/e4e46fdda204fcf8e3d0fe1c69349a42/transformed/core-1.15.0/AndroidManifest.xml:22:5-24:47
+21        android:name="com.conservatio.android.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+21-->[androidx.core:core:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/e4e46fdda204fcf8e3d0fe1c69349a42/transformed/core-1.15.0/AndroidManifest.xml:23:9-81
+22        android:protectionLevel="signature" />
+22-->[androidx.core:core:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/e4e46fdda204fcf8e3d0fe1c69349a42/transformed/core-1.15.0/AndroidManifest.xml:24:9-44
+23
+24    <uses-permission android:name="com.conservatio.android.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+24-->[androidx.core:core:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/e4e46fdda204fcf8e3d0fe1c69349a42/transformed/core-1.15.0/AndroidManifest.xml:26:5-97
+24-->[androidx.core:core:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/e4e46fdda204fcf8e3d0fe1c69349a42/transformed/core-1.15.0/AndroidManifest.xml:26:22-94
+25
+26    <application
+26-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:11:5-28:19
+27        android:name="com.conservatio.android.ConservatioApp"
+27-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:12:9-39
+28        android:allowBackup="true"
+28-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:13:9-35
+29        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+29-->[androidx.core:core:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/e4e46fdda204fcf8e3d0fe1c69349a42/transformed/core-1.15.0/AndroidManifest.xml:28:18-86
+30        android:debuggable="true"
+31        android:extractNativeLibs="false"
+32        android:icon="@mipmap/ic_launcher"
+32-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:14:9-43
+33        android:label="Conservatio"
+33-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:15:9-36
+34        android:roundIcon="@mipmap/ic_launcher_round"
+34-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:16:9-54
+35        android:supportsRtl="true"
+35-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:17:9-35
+36        android:theme="@style/Theme.Conservatio" >
+36-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:18:9-49
+37        <activity
+37-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:19:9-27:20
+38            android:name="com.conservatio.android.MainActivity"
+38-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:20:13-41
+39            android:exported="true"
+39-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:21:13-36
+40            android:windowSoftInputMode="adjustResize" >
+40-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:22:13-55
+41            <intent-filter>
+41-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:23:13-26:29
+42                <action android:name="android.intent.action.MAIN" />
+42-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:24:17-69
+42-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:24:25-66
+43
+44                <category android:name="android.intent.category.LAUNCHER" />
+44-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:25:17-77
+44-->/Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:25:27-74
+45            </intent-filter>
+46        </activity>
+47        <activity
+47-->[androidx.compose.ui:ui-tooling-android:1.7.5] /Users/p.dhespollari/.gradle/caches/transforms-4/b0f3ca6b6acc7bcb8151779f1084494b/transformed/ui-tooling-release/AndroidManifest.xml:23:9-25:39
+48            android:name="androidx.compose.ui.tooling.PreviewActivity"
+48-->[androidx.compose.ui:ui-tooling-android:1.7.5] /Users/p.dhespollari/.gradle/caches/transforms-4/b0f3ca6b6acc7bcb8151779f1084494b/transformed/ui-tooling-release/AndroidManifest.xml:24:13-71
+49            android:exported="true" />
+49-->[androidx.compose.ui:ui-tooling-android:1.7.5] /Users/p.dhespollari/.gradle/caches/transforms-4/b0f3ca6b6acc7bcb8151779f1084494b/transformed/ui-tooling-release/AndroidManifest.xml:25:13-36
+50
+51        <provider
+51-->[androidx.emoji2:emoji2:1.3.0] /Users/p.dhespollari/.gradle/caches/transforms-4/222639bdc949cbaf61d0af805e237a1d/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+52            android:name="androidx.startup.InitializationProvider"
+52-->[androidx.emoji2:emoji2:1.3.0] /Users/p.dhespollari/.gradle/caches/transforms-4/222639bdc949cbaf61d0af805e237a1d/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+53            android:authorities="com.conservatio.android.androidx-startup"
+53-->[androidx.emoji2:emoji2:1.3.0] /Users/p.dhespollari/.gradle/caches/transforms-4/222639bdc949cbaf61d0af805e237a1d/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+54            android:exported="false" >
+54-->[androidx.emoji2:emoji2:1.3.0] /Users/p.dhespollari/.gradle/caches/transforms-4/222639bdc949cbaf61d0af805e237a1d/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+55            <meta-data
+55-->[androidx.emoji2:emoji2:1.3.0] /Users/p.dhespollari/.gradle/caches/transforms-4/222639bdc949cbaf61d0af805e237a1d/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+56                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+56-->[androidx.emoji2:emoji2:1.3.0] /Users/p.dhespollari/.gradle/caches/transforms-4/222639bdc949cbaf61d0af805e237a1d/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+57                android:value="androidx.startup" />
+57-->[androidx.emoji2:emoji2:1.3.0] /Users/p.dhespollari/.gradle/caches/transforms-4/222639bdc949cbaf61d0af805e237a1d/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+58            <meta-data
+58-->[androidx.lifecycle:lifecycle-process:2.8.7] /Users/p.dhespollari/.gradle/caches/transforms-4/3ea5905056d8f6014e32daa2a7505a8c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:29:13-31:52
+59                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+59-->[androidx.lifecycle:lifecycle-process:2.8.7] /Users/p.dhespollari/.gradle/caches/transforms-4/3ea5905056d8f6014e32daa2a7505a8c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:30:17-78
+60                android:value="androidx.startup" />
+60-->[androidx.lifecycle:lifecycle-process:2.8.7] /Users/p.dhespollari/.gradle/caches/transforms-4/3ea5905056d8f6014e32daa2a7505a8c/transformed/lifecycle-process-2.8.7/AndroidManifest.xml:31:17-49
+61            <meta-data
+61-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+62                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+62-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+63                android:value="androidx.startup" />
+63-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+64        </provider>
+65
+66        <receiver
+66-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+67            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+67-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+68            android:directBootAware="false"
+68-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+69            android:enabled="true"
+69-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+70            android:exported="true"
+70-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+71            android:permission="android.permission.DUMP" >
+71-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+72            <intent-filter>
+72-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+73                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+73-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+73-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+74            </intent-filter>
+75            <intent-filter>
+75-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+76                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+76-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+76-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+77            </intent-filter>
+78            <intent-filter>
+78-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+79                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+79-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+79-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+80            </intent-filter>
+81            <intent-filter>
+81-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+82                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/p.dhespollari/.gradle/caches/transforms-4/ce16f410772c8ca41a3c2e87f624d654/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+83            </intent-filter>
+84        </receiver>
+85    </application>
+86
+87</manifest>
