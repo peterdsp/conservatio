@@ -28,14 +28,14 @@ a:hover { text-decoration: underline; }
 .site-header {
   position: sticky; top: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 24px;
+  padding: 10px 24px;
   background: rgba(250, 247, 244, 0.92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(121, 116, 126, 0.12);
 }
 
 .brand { display: flex; align-items: center; text-decoration: none; }
-.brand-logo { height: 36px; width: auto; }
+.brand-logo { height: 56px; width: auto; }
 
 .nav { display: flex; gap: 28px; }
 .nav a {
@@ -191,5 +191,5 @@ a:hover { text-decoration: underline; }
   .feature-grid, .platform-grid { grid-template-columns: 1fr; }
   .nav { display: none; }
   .site-header { padding: 10px 16px; }
-  .brand-logo { height: 28px; }
+  .brand-logo { height: 44px; }
 }
