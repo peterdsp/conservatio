@@ -36,6 +36,19 @@ class APIClient {
         token = response.token
     }
 
+    func socialLogin(provider: String, providerUserId: String, email: String?, name: String?, idToken: String?) async throws {
+        let body: [String: String?] = [
+            "provider": provider,
+            "provider_user_id": providerUserId,
+            "email": email,
+            "name": name,
+            "id_token": idToken
+        ]
+        let filtered = body.compactMapValues { $0 }
+        let response: AuthResponse = try await post("/api/auth/social", body: filtered)
+        token = response.token
+    }
+
     func logout() {
         token = nil
     }

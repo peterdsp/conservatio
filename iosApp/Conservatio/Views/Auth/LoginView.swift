@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     @State private var email = ""
@@ -12,7 +13,7 @@ struct LoginView: View {
     var onSuccess: () -> Void
 
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 24) {
             Spacer()
 
             // Logo
@@ -30,8 +31,51 @@ struct LoginView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Form
-            VStack(spacing: 16) {
+            // Social login buttons
+            VStack(spacing: 12) {
+                SignInWithAppleButton(.signIn) { request in
+                    request.requestedScopes = [.fullName, .email]
+                } onCompletion: { result in
+                    handleAppleSignIn(result)
+                }
+                .signInWithAppleButtonStyle(.black)
+                .frame(height: 50)
+                .cornerRadius(12)
+
+                Button {
+                    Task { await signInWithGoogle() }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "g.circle.fill")
+                            .font(.title3)
+                        Text("Sign in with Google")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(Color.white)
+                    .foregroundStyle(.primary)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                }
+            }
+            .padding(.horizontal, 32)
+
+            // Divider
+            HStack {
+                Rectangle().frame(height: 1).foregroundStyle(.quaternary)
+                Text("or")
+                    .font(.conservatioLabelMedium)
+                    .foregroundStyle(.secondary)
+                Rectangle().frame(height: 1).foregroundStyle(.quaternary)
+            }
+            .padding(.horizontal, 32)
+
+            // Email/password form
+            VStack(spacing: 14) {
                 if isRegistering {
                     TextField("Full Name", text: $name)
                         .textFieldStyle(.roundedBorder)
@@ -100,6 +144,8 @@ struct LoginView: View {
         .background(Color.conservatioBackground)
     }
 
+    // MARK: - Email/Password Auth
+
     private func authenticate() async {
         isLoading = true
         errorMessage = nil
@@ -118,5 +164,51 @@ struct LoginView: View {
         }
 
         isLoading = false
+    }
+
+    // MARK: - Sign in with Apple
+
+    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
+
+            let userId = credential.user
+            let email = credential.email
+            let fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+                .compactMap { $0 }
+                .joined(separator: " ")
+            let identityToken = credential.identityToken.flatMap { String(data: $0, encoding: .utf8) }
+
+            Task {
+                isLoading = true
+                do {
+                    try await apiClient.socialLogin(
+                        provider: "apple",
+                        providerUserId: userId,
+                        email: email,
+                        name: fullName.isEmpty ? nil : fullName,
+                        idToken: identityToken
+                    )
+                    onSuccess()
+                } catch {
+                    errorMessage = "Apple sign in failed. Try email/password or continue offline."
+                }
+                isLoading = false
+            }
+
+        case .failure(let error):
+            if (error as NSError).code != ASAuthorizationError.canceled.rawValue {
+                errorMessage = "Apple sign in was cancelled."
+            }
+        }
+    }
+
+    // MARK: - Sign in with Google
+
+    private func signInWithGoogle() async {
+        // TODO: integrate Google Sign-In SDK
+        // For now, show a message
+        errorMessage = "Google sign in coming soon. Use email/password or Apple."
     }
 }
