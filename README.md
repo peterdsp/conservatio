@@ -116,7 +116,7 @@ conservatio/
 
 ## License
 
-Copyright (c) 2024-2026 Petros Dhespollari. All rights reserved.
+Copyright (c) 2026 Petros Dhespollari. All rights reserved.
 
 This software is proprietary. Source code is visible for transparency and educational review. Commercial use, redistribution, derivative works, and use in competing products are prohibited without written permission.
 
