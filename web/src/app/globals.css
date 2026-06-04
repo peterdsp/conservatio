@@ -5,6 +5,10 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@400;700&display=swap");
 
 @layer base {
+  html {
+    min-height: 100%;
+  }
+
   body {
     @apply font-sans;
   }
