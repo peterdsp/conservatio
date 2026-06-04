@@ -48,6 +48,9 @@ struct ContentView: View {
                 selectedTab = tab
             }
         }
+        .task {
+            await objectStore.syncFromServer()
+        }
         .onOpenURL { url in
             handleDeepLink(url)
         }

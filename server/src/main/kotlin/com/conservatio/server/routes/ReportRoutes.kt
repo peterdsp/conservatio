@@ -8,7 +8,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -17,6 +16,7 @@ import java.util.*
 
 @Serializable
 data class CreateReportRequest(
+    val id: String? = null,
     val objectId: String,
     val reportType: String,
     val overallCondition: String,
@@ -51,6 +51,7 @@ fun Route.reportRoutes() {
                                 "examinationDate" to row[ConditionReportsTable.examinationDate].toString(),
                                 "notes" to (row[ConditionReportsTable.notes] ?: ""),
                                 "recommendations" to (row[ConditionReportsTable.recommendations] ?: ""),
+                                "imageIds" to row[ConditionReportsTable.imageIds].split(",").filter { it.isNotBlank() },
                                 "createdAt" to row[ConditionReportsTable.createdAt].toString(),
                                 "updatedAt" to row[ConditionReportsTable.updatedAt].toString()
                             )
@@ -62,7 +63,7 @@ fun Route.reportRoutes() {
             post {
                 val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
                 val request = call.receive<CreateReportRequest>()
-                val id = UUID.randomUUID()
+                val id = request.id?.takeIf { it.isNotBlank() }?.let(UUID::fromString) ?: UUID.randomUUID()
                 val now = Clock.System.now()
 
                 transaction {
@@ -72,7 +73,7 @@ fun Route.reportRoutes() {
                         it[reportType] = request.reportType
                         it[overallCondition] = request.overallCondition
                         it[examiner] = request.examiner
-                        it[examinationDate] = Instant.parse(request.examinationDate)
+                        it[examinationDate] = parseApiInstant(request.examinationDate)
                         it[damageAnnotations] = request.damageAnnotations
                         it[notes] = request.notes
                         it[recommendations] = request.recommendations

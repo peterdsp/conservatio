@@ -16,6 +16,7 @@ import java.util.*
 
 @Serializable
 data class CreateObjectRequest(
+    val id: String? = null,
     val title: String,
     val objectType: String,
     val materials: List<String> = emptyList(),
@@ -84,7 +85,7 @@ fun Route.objectRoutes() {
             post {
                 val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
                 val request = call.receive<CreateObjectRequest>()
-                val id = UUID.randomUUID()
+                val id = request.id?.takeIf { it.isNotBlank() }?.let(UUID::fromString) ?: UUID.randomUUID()
                 val now = Clock.System.now()
 
                 transaction {

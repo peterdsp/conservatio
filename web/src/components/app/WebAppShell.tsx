@@ -136,6 +136,73 @@ type ProjectFormState = Omit<Project, "id" | "createdAt" | "updatedAt">;
 type ReportFormState = Omit<Report, "id" | "createdAt" | "updatedAt">;
 type ModalKind = "object" | "client" | "project" | "report";
 
+type SyncAccount = {
+  baseUrl: string;
+  token: string;
+  email: string;
+  displayName: string;
+};
+
+type ApiObject = {
+  id: string;
+  title: string;
+  objectType: string;
+  materials: string[];
+  height?: number | null;
+  width?: number | null;
+  depth?: number | null;
+  measurementUnit?: string | null;
+  ownerName?: string | null;
+  locationDescription?: string | null;
+  inventoryNumber?: string | null;
+  description?: string | null;
+  imageIds: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ApiClient = {
+  id: string;
+  name: string;
+  type: string;
+  contactPerson?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ApiProject = {
+  id: string;
+  title: string;
+  clientId?: string | null;
+  objectIds: string[];
+  status: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  description?: string | null;
+  totalBudget?: number | null;
+  currency?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ApiReport = {
+  id: string;
+  objectId: string;
+  reportType: string;
+  overallCondition: string;
+  examiner: string;
+  examinationDate: string;
+  notes?: string | null;
+  recommendations?: string | null;
+  imageIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 const objectTypes: ObjectType[] = [
   "Painting",
   "Icon",
@@ -377,6 +444,13 @@ const navItems: Array<{ section: WebSection; label: string; icon: typeof Box }> 
     { section: "settings", label: "Settings", icon: Settings },
   ];
 
+const defaultSyncAccount: SyncAccount = {
+  baseUrl: "https://api.conservatio.peterdsp.dev",
+  token: "",
+  email: "",
+  displayName: "",
+};
+
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -432,6 +506,11 @@ export function WebAppShell() {
     "conservatio.reports",
     seedReports,
   );
+  const [syncAccount, setSyncAccount] = usePersistentState(
+    "conservatio.syncAccount",
+    defaultSyncAccount,
+  );
+  const [syncStatus, setSyncStatus] = useState("Offline local mode");
   const [query, setQuery] = useState("");
 
   const filteredObjects = useMemo(() => {
@@ -454,98 +533,253 @@ export function WebAppShell() {
     );
   }, [objects, query]);
 
-  function createObject(form: ObjectFormState) {
+  useEffect(() => {
+    if (!syncAccount.token) {
+      return;
+    }
+
+    void refreshFromServer(syncAccount);
+    // Refresh persisted sessions only when the saved token changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncAccount.token]);
+
+  async function apiRequest<T>(
+    path: string,
+    options: RequestInit = {},
+    account = syncAccount,
+  ): Promise<T> {
+    const response = await fetch(`${account.baseUrl}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${account.token}`,
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API ${response.status}`);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return (await response.json()) as T;
+  }
+
+  async function refreshFromServer(account = syncAccount) {
+    if (!account.token) {
+      return;
+    }
+
+    try {
+      setSyncStatus("Syncing with server");
+      const [remoteObjects, remoteClients, remoteProjects, remoteReports] =
+        await Promise.all([
+          apiRequest<ApiObject[]>("/api/objects", {}, account),
+          apiRequest<ApiClient[]>("/api/clients", {}, account),
+          apiRequest<ApiProject[]>("/api/projects", {}, account),
+          apiRequest<ApiReport[]>("/api/reports", {}, account),
+        ]);
+
+      setObjects(remoteObjects.map(fromApiObject));
+      setClients(remoteClients.map(fromApiClient));
+      setProjects(remoteProjects.map(fromApiProject));
+      setReports(remoteReports.map(fromApiReport));
+      setSyncStatus(`Synced ${new Date().toLocaleTimeString()}`);
+    } catch {
+      setSyncStatus("Sync failed, using local data");
+    }
+  }
+
+  async function signIn(email: string, password: string, mode: "login" | "register") {
+    try {
+      setSyncStatus("Signing in");
+      const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      const body =
+        mode === "login"
+          ? { email, password }
+          : { email, password, displayName: email.split("@")[0] || email };
+      const response = await fetch(`${syncAccount.baseUrl}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Auth ${response.status}`);
+      }
+
+      const auth = (await response.json()) as {
+        token: string;
+        email: string;
+        displayName: string;
+      };
+      const account = {
+        ...syncAccount,
+        token: auth.token,
+        email: auth.email,
+        displayName: auth.displayName,
+      };
+      setSyncAccount(account);
+      await refreshFromServer(account);
+    } catch {
+      setSyncStatus("Sign in failed");
+    }
+  }
+
+  function signOut() {
+    setSyncAccount(defaultSyncAccount);
+    setSyncStatus("Offline local mode");
+  }
+
+  async function createObject(form: ObjectFormState) {
     const timestamp = today();
     const materials = form.materialsText
       .split(",")
       .map((material) => material.trim())
       .filter(Boolean);
-
-    setObjects((current) => [
-      {
-        id: createId("obj"),
-        title: form.title.trim(),
-        objectType: form.objectType,
-        materials,
-        ownerName: form.ownerName.trim(),
-        locationDescription: form.locationDescription.trim(),
-        inventoryNumber: form.inventoryNumber.trim(),
-        description: form.description.trim(),
-        dimensions: {
-          height: form.height.trim(),
-          width: form.width.trim(),
-          depth: form.depth.trim(),
-          unit: form.unit,
-        },
-        imageNames: form.imageNames,
-        createdAt: timestamp,
-        updatedAt: timestamp,
+    const object: ConservationObject = {
+      id: createId("obj"),
+      title: form.title.trim(),
+      objectType: form.objectType,
+      materials,
+      ownerName: form.ownerName.trim(),
+      locationDescription: form.locationDescription.trim(),
+      inventoryNumber: form.inventoryNumber.trim(),
+      description: form.description.trim(),
+      dimensions: {
+        height: form.height.trim(),
+        width: form.width.trim(),
+        depth: form.depth.trim(),
+        unit: form.unit,
       },
-      ...current,
-    ]);
+      imageNames: form.imageNames,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    if (syncAccount.token) {
+      try {
+        const remote = await apiRequest<ApiObject>("/api/objects", {
+          method: "POST",
+          body: JSON.stringify(toApiObjectRequest(object)),
+        });
+        setObjects((current) => [fromApiObject(remote), ...current]);
+        setSyncStatus("Object synced");
+      } catch {
+        setObjects((current) => [object, ...current]);
+        setSyncStatus("Object saved locally, sync failed");
+      }
+    } else {
+      setObjects((current) => [object, ...current]);
+    }
     setActiveSection("objects");
     setModal(null);
   }
 
-  function createClient(form: ClientFormState) {
+  async function createClient(form: ClientFormState) {
     const timestamp = today();
-    setClients((current) => [
-      {
-        ...form,
-        id: createId("client"),
-        name: form.name.trim(),
-        contactPerson: form.contactPerson.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        address: form.address.trim(),
-        notes: form.notes.trim(),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      },
-      ...current,
-    ]);
+    const client: Client = {
+      ...form,
+      id: createId("client"),
+      name: form.name.trim(),
+      contactPerson: form.contactPerson.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      notes: form.notes.trim(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    if (syncAccount.token) {
+      try {
+        const remote = await apiRequest<ApiClient>("/api/clients", {
+          method: "POST",
+          body: JSON.stringify(toApiClientRequest(client)),
+        });
+        setClients((current) => [fromApiClient(remote), ...current]);
+        setSyncStatus("Client synced");
+      } catch {
+        setClients((current) => [client, ...current]);
+        setSyncStatus("Client saved locally, sync failed");
+      }
+    } else {
+      setClients((current) => [client, ...current]);
+    }
     setActiveSection("clients");
     setModal(null);
   }
 
-  function createProject(form: ProjectFormState) {
+  async function createProject(form: ProjectFormState) {
     const timestamp = today();
-    setProjects((current) => [
-      {
-        ...form,
-        id: createId("project"),
-        title: form.title.trim(),
-        description: form.description.trim(),
-        budget: form.budget.trim(),
-        currency: form.currency.trim() || "EUR",
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      },
-      ...current,
-    ]);
+    const project: Project = {
+      ...form,
+      id: createId("project"),
+      title: form.title.trim(),
+      description: form.description.trim(),
+      budget: form.budget.trim(),
+      currency: form.currency.trim() || "EUR",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    if (syncAccount.token) {
+      try {
+        const remote = await apiRequest<ApiProject>("/api/projects", {
+          method: "POST",
+          body: JSON.stringify(toApiProjectRequest(project)),
+        });
+        setProjects((current) => [fromApiProject(remote), ...current]);
+        setSyncStatus("Project synced");
+      } catch {
+        setProjects((current) => [project, ...current]);
+        setSyncStatus("Project saved locally, sync failed");
+      }
+    } else {
+      setProjects((current) => [project, ...current]);
+    }
     setActiveSection("projects");
     setModal(null);
   }
 
-  function createReport(form: ReportFormState) {
+  async function createReport(form: ReportFormState) {
     const timestamp = today();
-    setReports((current) => [
-      {
-        ...form,
-        id: createId("report"),
-        examiner: form.examiner.trim(),
-        notes: form.notes.trim(),
-        recommendations: form.recommendations.trim(),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      },
-      ...current,
-    ]);
+    const report: Report = {
+      ...form,
+      id: createId("report"),
+      examiner: form.examiner.trim(),
+      notes: form.notes.trim(),
+      recommendations: form.recommendations.trim(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    if (syncAccount.token) {
+      try {
+        await apiRequest<{ id: string }>("/api/reports", {
+          method: "POST",
+          body: JSON.stringify(toApiReportRequest(report)),
+        });
+        await refreshFromServer();
+        setSyncStatus("Report synced");
+      } catch {
+        setReports((current) => [report, ...current]);
+        setSyncStatus("Report saved locally, sync failed");
+      }
+    } else {
+      setReports((current) => [report, ...current]);
+    }
     setActiveSection("reports");
     setModal(null);
   }
 
-  function deleteObject(id: string) {
+  async function deleteObject(id: string) {
+    if (syncAccount.token) {
+      void apiRequest(`/api/objects/${id}`, { method: "DELETE" });
+    }
     setObjects((current) => current.filter((object) => object.id !== id));
     setProjects((current) =>
       current.map((project) => ({
@@ -557,6 +791,9 @@ export function WebAppShell() {
   }
 
   function deleteClient(id: string) {
+    if (syncAccount.token) {
+      void apiRequest(`/api/clients/${id}`, { method: "DELETE" });
+    }
     setClients((current) => current.filter((client) => client.id !== id));
     setProjects((current) =>
       current.map((project) =>
@@ -566,10 +803,16 @@ export function WebAppShell() {
   }
 
   function deleteProject(id: string) {
+    if (syncAccount.token) {
+      void apiRequest(`/api/projects/${id}`, { method: "DELETE" });
+    }
     setProjects((current) => current.filter((project) => project.id !== id));
   }
 
   function deleteReport(id: string) {
+    if (syncAccount.token) {
+      void apiRequest(`/api/reports/${id}`, { method: "DELETE" });
+    }
     setReports((current) => current.filter((report) => report.id !== id));
   }
 
@@ -604,6 +847,7 @@ export function WebAppShell() {
                 clients={clients}
                 projects={projects}
                 reports={reports}
+                syncStatus={syncStatus}
                 onCreate={setModal}
                 onNavigate={setActiveSection}
               />
@@ -643,7 +887,17 @@ export function WebAppShell() {
               />
             )}
             {activeSection === "settings" && (
-              <SettingsView onResetDemoData={resetDemoData} />
+              <SettingsView
+                syncAccount={syncAccount}
+                syncStatus={syncStatus}
+                onResetDemoData={resetDemoData}
+                onRefresh={() => refreshFromServer()}
+                onSetBaseUrl={(baseUrl) =>
+                  setSyncAccount((current) => ({ ...current, baseUrl }))
+                }
+                onSignIn={signIn}
+                onSignOut={signOut}
+              />
             )}
           </div>
         </main>
@@ -748,6 +1002,7 @@ function DashboardView({
   clients,
   projects,
   reports,
+  syncStatus,
   onCreate,
   onNavigate,
 }: {
@@ -755,6 +1010,7 @@ function DashboardView({
   clients: Client[];
   projects: Project[];
   reports: Report[];
+  syncStatus: string;
   onCreate: (kind: ModalKind) => void;
   onNavigate: (section: WebSection) => void;
 }) {
@@ -793,7 +1049,7 @@ function DashboardView({
               <p className="text-sm font-medium text-secondary-100">
                 Storage status
               </p>
-              <h2 className="mt-2 text-2xl font-bold">Browser saved</h2>
+              <h2 className="mt-2 text-2xl font-bold">{syncStatus}</h2>
             </div>
             <Cloud className="text-secondary-200" size={28} />
           </div>
@@ -1071,16 +1327,30 @@ function ReportsView({
 }
 
 function SettingsView({
+  syncAccount,
+  syncStatus,
   onResetDemoData,
+  onRefresh,
+  onSetBaseUrl,
+  onSignIn,
+  onSignOut,
 }: {
+  syncAccount: SyncAccount;
+  syncStatus: string;
   onResetDemoData: () => void;
+  onRefresh: () => void;
+  onSetBaseUrl: (baseUrl: string) => void;
+  onSignIn: (email: string, password: string, mode: "login" | "register") => void;
+  onSignOut: () => void;
 }) {
+  const [email, setEmail] = useState(syncAccount.email);
+  const [password, setPassword] = useState("");
   const groups = [
     {
       title: "Account",
       items: [
         { label: "Profile", icon: Users, detail: "Local demo profile" },
-        { label: "Sync and Storage", icon: Cloud, detail: "Browser storage active" },
+        { label: "Sync and Storage", icon: Cloud, detail: syncStatus },
       ],
     },
     {
@@ -1105,8 +1375,64 @@ function SettingsView({
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        subtitle="Browser storage is active. Reset only clears local web demo data."
+        subtitle="Sign in to sync web records with the same backend used by iOS and Android."
       />
+      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+          <TextField
+            label="API URL"
+            value={syncAccount.baseUrl}
+            onChange={onSetBaseUrl}
+          />
+          <TextField
+            label="Email"
+            value={email}
+            onChange={setEmail}
+            type="email"
+          />
+          <TextField
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            type="password"
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            onClick={() => onSignIn(email, password, "login")}
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark"
+            type="button"
+          >
+            Sign In and Sync
+          </button>
+          <button
+            onClick={() => onSignIn(email, password, "register")}
+            className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
+            type="button"
+          >
+            Register
+          </button>
+          <button
+            onClick={onRefresh}
+            className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
+            type="button"
+          >
+            Pull From Server
+          </button>
+          <button
+            onClick={onSignOut}
+            className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
+            type="button"
+          >
+            Sign Out
+          </button>
+        </div>
+        <p className="mt-3 text-sm text-heritage-text-secondary">
+          {syncAccount.token
+            ? `Signed in as ${syncAccount.email}. ${syncStatus}.`
+            : `Not signed in. ${syncStatus}.`}
+        </p>
+      </section>
       <div className="grid gap-4 lg:grid-cols-3">
         {groups.map((group) => (
           <section
@@ -2106,4 +2432,207 @@ function formatDimensions(object: ConservationObject) {
   }
 
   return `${values.join(" x ")} ${object.dimensions.unit}`;
+}
+
+function toApiObjectType(type: ObjectType) {
+  return type.toUpperCase().replaceAll(" ", "_");
+}
+
+function fromApiObjectType(type: string): ObjectType {
+  const normalized = type
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  const match = objectTypes.find(
+    (objectType) => objectType.toLowerCase() === normalized.toLowerCase(),
+  );
+
+  return match ?? "Other";
+}
+
+function toApiCondition(condition: ConditionRating) {
+  return condition.toUpperCase();
+}
+
+function fromApiCondition(condition: string): ConditionRating {
+  const normalized =
+    condition.charAt(0).toUpperCase() + condition.slice(1).toLowerCase();
+  return conditionRatings.includes(normalized as ConditionRating)
+    ? (normalized as ConditionRating)
+    : "Fair";
+}
+
+function toApiObjectRequest(object: ConservationObject) {
+  return {
+    id: object.id,
+    title: object.title,
+    objectType: toApiObjectType(object.objectType),
+    materials: object.materials,
+    height: toNumber(object.dimensions.height),
+    width: toNumber(object.dimensions.width),
+    depth: toNumber(object.dimensions.depth),
+    measurementUnit: object.dimensions.unit,
+    ownerName: object.ownerName || null,
+    locationDescription: object.locationDescription || null,
+    inventoryNumber: object.inventoryNumber || null,
+    description: object.description || null,
+    imageIds: object.imageNames,
+  };
+}
+
+function fromApiObject(object: ApiObject): ConservationObject {
+  return {
+    id: object.id,
+    title: object.title,
+    objectType: fromApiObjectType(object.objectType),
+    materials: object.materials ?? [],
+    ownerName: object.ownerName ?? "",
+    locationDescription: object.locationDescription ?? "",
+    inventoryNumber: object.inventoryNumber ?? "",
+    description: object.description ?? "",
+    dimensions: {
+      height: object.height?.toString() ?? "",
+      width: object.width?.toString() ?? "",
+      depth: object.depth?.toString() ?? "",
+      unit: toWebUnit(object.measurementUnit),
+    },
+    imageNames: object.imageIds ?? [],
+    createdAt: object.createdAt.slice(0, 10),
+    updatedAt: object.updatedAt.slice(0, 10),
+  };
+}
+
+function toApiClientRequest(client: Client) {
+  return {
+    id: client.id,
+    name: client.name,
+    type: client.type,
+    contactPerson: client.contactPerson || null,
+    email: client.email || null,
+    phone: client.phone || null,
+    address: client.address || null,
+    notes: client.notes || null,
+  };
+}
+
+function fromApiClient(client: ApiClient): Client {
+  return {
+    id: client.id,
+    name: client.name,
+    type: client.type,
+    contactPerson: client.contactPerson ?? "",
+    email: client.email ?? "",
+    phone: client.phone ?? "",
+    address: client.address ?? "",
+    notes: client.notes ?? "",
+    createdAt: client.createdAt.slice(0, 10),
+    updatedAt: client.updatedAt.slice(0, 10),
+  };
+}
+
+function toApiProjectRequest(project: Project) {
+  return {
+    id: project.id,
+    title: project.title,
+    clientId: project.clientId || null,
+    objectIds: project.objectIds,
+    status: project.status,
+    startDate: project.startDate || null,
+    endDate: project.endDate || null,
+    description: project.description || null,
+    totalBudget: toNumber(project.budget),
+    currency: project.currency || null,
+  };
+}
+
+function fromApiProject(project: ApiProject): Project {
+  return {
+    id: project.id,
+    title: project.title,
+    clientId: project.clientId ?? "",
+    objectIds: project.objectIds ?? [],
+    status: normalizeProjectStatus(project.status),
+    startDate: project.startDate?.slice(0, 10) ?? "",
+    endDate: project.endDate?.slice(0, 10) ?? "",
+    description: project.description ?? "",
+    budget: project.totalBudget?.toString() ?? "",
+    currency: project.currency ?? "EUR",
+    createdAt: project.createdAt.slice(0, 10),
+    updatedAt: project.updatedAt.slice(0, 10),
+  };
+}
+
+function toApiReportRequest(report: Report) {
+  return {
+    id: report.id,
+    objectId: report.objectId,
+    reportType: report.reportType
+      .toUpperCase()
+      .replaceAll(" ", "_")
+      .replaceAll("-", "_"),
+    overallCondition: toApiCondition(report.condition),
+    examiner: report.examiner,
+    examinationDate: report.examinationDate,
+    notes: report.notes || null,
+    recommendations: report.recommendations || null,
+    imageIds: report.imageNames,
+  };
+}
+
+function fromApiReport(report: ApiReport): Report {
+  return {
+    id: report.id,
+    objectId: report.objectId,
+    reportType: fromApiReportType(report.reportType),
+    condition: fromApiCondition(report.overallCondition),
+    examiner: report.examiner,
+    examinationDate: report.examinationDate.slice(0, 10),
+    notes: report.notes ?? "",
+    recommendations: report.recommendations ?? "",
+    imageNames: report.imageIds ?? [],
+    createdAt: report.createdAt.slice(0, 10),
+    updatedAt: report.updatedAt.slice(0, 10),
+  };
+}
+
+function fromApiReportType(reportType: string) {
+  const normalized = reportType
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  const match = reportTypes.find(
+    (type) => type.toLowerCase() === normalized.toLowerCase(),
+  );
+
+  return match ?? "Initial assessment";
+}
+
+function normalizeProjectStatus(status: string): ProjectStatus {
+  const match = projectStatuses.find(
+    (projectStatus) => projectStatus.toLowerCase() === status.toLowerCase(),
+  );
+  return match ?? "Inquiry";
+}
+
+function toWebUnit(unit?: string | null): "cm" | "m" | "in" {
+  if (unit === "m" || unit === "M") {
+    return "m";
+  }
+
+  if (unit === "in" || unit === "INCH") {
+    return "in";
+  }
+
+  return "cm";
+}
+
+function toNumber(value: string) {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }

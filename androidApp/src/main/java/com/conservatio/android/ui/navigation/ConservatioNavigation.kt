@@ -93,7 +93,10 @@ fun ConservatioNavHost(
         }
 
         composable(Screen.SettingsSync.route) {
-            SyncScreen(onBack = { navController.popBackStack() })
+            SyncScreen(
+                objectStore = objectStore,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.SettingsAbout.route) {

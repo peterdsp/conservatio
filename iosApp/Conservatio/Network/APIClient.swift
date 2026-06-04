@@ -25,7 +25,7 @@ class APIClient {
     // MARK: - Auth
 
     func register(email: String, password: String, name: String) async throws {
-        let body: [String: String] = ["email": email, "password": password, "name": name]
+        let body: [String: String] = ["email": email, "password": password, "displayName": name]
         let response: AuthResponse = try await post("/api/auth/register", body: body)
         token = response.token
     }
@@ -63,6 +63,34 @@ class APIClient {
         try await post("/api/objects", body: object)
     }
 
+    func deleteObject(id: String) async throws {
+        try await delete("/api/objects/\(id)")
+    }
+
+    func fetchClients() async throws -> [ServerClient] {
+        try await get("/api/clients")
+    }
+
+    func createClient(_ client: CreateClientRequest) async throws -> ServerClient {
+        try await post("/api/clients", body: client)
+    }
+
+    func fetchProjects() async throws -> [ServerProject] {
+        try await get("/api/projects")
+    }
+
+    func createProject(_ project: CreateProjectRequest) async throws -> ServerProject {
+        try await post("/api/projects", body: project)
+    }
+
+    func fetchReports() async throws -> [ServerReport] {
+        try await get("/api/reports")
+    }
+
+    func createReport(_ report: CreateReportRequest) async throws {
+        let _: EmptyResponse = try await post("/api/reports", body: report)
+    }
+
     // MARK: - HTTP
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
@@ -87,6 +115,16 @@ class APIClient {
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkResponse(response)
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    private func delete(_ path: String) async throws {
+        var request = URLRequest(url: URL(string: baseURL + path)!)
+        request.httpMethod = "DELETE"
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (_, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(response)
     }
 
     private func checkResponse(_ response: URLResponse) throws {
@@ -119,22 +157,116 @@ struct AuthResponse: Codable {
     let token: String
 }
 
+struct EmptyResponse: Codable {}
+
 struct ServerObject: Codable, Identifiable {
     let id: String
     let title: String
     let objectType: String
     let materials: [String]?
-    let ownerName: String?
-    let locationDescription: String?
-    let createdAt: String?
-}
-
-struct CreateObjectRequest: Codable {
-    let title: String
-    let objectType: String
-    let materials: [String]
+    let height: Double?
+    let width: Double?
+    let depth: Double?
+    let measurementUnit: String?
     let ownerName: String?
     let locationDescription: String?
     let inventoryNumber: String?
     let description: String?
+    let imageIds: [String]?
+    let createdAt: String?
+    let updatedAt: String?
+}
+
+struct CreateObjectRequest: Codable {
+    let id: String?
+    let title: String
+    let objectType: String
+    let materials: [String]
+    let height: Double?
+    let width: Double?
+    let depth: Double?
+    let measurementUnit: String?
+    let ownerName: String?
+    let locationDescription: String?
+    let inventoryNumber: String?
+    let description: String?
+    let imageIds: [String]
+}
+
+struct ServerClient: Codable, Identifiable {
+    let id: String
+    let name: String
+    let type: String
+    let contactPerson: String?
+    let email: String?
+    let phone: String?
+    let address: String?
+    let notes: String?
+    let createdAt: String?
+    let updatedAt: String?
+}
+
+struct CreateClientRequest: Codable {
+    let id: String?
+    let name: String
+    let type: String
+    let contactPerson: String?
+    let email: String?
+    let phone: String?
+    let address: String?
+    let notes: String?
+}
+
+struct ServerProject: Codable, Identifiable {
+    let id: String
+    let title: String
+    let clientId: String?
+    let objectIds: [String]
+    let status: String
+    let startDate: String?
+    let endDate: String?
+    let description: String?
+    let totalBudget: Double?
+    let currency: String?
+    let createdAt: String?
+    let updatedAt: String?
+}
+
+struct CreateProjectRequest: Codable {
+    let id: String?
+    let title: String
+    let clientId: String?
+    let objectIds: [String]
+    let status: String
+    let startDate: String?
+    let endDate: String?
+    let description: String?
+    let totalBudget: Double?
+    let currency: String?
+}
+
+struct ServerReport: Codable, Identifiable {
+    let id: String
+    let objectId: String
+    let reportType: String
+    let overallCondition: String
+    let examiner: String
+    let examinationDate: String
+    let notes: String?
+    let recommendations: String?
+    let imageIds: [String]?
+    let createdAt: String?
+    let updatedAt: String?
+}
+
+struct CreateReportRequest: Codable {
+    let id: String?
+    let objectId: String
+    let reportType: String
+    let overallCondition: String
+    let examiner: String
+    let examinationDate: String
+    let notes: String?
+    let recommendations: String?
+    let imageIds: [String]
 }

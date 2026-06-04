@@ -14,6 +14,7 @@ class ObjectStore {
     func add(_ object: ConservationObject) {
         objects.insert(object, at: 0)
         save()
+        Task { await syncCreatedObject(object) }
     }
 
     func update(_ object: ConservationObject) {
@@ -28,6 +29,19 @@ class ObjectStore {
     func delete(_ object: ConservationObject) {
         objects.removeAll { $0.id == object.id }
         save()
+        Task { try? await APIClient.shared.deleteObject(id: object.id.uuidString) }
+    }
+
+    @MainActor
+    func syncFromServer() async {
+        guard APIClient.shared.isLoggedIn else { return }
+        do {
+            let serverObjects = try await APIClient.shared.fetchObjects()
+            objects = serverObjects.compactMap { $0.conservationObject }
+            save()
+        } catch {
+            print("Failed to sync objects: \(error)")
+        }
     }
 
     func object(for id: UUID) -> ConservationObject? {
@@ -51,5 +65,68 @@ class ObjectStore {
         } catch {
             print("Failed to load objects: \(error)")
         }
+    }
+
+    private func syncCreatedObject(_ object: ConservationObject) async {
+        guard APIClient.shared.isLoggedIn else { return }
+        let request = CreateObjectRequest(
+            id: object.id.uuidString,
+            title: object.title,
+            objectType: object.objectType.rawValue,
+            materials: object.materials,
+            height: object.dimensions?.height,
+            width: object.dimensions?.width,
+            depth: object.dimensions?.depth,
+            measurementUnit: object.dimensions?.unit.displayName,
+            ownerName: object.ownerName,
+            locationDescription: object.locationDescription,
+            inventoryNumber: object.inventoryNumber,
+            description: object.description,
+            imageIds: object.imageIds
+        )
+        _ = try? await APIClient.shared.createObject(request)
+    }
+}
+
+private extension ServerObject {
+    var conservationObject: ConservationObject? {
+        guard let uuid = UUID(uuidString: id) else { return nil }
+        return ConservationObject(
+            id: uuid,
+            title: title,
+            objectType: ObjectType(rawValue: objectType) ?? .other,
+            materials: materials ?? [],
+            dimensions: Dimensions(
+                height: height,
+                width: width,
+                depth: depth,
+                unit: MeasurementUnit(displayName: measurementUnit)
+            ),
+            ownerName: ownerName,
+            locationDescription: locationDescription,
+            inventoryNumber: inventoryNumber,
+            description: description,
+            imageIds: imageIds ?? [],
+            createdAt: Date.apiDate(createdAt),
+            updatedAt: Date.apiDate(updatedAt)
+        )
+    }
+}
+
+private extension MeasurementUnit {
+    init(displayName: String?) {
+        switch displayName {
+        case "m", "M": self = .m
+        case "in", "INCH": self = .inch
+        case "mm", "MM": self = .mm
+        default: self = .cm
+        }
+    }
+}
+
+private extension Date {
+    static func apiDate(_ value: String?) -> Date {
+        guard let value else { return Date() }
+        return ISO8601DateFormatter().date(from: value) ?? Date()
     }
 }
