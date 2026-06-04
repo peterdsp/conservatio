@@ -338,16 +338,23 @@ function TopBar({
         <div className="flex flex-1 items-center gap-3 lg:hidden">
           <Menu className="text-primary" size={22} />
           <div>
-            <p className="text-base font-bold text-primary">Conservatio</p>
+            <p className="text-base font-bold text-primary">
+              Conservatio Web App
+            </p>
             <p className="text-xs text-heritage-text-secondary">
               {labelForSection(activeSection)}
             </p>
           </div>
         </div>
         <div className="hidden flex-1 lg:block">
-          <p className="text-sm font-medium text-heritage-text-secondary">
-            {labelForSection(activeSection)}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm font-medium text-heritage-text-secondary">
+              {labelForSection(activeSection)}
+            </p>
+            <span className="rounded-full bg-primary-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
+              Web App
+            </span>
+          </div>
         </div>
         <button
           onClick={onCreateObject}
@@ -398,11 +405,12 @@ function DashboardView({
           <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="font-serif text-3xl font-bold text-heritage-text sm:text-4xl">
-                Your conservation workspace
+                Conservatio Web App
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-heritage-text-secondary">
-                Document objects, attach field photos, prepare reports, and keep
-                project context in one desktop-friendly workspace.
+                The same conservation workflow from iOS and Android, expanded
+                for desktop screens with wider lists, panels, and creation
+                forms.
               </p>
             </div>
             <button
