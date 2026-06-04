@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Box,
@@ -20,6 +20,7 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  Trash2,
   Upload,
   Users,
   X,
@@ -43,6 +44,16 @@ type ObjectType =
   | "Furniture"
   | "Other";
 
+type ConditionRating = "Excellent" | "Good" | "Fair" | "Poor" | "Critical";
+type ProjectStatus =
+  | "Inquiry"
+  | "Quoted"
+  | "Approved"
+  | "In progress"
+  | "On hold"
+  | "Completed"
+  | "Archived";
+
 type ConservationObject = {
   id: string;
   title: string;
@@ -63,6 +74,48 @@ type ConservationObject = {
   updatedAt: string;
 };
 
+type Client = {
+  id: string;
+  name: string;
+  type: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  address: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type Project = {
+  id: string;
+  title: string;
+  clientId: string;
+  objectIds: string[];
+  status: ProjectStatus;
+  startDate: string;
+  endDate: string;
+  description: string;
+  budget: string;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type Report = {
+  id: string;
+  objectId: string;
+  reportType: string;
+  condition: ConditionRating;
+  examiner: string;
+  examinationDate: string;
+  notes: string;
+  recommendations: string;
+  imageNames: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 type ObjectFormState = {
   title: string;
   objectType: ObjectType;
@@ -78,20 +131,10 @@ type ObjectFormState = {
   imageNames: string[];
 };
 
-const emptyForm: ObjectFormState = {
-  title: "",
-  objectType: "Painting",
-  materialsText: "",
-  ownerName: "",
-  locationDescription: "",
-  inventoryNumber: "",
-  description: "",
-  height: "",
-  width: "",
-  depth: "",
-  unit: "cm",
-  imageNames: [],
-};
+type ClientFormState = Omit<Client, "id" | "createdAt" | "updatedAt">;
+type ProjectFormState = Omit<Project, "id" | "createdAt" | "updatedAt">;
+type ReportFormState = Omit<Report, "id" | "createdAt" | "updatedAt">;
+type ModalKind = "object" | "client" | "project" | "report";
 
 const objectTypes: ObjectType[] = [
   "Painting",
@@ -110,6 +153,99 @@ const objectTypes: ObjectType[] = [
   "Furniture",
   "Other",
 ];
+
+const conditionRatings: ConditionRating[] = [
+  "Excellent",
+  "Good",
+  "Fair",
+  "Poor",
+  "Critical",
+];
+
+const projectStatuses: ProjectStatus[] = [
+  "Inquiry",
+  "Quoted",
+  "Approved",
+  "In progress",
+  "On hold",
+  "Completed",
+  "Archived",
+];
+
+const reportTypes = [
+  "Initial assessment",
+  "Pre-treatment",
+  "Post-treatment",
+  "Loan outgoing",
+  "Loan incoming",
+  "Insurance",
+  "Transport",
+  "Periodic check",
+  "Emergency",
+];
+
+const clientTypes = [
+  "Private collector",
+  "Museum",
+  "Gallery",
+  "Church",
+  "Monastery",
+  "Municipality",
+  "Archaeological service",
+  "University",
+  "Foundation",
+  "Architect",
+  "Insurance company",
+  "Other",
+];
+
+const emptyObjectForm: ObjectFormState = {
+  title: "",
+  objectType: "Painting",
+  materialsText: "",
+  ownerName: "",
+  locationDescription: "",
+  inventoryNumber: "",
+  description: "",
+  height: "",
+  width: "",
+  depth: "",
+  unit: "cm",
+  imageNames: [],
+};
+
+const emptyClientForm: ClientFormState = {
+  name: "",
+  type: "Private collector",
+  contactPerson: "",
+  email: "",
+  phone: "",
+  address: "",
+  notes: "",
+};
+
+const emptyProjectForm: ProjectFormState = {
+  title: "",
+  clientId: "",
+  objectIds: [],
+  status: "Inquiry",
+  startDate: "",
+  endDate: "",
+  description: "",
+  budget: "",
+  currency: "EUR",
+};
+
+const emptyReportForm: ReportFormState = {
+  objectId: "",
+  reportType: "Initial assessment",
+  condition: "Fair",
+  examiner: "",
+  examinationDate: "",
+  notes: "",
+  recommendations: "",
+  imageNames: [],
+};
 
 const seedObjects: ConservationObject[] = [
   {
@@ -144,6 +280,93 @@ const seedObjects: ConservationObject[] = [
   },
 ];
 
+const seedClients: Client[] = [
+  {
+    id: "client-1",
+    name: "Agios Nikolaos Church",
+    type: "Church",
+    contactPerson: "Fr. Dimitrios",
+    email: "office@example.org",
+    phone: "",
+    address: "Athens",
+    notes: "Primary contact for icon survey work.",
+    createdAt: "2026-05-18",
+    updatedAt: "2026-06-01",
+  },
+  {
+    id: "client-2",
+    name: "Municipal Collection",
+    type: "Municipality",
+    contactPerson: "Eleni Markou",
+    email: "",
+    phone: "",
+    address: "Gallery 2",
+    notes: "",
+    createdAt: "2026-05-12",
+    updatedAt: "2026-05-28",
+  },
+];
+
+const seedProjects: Project[] = [
+  {
+    id: "project-1",
+    title: "Byzantine icon survey",
+    clientId: "client-1",
+    objectIds: ["obj-1"],
+    status: "In progress",
+    startDate: "2026-05-18",
+    endDate: "",
+    description: "Initial documentation and condition review for panel icons.",
+    budget: "1200",
+    currency: "EUR",
+    createdAt: "2026-05-18",
+    updatedAt: "2026-06-01",
+  },
+  {
+    id: "project-2",
+    title: "Municipal metalwork review",
+    clientId: "client-2",
+    objectIds: ["obj-2"],
+    status: "Approved",
+    startDate: "2026-05-12",
+    endDate: "",
+    description: "Condition checks for bronze and iron objects before storage.",
+    budget: "900",
+    currency: "EUR",
+    createdAt: "2026-05-12",
+    updatedAt: "2026-05-28",
+  },
+];
+
+const seedReports: Report[] = [
+  {
+    id: "report-1",
+    objectId: "obj-1",
+    reportType: "Initial assessment",
+    condition: "Fair",
+    examiner: "Petros Dhespollari",
+    examinationDate: "2026-06-01",
+    notes: "Surface grime and localized paint instability observed.",
+    recommendations: "Stabilize flakes before cleaning tests.",
+    imageNames: ["front-detail.jpg"],
+    createdAt: "2026-06-01",
+    updatedAt: "2026-06-01",
+  },
+  {
+    id: "report-2",
+    objectId: "obj-2",
+    reportType: "Periodic check",
+    condition: "Good",
+    examiner: "Petros Dhespollari",
+    examinationDate: "2026-05-28",
+    notes: "Stable surface deposits. No active corrosion confirmed.",
+    recommendations: "Keep humidity stable and recheck in six months.",
+    imageNames: ["lamp-overview.jpg"],
+    createdAt: "2026-05-28",
+    updatedAt: "2026-05-28",
+  },
+];
+
 const navItems: Array<{ section: WebSection; label: string; icon: typeof Box }> =
   [
     { section: "dashboard", label: "Home", icon: LayoutDashboard },
@@ -154,70 +377,61 @@ const navItems: Array<{ section: WebSection; label: string; icon: typeof Box }> 
     { section: "settings", label: "Settings", icon: Settings },
   ];
 
-const projectRows = [
-  {
-    title: "Byzantine icon survey",
-    status: "In progress",
-    client: "Agios Nikolaos Church",
-    objects: 12,
-  },
-  {
-    title: "Municipal metalwork review",
-    status: "Approved",
-    client: "Municipal Collection",
-    objects: 8,
-  },
-  {
-    title: "Gallery loan condition checks",
-    status: "Inquiry",
-    client: "Aster Gallery",
-    objects: 5,
-  },
-];
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
 
-const clientRows = [
-  {
-    name: "Agios Nikolaos Church",
-    type: "Church",
-    contact: "Fr. Dimitrios",
-    projects: 2,
-  },
-  {
-    name: "Municipal Collection",
-    type: "Municipality",
-    contact: "Eleni Markou",
-    projects: 1,
-  },
-  {
-    name: "Aster Gallery",
-    type: "Gallery",
-    contact: "Nikos Stavros",
-    projects: 1,
-  },
-];
+function createId(prefix: string) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
 
-const reportRows = [
-  {
-    title: "Initial assessment",
-    object: "Saint Nicholas panel icon",
-    condition: "Fair",
-    examiner: "Petros Dhespollari",
-    date: "2026-06-01",
-  },
-  {
-    title: "Periodic check",
-    object: "Bronze votive lamp",
-    condition: "Good",
-    examiner: "Petros Dhespollari",
-    date: "2026-05-28",
-  },
-];
+  return `${prefix}-${Date.now()}`;
+}
+
+function usePersistentState<T>(key: string, fallback: T) {
+  const [value, setValue] = useState<T>(fallback);
+
+  useEffect(() => {
+    const rawValue = window.localStorage.getItem(key);
+    if (!rawValue) {
+      return;
+    }
+
+    try {
+      setValue(JSON.parse(rawValue) as T);
+    } catch {
+      window.localStorage.removeItem(key);
+    }
+  }, [key]);
+
+  useEffect(() => {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+
+  return [value, setValue] as const;
+}
 
 export function WebAppShell() {
   const [activeSection, setActiveSection] = useState<WebSection>("dashboard");
   const [collapsed, setCollapsed] = useState(false);
-  const [showCreateObject, setShowCreateObject] = useState(false);
-  const [objects, setObjects] = useState<ConservationObject[]>(seedObjects);
+  const [modal, setModal] = useState<ModalKind | null>(null);
+  const [objects, setObjects] = usePersistentState(
+    "conservatio.objects",
+    seedObjects,
+  );
+  const [clients, setClients] = usePersistentState(
+    "conservatio.clients",
+    seedClients,
+  );
+  const [projects, setProjects] = usePersistentState(
+    "conservatio.projects",
+    seedProjects,
+  );
+  const [reports, setReports] = usePersistentState(
+    "conservatio.reports",
+    seedReports,
+  );
   const [query, setQuery] = useState("");
 
   const filteredObjects = useMemo(() => {
@@ -241,7 +455,7 @@ export function WebAppShell() {
   }, [objects, query]);
 
   function createObject(form: ObjectFormState) {
-    const now = new Date().toISOString().slice(0, 10);
+    const timestamp = today();
     const materials = form.materialsText
       .split(",")
       .map((material) => material.trim())
@@ -249,28 +463,122 @@ export function WebAppShell() {
 
     setObjects((current) => [
       {
-        id: crypto.randomUUID(),
-        title: form.title,
+        id: createId("obj"),
+        title: form.title.trim(),
         objectType: form.objectType,
         materials,
-        ownerName: form.ownerName,
-        locationDescription: form.locationDescription,
-        inventoryNumber: form.inventoryNumber,
-        description: form.description,
+        ownerName: form.ownerName.trim(),
+        locationDescription: form.locationDescription.trim(),
+        inventoryNumber: form.inventoryNumber.trim(),
+        description: form.description.trim(),
         dimensions: {
-          height: form.height,
-          width: form.width,
-          depth: form.depth,
+          height: form.height.trim(),
+          width: form.width.trim(),
+          depth: form.depth.trim(),
           unit: form.unit,
         },
         imageNames: form.imageNames,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: timestamp,
+        updatedAt: timestamp,
       },
       ...current,
     ]);
     setActiveSection("objects");
-    setShowCreateObject(false);
+    setModal(null);
+  }
+
+  function createClient(form: ClientFormState) {
+    const timestamp = today();
+    setClients((current) => [
+      {
+        ...form,
+        id: createId("client"),
+        name: form.name.trim(),
+        contactPerson: form.contactPerson.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        notes: form.notes.trim(),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      ...current,
+    ]);
+    setActiveSection("clients");
+    setModal(null);
+  }
+
+  function createProject(form: ProjectFormState) {
+    const timestamp = today();
+    setProjects((current) => [
+      {
+        ...form,
+        id: createId("project"),
+        title: form.title.trim(),
+        description: form.description.trim(),
+        budget: form.budget.trim(),
+        currency: form.currency.trim() || "EUR",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      ...current,
+    ]);
+    setActiveSection("projects");
+    setModal(null);
+  }
+
+  function createReport(form: ReportFormState) {
+    const timestamp = today();
+    setReports((current) => [
+      {
+        ...form,
+        id: createId("report"),
+        examiner: form.examiner.trim(),
+        notes: form.notes.trim(),
+        recommendations: form.recommendations.trim(),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      ...current,
+    ]);
+    setActiveSection("reports");
+    setModal(null);
+  }
+
+  function deleteObject(id: string) {
+    setObjects((current) => current.filter((object) => object.id !== id));
+    setProjects((current) =>
+      current.map((project) => ({
+        ...project,
+        objectIds: project.objectIds.filter((objectId) => objectId !== id),
+      })),
+    );
+    setReports((current) => current.filter((report) => report.objectId !== id));
+  }
+
+  function deleteClient(id: string) {
+    setClients((current) => current.filter((client) => client.id !== id));
+    setProjects((current) =>
+      current.map((project) =>
+        project.clientId === id ? { ...project, clientId: "" } : project,
+      ),
+    );
+  }
+
+  function deleteProject(id: string) {
+    setProjects((current) => current.filter((project) => project.id !== id));
+  }
+
+  function deleteReport(id: string) {
+    setReports((current) => current.filter((report) => report.id !== id));
+  }
+
+  function resetDemoData() {
+    setObjects(seedObjects);
+    setClients(seedClients);
+    setProjects(seedProjects);
+    setReports(seedReports);
+    setActiveSection("dashboard");
   }
 
   return (
@@ -286,14 +594,17 @@ export function WebAppShell() {
         <main className="flex-1 overflow-auto">
           <TopBar
             activeSection={activeSection}
-            onCreateObject={() => setShowCreateObject(true)}
+            onCreateObject={() => setModal("object")}
             onNavigate={setActiveSection}
           />
           <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             {activeSection === "dashboard" && (
               <DashboardView
                 objects={objects}
-                onCreateObject={() => setShowCreateObject(true)}
+                clients={clients}
+                projects={projects}
+                reports={reports}
+                onCreate={setModal}
                 onNavigate={setActiveSection}
               />
             )}
@@ -302,21 +613,67 @@ export function WebAppShell() {
                 objects={filteredObjects}
                 query={query}
                 onQueryChange={setQuery}
-                onCreateObject={() => setShowCreateObject(true)}
+                onCreateObject={() => setModal("object")}
+                onDeleteObject={deleteObject}
               />
             )}
-            {activeSection === "projects" && <ProjectsView />}
-            {activeSection === "clients" && <ClientsView />}
-            {activeSection === "reports" && <ReportsView />}
-            {activeSection === "settings" && <SettingsView />}
+            {activeSection === "projects" && (
+              <ProjectsView
+                projects={projects}
+                clients={clients}
+                objects={objects}
+                onCreateProject={() => setModal("project")}
+                onDeleteProject={deleteProject}
+              />
+            )}
+            {activeSection === "clients" && (
+              <ClientsView
+                clients={clients}
+                projects={projects}
+                onCreateClient={() => setModal("client")}
+                onDeleteClient={deleteClient}
+              />
+            )}
+            {activeSection === "reports" && (
+              <ReportsView
+                reports={reports}
+                objects={objects}
+                onCreateReport={() => setModal("report")}
+                onDeleteReport={deleteReport}
+              />
+            )}
+            {activeSection === "settings" && (
+              <SettingsView onResetDemoData={resetDemoData} />
+            )}
           </div>
         </main>
       </div>
 
-      {showCreateObject && (
+      {modal === "object" && (
         <CreateObjectModal
-          onClose={() => setShowCreateObject(false)}
+          onClose={() => setModal(null)}
           onSave={createObject}
+        />
+      )}
+      {modal === "client" && (
+        <CreateClientModal
+          onClose={() => setModal(null)}
+          onSave={createClient}
+        />
+      )}
+      {modal === "project" && (
+        <CreateProjectModal
+          clients={clients}
+          objects={objects}
+          onClose={() => setModal(null)}
+          onSave={createProject}
+        />
+      )}
+      {modal === "report" && (
+        <CreateReportModal
+          objects={objects}
+          onClose={() => setModal(null)}
+          onSave={createReport}
         />
       )}
     </div>
@@ -388,11 +745,17 @@ function TopBar({
 
 function DashboardView({
   objects,
-  onCreateObject,
+  clients,
+  projects,
+  reports,
+  onCreate,
   onNavigate,
 }: {
   objects: ConservationObject[];
-  onCreateObject: () => void;
+  clients: Client[];
+  projects: Project[];
+  reports: Report[];
+  onCreate: (kind: ModalKind) => void;
   onNavigate: (section: WebSection) => void;
 }) {
   return (
@@ -410,11 +773,11 @@ function DashboardView({
               <p className="mt-3 max-w-2xl text-base leading-7 text-heritage-text-secondary">
                 The same conservation workflow from iOS and Android, expanded
                 for desktop screens with wider lists, panels, and creation
-                forms.
+                forms. Data is saved in this browser.
               </p>
             </div>
             <button
-              onClick={onCreateObject}
+              onClick={() => onCreate("object")}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
               type="button"
             >
@@ -428,64 +791,64 @@ function DashboardView({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-secondary-100">
-                Sync status
+                Storage status
               </p>
-              <h2 className="mt-2 text-2xl font-bold">Offline-ready</h2>
+              <h2 className="mt-2 text-2xl font-bold">Browser saved</h2>
             </div>
             <Cloud className="text-secondary-200" size={28} />
           </div>
           <p className="mt-4 text-sm leading-6 text-secondary-100">
-            Web mirrors the mobile MVP flow locally. Backend sync can be wired
-            to the same object, report, client, and project models.
+            Objects, clients, projects, and reports persist with local browser
+            storage until backend sync is connected.
           </p>
           <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
             <StatusPill label="Local save" />
-            <StatusPill label="Pi API ready" />
+            <StatusPill label="Ready for sync" />
           </div>
         </section>
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Objects" value={`${objects.length}`} icon={Box} />
-        <StatCard label="Reports" value={`${reportRows.length}`} icon={FileText} />
+        <StatCard label="Reports" value={`${reports.length}`} icon={FileText} />
         <StatCard
           label="Projects"
-          value={`${projectRows.length}`}
+          value={`${projects.length}`}
           icon={FolderKanban}
         />
-        <StatCard label="Clients" value={`${clientRows.length}`} icon={Users} />
+        <StatCard label="Clients" value={`${clients.length}`} icon={Users} />
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.45fr]">
         <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm lg:p-6">
           <SectionTitle
             title="Quick Actions"
-            subtitle="Same mobile actions, scaled into desktop cards."
+            subtitle="Create real records that stay available after refresh."
           />
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <QuickActionCard
               title="New Object"
               icon={Box}
               color="text-primary"
-              onClick={onCreateObject}
+              onClick={() => onCreate("object")}
             />
             <QuickActionCard
               title="Take Photo"
               icon={Camera}
               color="text-secondary"
-              onClick={onCreateObject}
+              onClick={() => onCreate("object")}
             />
             <QuickActionCard
               title="New Report"
               icon={FileText}
               color="text-tertiary"
-              onClick={() => onNavigate("reports")}
+              onClick={() => onCreate("report")}
             />
             <QuickActionCard
               title="New Project"
               icon={FolderKanban}
               color="text-primary-dark"
-              onClick={() => onNavigate("projects")}
+              onClick={() => onCreate("project")}
             />
           </div>
         </section>
@@ -494,7 +857,7 @@ function DashboardView({
           <div className="flex items-start justify-between gap-4">
             <SectionTitle
               title="Recent Objects"
-              subtitle="The same list from mobile with more metadata visible."
+              subtitle="Newest object records with inventory metadata."
             />
             <button
               onClick={() => onNavigate("objects")}
@@ -521,17 +884,19 @@ function ObjectsView({
   query,
   onQueryChange,
   onCreateObject,
+  onDeleteObject,
 }: {
   objects: ConservationObject[];
   query: string;
   onQueryChange: (query: string) => void;
   onCreateObject: () => void;
+  onDeleteObject: (id: string) => void;
 }) {
   return (
     <div className="space-y-6">
       <PageHeader
         title="Objects"
-        subtitle="Search and manage conservation objects with the same fields used on iOS and Android."
+        subtitle="Search, create, and delete conservation objects using the same fields as the mobile apps."
         actionLabel="New Object"
         onAction={onCreateObject}
       />
@@ -558,7 +923,11 @@ function ObjectsView({
 
         <div className="mt-5 grid gap-3 xl:grid-cols-2">
           {objects.map((object) => (
-            <ObjectCard key={object.id} object={object} />
+            <ObjectCard
+              key={object.id}
+              object={object}
+              onDelete={() => onDeleteObject(object.id)}
+            />
           ))}
         </div>
       </section>
@@ -566,81 +935,168 @@ function ObjectsView({
   );
 }
 
-function ProjectsView() {
+function ProjectsView({
+  projects,
+  clients,
+  objects,
+  onCreateProject,
+  onDeleteProject,
+}: {
+  projects: Project[];
+  clients: Client[];
+  objects: ConservationObject[];
+  onCreateProject: () => void;
+  onDeleteProject: (id: string) => void;
+}) {
   return (
-    <EntityTable
-      title="Projects"
-      subtitle="Mobile currently shows this as a tab. Web uses the wider screen for project status and linked object counts."
-      columns={["Project", "Client", "Status", "Objects"]}
-      rows={projectRows.map((project) => [
-        project.title,
-        project.client,
-        project.status,
-        `${project.objects}`,
-      ])}
-      icon={FolderKanban}
-    />
+    <div className="space-y-6">
+      <PageHeader
+        title="Projects"
+        subtitle="Track conservation work by client, status, timeline, budget, and linked objects."
+        actionLabel="New Project"
+        onAction={onCreateProject}
+      />
+      <div className="grid gap-3 xl:grid-cols-2">
+        {projects.map((project) => (
+          <RecordCard
+            key={project.id}
+            icon={FolderKanban}
+            title={project.title}
+            badge={project.status}
+            onDelete={() => onDeleteProject(project.id)}
+            rows={[
+              ["Client", clientName(clients, project.clientId)],
+              ["Objects", objectNames(objects, project.objectIds)],
+              ["Dates", formatDateRange(project.startDate, project.endDate)],
+              ["Budget", project.budget ? `${project.budget} ${project.currency}` : "Not set"],
+              ["Description", project.description || "Not set"],
+            ]}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
-function ClientsView() {
+function ClientsView({
+  clients,
+  projects,
+  onCreateClient,
+  onDeleteClient,
+}: {
+  clients: Client[];
+  projects: Project[];
+  onCreateClient: () => void;
+  onDeleteClient: (id: string) => void;
+}) {
   return (
-    <EntityTable
-      title="Clients"
-      subtitle="Client records are available beside project context instead of hiding each field behind a mobile list row."
-      columns={["Client", "Type", "Contact", "Projects"]}
-      rows={clientRows.map((client) => [
-        client.name,
-        client.type,
-        client.contact,
-        `${client.projects}`,
-      ])}
-      icon={Users}
-    />
+    <div className="space-y-6">
+      <PageHeader
+        title="Clients"
+        subtitle="Manage churches, museums, galleries, collectors, and other conservation clients."
+        actionLabel="New Client"
+        onAction={onCreateClient}
+      />
+      <div className="grid gap-3 xl:grid-cols-2">
+        {clients.map((client) => (
+          <RecordCard
+            key={client.id}
+            icon={Users}
+            title={client.name}
+            badge={client.type}
+            onDelete={() => onDeleteClient(client.id)}
+            rows={[
+              ["Contact", client.contactPerson || "Not set"],
+              ["Email", client.email || "Not set"],
+              ["Phone", client.phone || "Not set"],
+              ["Address", client.address || "Not set"],
+              [
+                "Projects",
+                `${projects.filter((project) => project.clientId === client.id).length}`,
+              ],
+              ["Notes", client.notes || "Not set"],
+            ]}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
-function ReportsView() {
+function ReportsView({
+  reports,
+  objects,
+  onCreateReport,
+  onDeleteReport,
+}: {
+  reports: Report[];
+  objects: ConservationObject[];
+  onCreateReport: () => void;
+  onDeleteReport: (id: string) => void;
+}) {
   return (
-    <EntityTable
-      title="Reports"
-      subtitle="Condition reports keep the mobile report model and expose examiner, date, and condition in a desktop table."
-      columns={["Report", "Object", "Condition", "Examiner", "Date"]}
-      rows={reportRows.map((report) => [
-        report.title,
-        report.object,
-        report.condition,
-        report.examiner,
-        report.date,
-      ])}
-      icon={FileText}
-    />
+    <div className="space-y-6">
+      <PageHeader
+        title="Reports"
+        subtitle="Create condition reports linked to real object records."
+        actionLabel="New Report"
+        onAction={onCreateReport}
+      />
+      <div className="grid gap-3 xl:grid-cols-2">
+        {reports.map((report) => (
+          <RecordCard
+            key={report.id}
+            icon={FileText}
+            title={report.reportType}
+            badge={report.condition}
+            onDelete={() => onDeleteReport(report.id)}
+            rows={[
+              ["Object", objectName(objects, report.objectId)],
+              ["Examiner", report.examiner || "Not set"],
+              ["Date", report.examinationDate || "Not set"],
+              ["Notes", report.notes || "Not set"],
+              ["Recommendations", report.recommendations || "Not set"],
+              [
+                "Photos",
+                report.imageNames.length
+                  ? report.imageNames.join(", ")
+                  : "No photos attached",
+              ],
+            ]}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
-function SettingsView() {
+function SettingsView({
+  onResetDemoData,
+}: {
+  onResetDemoData: () => void;
+}) {
   const groups = [
     {
       title: "Account",
       items: [
-        { label: "Profile", icon: Users },
-        { label: "Sync and Storage", icon: Cloud },
+        { label: "Profile", icon: Users, detail: "Local demo profile" },
+        { label: "Sync and Storage", icon: Cloud, detail: "Browser storage active" },
       ],
     },
     {
       title: "Reports",
       items: [
-        { label: "Templates", icon: FileText },
-        { label: "Export Settings", icon: Upload },
-        { label: "Language", icon: Globe },
+        { label: "Templates", icon: FileText, detail: "Default template" },
+        { label: "Export Settings", icon: Upload, detail: "PDF wiring pending" },
+        { label: "Language", icon: Globe, detail: "English" },
       ],
     },
     {
       title: "App",
       items: [
-        { label: "Appearance", icon: Palette },
-        { label: "Storage", icon: HardDrive },
-        { label: "About", icon: Info },
+        { label: "Appearance", icon: Palette, detail: "Conservatio theme" },
+        { label: "Storage", icon: HardDrive, detail: "localStorage" },
+        { label: "About", icon: Info, detail: "v0.1.0" },
       ],
     },
   ];
@@ -649,7 +1105,7 @@ function SettingsView() {
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        subtitle="The same settings groups as iOS, arranged as desktop panels."
+        subtitle="Browser storage is active. Reset only clears local web demo data."
       />
       <div className="grid gap-4 lg:grid-cols-3">
         {groups.map((group) => (
@@ -660,22 +1116,41 @@ function SettingsView() {
             <h2 className="text-base font-semibold">{group.title}</h2>
             <div className="mt-4 space-y-2">
               {group.items.map((item) => (
-                <button
+                <div
                   key={item.label}
-                  className="flex w-full items-center justify-between rounded-2xl bg-heritage-surface-variant px-4 py-3 text-left transition hover:bg-primary-50 hover:text-primary"
-                  type="button"
+                  className="flex w-full items-center justify-between rounded-2xl bg-heritage-surface-variant px-4 py-3 text-left"
                 >
                   <span className="flex items-center gap-3 text-sm font-medium">
                     <item.icon size={18} />
                     {item.label}
                   </span>
-                  <ArrowRight size={16} />
-                </button>
+                  <span className="text-xs text-heritage-text-secondary">
+                    {item.detail}
+                  </span>
+                </div>
               ))}
             </div>
           </section>
         ))}
       </div>
+      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-semibold">Reset local data</h2>
+            <p className="mt-1 text-sm text-heritage-text-secondary">
+              Restores the browser demo records for objects, clients, projects,
+              and reports.
+            </p>
+          </div>
+          <button
+            onClick={onResetDemoData}
+            className="inline-flex items-center justify-center rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
+            type="button"
+          >
+            Reset Demo Data
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -687,7 +1162,7 @@ function CreateObjectModal({
   onClose: () => void;
   onSave: (form: ObjectFormState) => void;
 }) {
-  const [form, setForm] = useState<ObjectFormState>(emptyForm);
+  const [form, setForm] = useState<ObjectFormState>(emptyObjectForm);
 
   function update<Key extends keyof ObjectFormState>(
     key: Key,
@@ -705,17 +1180,445 @@ function CreateObjectModal({
   }
 
   return (
+    <ModalFrame
+      eyebrow="New Object"
+      title="Create conservation object"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      submitDisabled={!form.title.trim()}
+    >
+      <div className="grid gap-5 lg:grid-cols-2">
+        <FormSection title="Basic Information">
+          <TextField
+            label="Object title"
+            value={form.title}
+            onChange={(value) => update("title", value)}
+            required
+          />
+          <SelectField
+            label="Type"
+            value={form.objectType}
+            options={objectTypes}
+            onChange={(value) => update("objectType", value as ObjectType)}
+          />
+          <TextField
+            label="Inventory number"
+            value={form.inventoryNumber}
+            onChange={(value) => update("inventoryNumber", value)}
+          />
+        </FormSection>
+
+        <FormSection title="Materials">
+          <TextField
+            label="Materials"
+            value={form.materialsText}
+            onChange={(value) => update("materialsText", value)}
+            placeholder="tempera, wood panel, gold leaf"
+          />
+          <p className="text-xs text-heritage-text-secondary">
+            Separate multiple materials with commas.
+          </p>
+        </FormSection>
+
+        <FormSection title="Dimensions">
+          <div className="grid grid-cols-3 gap-3">
+            <TextField
+              label="H"
+              value={form.height}
+              onChange={(value) => update("height", value)}
+            />
+            <TextField
+              label="W"
+              value={form.width}
+              onChange={(value) => update("width", value)}
+            />
+            <TextField
+              label="D"
+              value={form.depth}
+              onChange={(value) => update("depth", value)}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2 rounded-2xl bg-heritage-surface-variant p-1">
+            {(["cm", "m", "in"] as const).map((unit) => (
+              <button
+                key={unit}
+                onClick={() => update("unit", unit)}
+                className={`rounded-xl px-3 py-2 text-sm font-semibold ${
+                  form.unit === unit
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-heritage-text-secondary"
+                }`}
+                type="button"
+              >
+                {unit}
+              </button>
+            ))}
+          </div>
+        </FormSection>
+
+        <FormSection title="Location and Owner">
+          <TextField
+            label="Owner name"
+            value={form.ownerName}
+            onChange={(value) => update("ownerName", value)}
+          />
+          <TextField
+            label="Location description"
+            value={form.locationDescription}
+            onChange={(value) => update("locationDescription", value)}
+          />
+        </FormSection>
+
+        <FormSection title="Photos">
+          <PhotoInput
+            imageNames={form.imageNames}
+            onChange={(imageNames) => update("imageNames", imageNames)}
+          />
+        </FormSection>
+
+        <FormSection title="Description">
+          <TextAreaField
+            label="Description"
+            value={form.description}
+            onChange={(value) => update("description", value)}
+            placeholder="Condition context, handling notes, or acquisition details"
+          />
+        </FormSection>
+      </div>
+    </ModalFrame>
+  );
+}
+
+function CreateClientModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void;
+  onSave: (form: ClientFormState) => void;
+}) {
+  const [form, setForm] = useState<ClientFormState>(emptyClientForm);
+
+  function update<Key extends keyof ClientFormState>(
+    key: Key,
+    value: ClientFormState[Key],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!form.name.trim()) {
+      return;
+    }
+    onSave(form);
+  }
+
+  return (
+    <ModalFrame
+      eyebrow="New Client"
+      title="Create client"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      submitDisabled={!form.name.trim()}
+    >
+      <div className="grid gap-5 lg:grid-cols-2">
+        <FormSection title="Client">
+          <TextField
+            label="Name"
+            value={form.name}
+            onChange={(value) => update("name", value)}
+            required
+          />
+          <SelectField
+            label="Type"
+            value={form.type}
+            options={clientTypes}
+            onChange={(value) => update("type", value)}
+          />
+          <TextField
+            label="Contact person"
+            value={form.contactPerson}
+            onChange={(value) => update("contactPerson", value)}
+          />
+        </FormSection>
+        <FormSection title="Contact">
+          <TextField
+            label="Email"
+            value={form.email}
+            onChange={(value) => update("email", value)}
+            type="email"
+          />
+          <TextField
+            label="Phone"
+            value={form.phone}
+            onChange={(value) => update("phone", value)}
+          />
+          <TextField
+            label="Address"
+            value={form.address}
+            onChange={(value) => update("address", value)}
+          />
+        </FormSection>
+        <FormSection title="Notes">
+          <TextAreaField
+            label="Notes"
+            value={form.notes}
+            onChange={(value) => update("notes", value)}
+          />
+        </FormSection>
+      </div>
+    </ModalFrame>
+  );
+}
+
+function CreateProjectModal({
+  clients,
+  objects,
+  onClose,
+  onSave,
+}: {
+  clients: Client[];
+  objects: ConservationObject[];
+  onClose: () => void;
+  onSave: (form: ProjectFormState) => void;
+}) {
+  const [form, setForm] = useState<ProjectFormState>({
+    ...emptyProjectForm,
+    clientId: clients[0]?.id ?? "",
+  });
+
+  function update<Key extends keyof ProjectFormState>(
+    key: Key,
+    value: ProjectFormState[Key],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function toggleObject(objectId: string) {
+    setForm((current) => ({
+      ...current,
+      objectIds: current.objectIds.includes(objectId)
+        ? current.objectIds.filter((id) => id !== objectId)
+        : [...current.objectIds, objectId],
+    }));
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!form.title.trim()) {
+      return;
+    }
+    onSave(form);
+  }
+
+  return (
+    <ModalFrame
+      eyebrow="New Project"
+      title="Create project"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      submitDisabled={!form.title.trim()}
+    >
+      <div className="grid gap-5 lg:grid-cols-2">
+        <FormSection title="Project">
+          <TextField
+            label="Title"
+            value={form.title}
+            onChange={(value) => update("title", value)}
+            required
+          />
+          <SelectField
+            label="Client"
+            value={form.clientId}
+            options={["", ...clients.map((client) => client.id)]}
+            optionLabels={{ "": "No client", ...labelMap(clients) }}
+            onChange={(value) => update("clientId", value)}
+          />
+          <SelectField
+            label="Status"
+            value={form.status}
+            options={projectStatuses}
+            onChange={(value) => update("status", value as ProjectStatus)}
+          />
+        </FormSection>
+        <FormSection title="Timeline and Budget">
+          <TextField
+            label="Start date"
+            value={form.startDate}
+            onChange={(value) => update("startDate", value)}
+            type="date"
+          />
+          <TextField
+            label="End date"
+            value={form.endDate}
+            onChange={(value) => update("endDate", value)}
+            type="date"
+          />
+          <div className="grid grid-cols-[1fr_96px] gap-3">
+            <TextField
+              label="Budget"
+              value={form.budget}
+              onChange={(value) => update("budget", value)}
+            />
+            <TextField
+              label="Currency"
+              value={form.currency}
+              onChange={(value) => update("currency", value)}
+            />
+          </div>
+        </FormSection>
+        <FormSection title="Linked Objects">
+          <div className="space-y-2">
+            {objects.map((object) => (
+              <label
+                key={object.id}
+                className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm"
+              >
+                <input
+                  checked={form.objectIds.includes(object.id)}
+                  onChange={() => toggleObject(object.id)}
+                  type="checkbox"
+                />
+                <span>{object.title}</span>
+              </label>
+            ))}
+          </div>
+        </FormSection>
+        <FormSection title="Description">
+          <TextAreaField
+            label="Description"
+            value={form.description}
+            onChange={(value) => update("description", value)}
+          />
+        </FormSection>
+      </div>
+    </ModalFrame>
+  );
+}
+
+function CreateReportModal({
+  objects,
+  onClose,
+  onSave,
+}: {
+  objects: ConservationObject[];
+  onClose: () => void;
+  onSave: (form: ReportFormState) => void;
+}) {
+  const [form, setForm] = useState<ReportFormState>({
+    ...emptyReportForm,
+    objectId: objects[0]?.id ?? "",
+    examinationDate: today(),
+  });
+
+  function update<Key extends keyof ReportFormState>(
+    key: Key,
+    value: ReportFormState[Key],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!form.objectId) {
+      return;
+    }
+    onSave(form);
+  }
+
+  return (
+    <ModalFrame
+      eyebrow="New Report"
+      title="Create condition report"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      submitDisabled={!form.objectId}
+    >
+      <div className="grid gap-5 lg:grid-cols-2">
+        <FormSection title="Report">
+          <SelectField
+            label="Object"
+            value={form.objectId}
+            options={objects.map((object) => object.id)}
+            optionLabels={labelMap(objects)}
+            onChange={(value) => update("objectId", value)}
+          />
+          <SelectField
+            label="Report type"
+            value={form.reportType}
+            options={reportTypes}
+            onChange={(value) => update("reportType", value)}
+          />
+          <SelectField
+            label="Condition"
+            value={form.condition}
+            options={conditionRatings}
+            onChange={(value) => update("condition", value as ConditionRating)}
+          />
+        </FormSection>
+        <FormSection title="Examination">
+          <TextField
+            label="Examiner"
+            value={form.examiner}
+            onChange={(value) => update("examiner", value)}
+          />
+          <TextField
+            label="Date"
+            value={form.examinationDate}
+            onChange={(value) => update("examinationDate", value)}
+            type="date"
+          />
+          <PhotoInput
+            imageNames={form.imageNames}
+            onChange={(imageNames) => update("imageNames", imageNames)}
+          />
+        </FormSection>
+        <FormSection title="Notes">
+          <TextAreaField
+            label="Notes"
+            value={form.notes}
+            onChange={(value) => update("notes", value)}
+          />
+        </FormSection>
+        <FormSection title="Recommendations">
+          <TextAreaField
+            label="Recommendations"
+            value={form.recommendations}
+            onChange={(value) => update("recommendations", value)}
+          />
+        </FormSection>
+      </div>
+    </ModalFrame>
+  );
+}
+
+function ModalFrame({
+  eyebrow,
+  title,
+  children,
+  submitDisabled,
+  onClose,
+  onSubmit,
+}: {
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+  submitDisabled: boolean;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-heritage-text/35 p-4 backdrop-blur-sm">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={onSubmit}
         className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex items-start justify-between gap-4 border-b border-heritage-outline/10 p-5 lg:p-6">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">
-              New Object
+              {eyebrow}
             </p>
-            <h2 className="mt-1 text-2xl font-bold">Create conservation object</h2>
+            <h2 className="mt-1 text-2xl font-bold">{title}</h2>
           </div>
           <button
             onClick={onClose}
@@ -726,139 +1629,9 @@ function CreateObjectModal({
             <X size={20} />
           </button>
         </div>
-
         <div className="max-h-[66vh] overflow-y-auto p-5 lg:p-6">
-          <div className="grid gap-5 lg:grid-cols-2">
-            <FormSection title="Basic Information">
-              <TextField
-                label="Object title"
-                value={form.title}
-                onChange={(value) => update("title", value)}
-                required
-              />
-              <label className="space-y-2 text-sm font-medium">
-                <span>Type</span>
-                <select
-                  value={form.objectType}
-                  onChange={(event) =>
-                    update("objectType", event.target.value as ObjectType)
-                  }
-                  className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary"
-                >
-                  {objectTypes.map((type) => (
-                    <option key={type}>{type}</option>
-                  ))}
-                </select>
-              </label>
-              <TextField
-                label="Inventory number"
-                value={form.inventoryNumber}
-                onChange={(value) => update("inventoryNumber", value)}
-              />
-            </FormSection>
-
-            <FormSection title="Materials">
-              <TextField
-                label="Materials"
-                value={form.materialsText}
-                onChange={(value) => update("materialsText", value)}
-                placeholder="tempera, wood panel, gold leaf"
-              />
-              <p className="text-xs text-heritage-text-secondary">
-                Separate multiple materials with commas.
-              </p>
-            </FormSection>
-
-            <FormSection title="Dimensions">
-              <div className="grid grid-cols-3 gap-3">
-                <TextField
-                  label="H"
-                  value={form.height}
-                  onChange={(value) => update("height", value)}
-                />
-                <TextField
-                  label="W"
-                  value={form.width}
-                  onChange={(value) => update("width", value)}
-                />
-                <TextField
-                  label="D"
-                  value={form.depth}
-                  onChange={(value) => update("depth", value)}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-2 rounded-2xl bg-heritage-surface-variant p-1">
-                {(["cm", "m", "in"] as const).map((unit) => (
-                  <button
-                    key={unit}
-                    onClick={() => update("unit", unit)}
-                    className={`rounded-xl px-3 py-2 text-sm font-semibold ${
-                      form.unit === unit
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-heritage-text-secondary"
-                    }`}
-                    type="button"
-                  >
-                    {unit}
-                  </button>
-                ))}
-              </div>
-            </FormSection>
-
-            <FormSection title="Location and Owner">
-              <TextField
-                label="Owner name"
-                value={form.ownerName}
-                onChange={(value) => update("ownerName", value)}
-              />
-              <TextField
-                label="Location description"
-                value={form.locationDescription}
-                onChange={(value) => update("locationDescription", value)}
-              />
-            </FormSection>
-
-            <FormSection title="Photos">
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-heritage-outline/30 bg-heritage-surface-variant px-4 py-8 text-center transition hover:border-primary hover:bg-primary-50">
-                <ImagePlus className="text-primary" size={30} />
-                <span className="mt-3 text-sm font-semibold">Attach photos</span>
-                <span className="mt-1 text-xs text-heritage-text-secondary">
-                  Camera and gallery equivalent for web upload.
-                </span>
-                <input
-                  className="hidden"
-                  multiple
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) =>
-                    update(
-                      "imageNames",
-                      Array.from(event.target.files ?? []).map(
-                        (file) => file.name,
-                      ),
-                    )
-                  }
-                />
-              </label>
-              <p className="text-xs text-heritage-text-secondary">
-                {form.imageNames.length} photo(s) attached
-              </p>
-            </FormSection>
-
-            <FormSection title="Description">
-              <label className="space-y-2 text-sm font-medium">
-                <span>Description</span>
-                <textarea
-                  value={form.description}
-                  onChange={(event) => update("description", event.target.value)}
-                  className="min-h-32 w-full resize-y rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary"
-                  placeholder="Condition context, handling notes, or acquisition details"
-                />
-              </label>
-            </FormSection>
-          </div>
+          {children}
         </div>
-
         <div className="flex items-center justify-end gap-3 border-t border-heritage-outline/10 p-5 lg:p-6">
           <button
             onClick={onClose}
@@ -869,7 +1642,7 @@ function CreateObjectModal({
           </button>
           <button
             className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!form.title.trim()}
+            disabled={submitDisabled}
             type="submit"
           >
             Save
@@ -992,7 +1765,13 @@ function ObjectRow({ object }: { object: ConservationObject }) {
   );
 }
 
-function ObjectCard({ object }: { object: ConservationObject }) {
+function ObjectCard({
+  object,
+  onDelete,
+}: {
+  object: ConservationObject;
+  onDelete: () => void;
+}) {
   return (
     <article className="rounded-3xl border border-heritage-outline/10 bg-heritage-surface-variant p-4">
       <div className="flex gap-4">
@@ -1006,7 +1785,10 @@ function ObjectCard({ object }: { object: ConservationObject }) {
                 {object.inventoryNumber ? ` - ${object.inventoryNumber}` : ""}
               </p>
             </div>
-            <ConditionBadge label="Documented" />
+            <div className="flex items-center gap-2">
+              <ConditionBadge label="Documented" />
+              <DeleteButton onDelete={onDelete} label="Delete object" />
+            </div>
           </div>
           <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <MetaBlock label="Owner" value={object.ownerName || "Not set"} />
@@ -1019,6 +1801,18 @@ function ObjectCard({ object }: { object: ConservationObject }) {
               value={object.materials.length ? object.materials.join(", ") : "Not set"}
             />
             <MetaBlock label="Dimensions" value={formatDimensions(object)} />
+            <MetaBlock
+              label="Photos"
+              value={
+                object.imageNames.length
+                  ? object.imageNames.join(", ")
+                  : "No photos attached"
+              }
+            />
+            <MetaBlock
+              label="Description"
+              value={object.description || "Not set"}
+            />
           </div>
         </div>
       </div>
@@ -1026,63 +1820,60 @@ function ObjectCard({ object }: { object: ConservationObject }) {
   );
 }
 
-function EntityTable({
-  title,
-  subtitle,
-  columns,
-  rows,
+function RecordCard({
   icon: Icon,
+  title,
+  badge,
+  rows,
+  onDelete,
 }: {
-  title: string;
-  subtitle: string;
-  columns: string[];
-  rows: string[][];
   icon: typeof Box;
+  title: string;
+  badge: string;
+  rows: Array<[string, string]>;
+  onDelete: () => void;
 }) {
   return (
-    <div className="space-y-6">
-      <PageHeader title={title} subtitle={subtitle} />
-      <section className="overflow-hidden rounded-3xl border border-heritage-outline/10 bg-white shadow-sm">
-        <div className="flex items-center gap-3 border-b border-heritage-outline/10 p-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-50 text-primary">
+    <article className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary">
             <Icon size={22} />
           </div>
-          <div>
-            <h2 className="font-semibold">{title}</h2>
-            <p className="text-sm text-heritage-text-secondary">
-              {rows.length} records
+          <div className="min-w-0">
+            <h2 className="truncate font-semibold">{title}</h2>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              {badge}
             </p>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-heritage-surface-variant text-xs uppercase tracking-wide text-heritage-text-secondary">
-              <tr>
-                {columns.map((column) => (
-                  <th key={column} className="px-5 py-3 font-semibold">
-                    {column}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-heritage-outline/10">
-              {rows.map((row) => (
-                <tr key={row.join("-")} className="hover:bg-primary-50/40">
-                  {row.map((cell, index) => (
-                    <td
-                      key={`${cell}-${index}`}
-                      className="px-5 py-4 text-heritage-text-secondary first:font-semibold first:text-heritage-text"
-                    >
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+        <DeleteButton onDelete={onDelete} label={`Delete ${title}`} />
+      </div>
+      <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <MetaBlock key={label} label={label} value={value} />
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function DeleteButton({
+  label,
+  onDelete,
+}: {
+  label: string;
+  onDelete: () => void;
+}) {
+  return (
+    <button
+      onClick={onDelete}
+      className="rounded-xl p-2 text-heritage-text-secondary transition hover:bg-primary-50 hover:text-primary"
+      type="button"
+      aria-label={label}
+    >
+      <Trash2 size={17} />
+    </button>
   );
 }
 
@@ -1107,12 +1898,14 @@ function TextField({
   onChange,
   placeholder,
   required,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
+  type?: string;
 }) {
   return (
     <label className="space-y-2 text-sm font-medium">
@@ -1123,8 +1916,98 @@ function TextField({
         className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary"
         placeholder={placeholder}
         required={required}
+        type={type}
       />
     </label>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="space-y-2 text-sm font-medium">
+      <span>{label}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-32 w-full resize-y rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary"
+        placeholder={placeholder}
+      />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  optionLabels,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  optionLabels?: Record<string, string>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="space-y-2 text-sm font-medium">
+      <span>{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {optionLabels?.[option] ?? option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function PhotoInput({
+  imageNames,
+  onChange,
+}: {
+  imageNames: string[];
+  onChange: (imageNames: string[]) => void;
+}) {
+  return (
+    <>
+      <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-heritage-outline/30 bg-heritage-surface-variant px-4 py-8 text-center transition hover:border-primary hover:bg-primary-50">
+        <ImagePlus className="text-primary" size={30} />
+        <span className="mt-3 text-sm font-semibold">Attach photos</span>
+        <span className="mt-1 text-xs text-heritage-text-secondary">
+          Camera and gallery equivalent for web upload.
+        </span>
+        <input
+          className="hidden"
+          multiple
+          type="file"
+          accept="image/*"
+          onChange={(event) =>
+            onChange(
+              Array.from(event.target.files ?? []).map((file) => file.name),
+            )
+          }
+        />
+      </label>
+      <p className="text-xs text-heritage-text-secondary">
+        {imageNames.length} photo(s) attached
+      </p>
+    </>
   );
 }
 
@@ -1178,6 +2061,37 @@ function StatusPill({ label }: { label: string }) {
 
 function labelForSection(section: WebSection) {
   return navItems.find((item) => item.section === section)?.label ?? "Dashboard";
+}
+
+function labelMap(records: Array<{ id: string; title?: string; name?: string }>) {
+  return records.reduce<Record<string, string>>((labels, record) => {
+    labels[record.id] = record.title ?? record.name ?? record.id;
+    return labels;
+  }, {});
+}
+
+function clientName(clients: Client[], clientId: string) {
+  return clients.find((client) => client.id === clientId)?.name ?? "No client";
+}
+
+function objectName(objects: ConservationObject[], objectId: string) {
+  return objects.find((object) => object.id === objectId)?.title ?? "Missing object";
+}
+
+function objectNames(objects: ConservationObject[], objectIds: string[]) {
+  if (!objectIds.length) {
+    return "No objects linked";
+  }
+
+  return objectIds.map((objectId) => objectName(objects, objectId)).join(", ");
+}
+
+function formatDateRange(startDate: string, endDate: string) {
+  if (!startDate && !endDate) {
+    return "Not set";
+  }
+
+  return [startDate || "No start", endDate || "No end"].join(" to ");
 }
 
 function formatDimensions(object: ConservationObject) {
