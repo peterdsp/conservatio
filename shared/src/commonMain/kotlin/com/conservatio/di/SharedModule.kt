@@ -30,7 +30,7 @@ val sharedModule: Module = module {
     single<ConservatioApi> {
         KtorConservatioApi(
             client = get(),
-            baseUrl = "https://api.conservatio.app"
+            baseUrl = "https://conservatio-api.peterdsp.dev"
         )
     }
 }

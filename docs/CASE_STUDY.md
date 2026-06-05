@@ -119,7 +119,7 @@ A Ktor server with PostgreSQL adds roughly 200MB of RAM usage. The Pi handles it
 
 We evaluated self-hosted Supabase, but it deploys 15+ Docker containers (PostgREST, GoTrue, Realtime, Storage, Kong, and more). That is overkill for a single-user or small-team deployment on constrained hardware.
 
-The final stack is lean: PostgreSQL and a Ktor application server. Data stored on the external HDD at `/mnt/media/conservatio/`. The API exposed at `api.conservatio.peterdsp.dev` via Cloudflare Tunnel, providing HTTPS termination and DDoS protection without opening router ports.
+The final stack is lean: PostgreSQL and a Ktor application server. Data stored on the external HDD at `/mnt/media/conservatio/`. The API exposed at `conservatio-api.peterdsp.dev` via Cloudflare Tunnel, providing HTTPS termination and DDoS protection without opening router ports.
 
 ## 7. Technical Highlights
 

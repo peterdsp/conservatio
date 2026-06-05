@@ -9,7 +9,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.time.Instant
 
-private const val DEFAULT_API_URL = "https://api.conservatio.peterdsp.dev"
+private const val DEFAULT_API_URL = "https://conservatio-api.peterdsp.dev"
 
 class ServerSyncClient(context: Context) {
     private val prefs = context.getSharedPreferences("conservatio", Context.MODE_PRIVATE)

@@ -445,7 +445,7 @@ const navItems: Array<{ section: WebSection; label: string; icon: typeof Box }> 
   ];
 
 const defaultSyncAccount: SyncAccount = {
-  baseUrl: "https://api.conservatio.peterdsp.dev",
+  baseUrl: "https://conservatio-api.peterdsp.dev",
   token: "",
   email: "",
   displayName: "",

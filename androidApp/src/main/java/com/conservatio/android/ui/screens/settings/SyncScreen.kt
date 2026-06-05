@@ -57,7 +57,7 @@ fun SyncScreen(objectStore: ObjectStore, onBack: () -> Unit) {
     val syncClient = remember { ServerSyncClient(context.applicationContext) }
     val scope = rememberCoroutineScope()
     var selectedMode by remember { mutableStateOf(StorageMode.valueOf(prefs.getString("storage_mode", "LOCAL") ?: "LOCAL")) }
-    var serverUrl by remember { mutableStateOf(prefs.getString("server_url", "https://api.conservatio.peterdsp.dev") ?: "") }
+    var serverUrl by remember { mutableStateOf(prefs.getString("server_url", "https://conservatio-api.peterdsp.dev") ?: "") }
     var email by remember { mutableStateOf(prefs.getString("auth_email", "") ?: "") }
     var password by remember { mutableStateOf("") }
     var status by remember {
@@ -141,7 +141,7 @@ fun SyncScreen(objectStore: ObjectStore, onBack: () -> Unit) {
                     OutlinedTextField(
                         value = serverUrl, onValueChange = { serverUrl = it },
                         label = { Text("Server URL") },
-                        placeholder = { Text("https://api.conservatio.peterdsp.dev") },
+                        placeholder = { Text("https://conservatio-api.peterdsp.dev") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true
                     )
                 }
