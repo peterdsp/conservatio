@@ -8,6 +8,8 @@ object UsersTable : UUIDTable("users") {
     val email = varchar("email", 255).uniqueIndex()
     val passwordHash = varchar("password_hash", 255)
     val displayName = varchar("display_name", 255)
+    val storageUsedBytes = long("storage_used_bytes").default(0)
+    val storageLimitBytes = long("storage_limit_bytes").default(2L * 1024 * 1024 * 1024) // 2 GB
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
 }

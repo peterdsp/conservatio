@@ -12,7 +12,9 @@ local.properties
 /.next
 /web/node_modules
 /web/.next
-/web/.env.local
+.env
+.env.*
+!.env.example
 *.xcworkspace
 *.xcuserdata
 Pods/

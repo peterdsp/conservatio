@@ -23,7 +23,14 @@ data class RegisterRequest(val email: String, val password: String, val displayN
 data class LoginRequest(val email: String, val password: String)
 
 @Serializable
-data class AuthResponse(val token: String, val userId: String, val email: String, val displayName: String)
+data class AuthResponse(
+    val token: String,
+    val userId: String,
+    val email: String,
+    val displayName: String,
+    val storageUsedBytes: Long = 0,
+    val storageLimitBytes: Long = 2_147_483_648,
+)
 
 fun Route.authRoutes() {
     route("/api/auth") {
@@ -62,7 +69,19 @@ fun Route.authRoutes() {
                 expirationMs = config.property("jwt.expiration").getString().toLong()
             )
 
-            call.respond(HttpStatusCode.Created, AuthResponse(token, userId.toString(), request.email, request.displayName))
+            val defaultQuota = call.application.environment.config
+                .property("storage.defaultQuotaBytes").getString().toLong()
+            call.respond(
+                HttpStatusCode.Created,
+                AuthResponse(
+                    token = token,
+                    userId = userId.toString(),
+                    email = request.email,
+                    displayName = request.displayName,
+                    storageUsedBytes = 0,
+                    storageLimitBytes = defaultQuota,
+                )
+            )
         }
 
         post("/login") {
@@ -91,7 +110,16 @@ fun Route.authRoutes() {
                 expirationMs = config.property("jwt.expiration").getString().toLong()
             )
 
-            call.respond(AuthResponse(token, user[UsersTable.id].toString(), user[UsersTable.email], user[UsersTable.displayName]))
+            call.respond(
+                AuthResponse(
+                    token = token,
+                    userId = user[UsersTable.id].toString(),
+                    email = user[UsersTable.email],
+                    displayName = user[UsersTable.displayName],
+                    storageUsedBytes = user[UsersTable.storageUsedBytes],
+                    storageLimitBytes = user[UsersTable.storageLimitBytes],
+                )
+            )
         }
     }
 }

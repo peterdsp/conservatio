@@ -136,8 +136,9 @@ type ProjectFormState = Omit<Project, "id" | "createdAt" | "updatedAt">;
 type ReportFormState = Omit<Report, "id" | "createdAt" | "updatedAt">;
 type ModalKind = "object" | "client" | "project" | "report";
 
+type AuthMode = "login" | "register";
+
 type SyncAccount = {
-  baseUrl: string;
   token: string;
   email: string;
   displayName: string;
@@ -444,8 +445,9 @@ const navItems: Array<{ section: WebSection; label: string; icon: typeof Box }> 
     { section: "settings", label: "Settings", icon: Settings },
   ];
 
+const API_BASE_URL = "https://conservatio-api.peterdsp.dev";
+
 const defaultSyncAccount: SyncAccount = {
-  baseUrl: "https://conservatio-api.peterdsp.dev",
   token: "",
   email: "",
   displayName: "",
@@ -510,8 +512,14 @@ export function WebAppShell() {
     "conservatio.syncAccount",
     defaultSyncAccount,
   );
-  const [syncStatus, setSyncStatus] = useState("Offline local mode");
+  const [syncStatus, setSyncStatus] = useState(
+    syncAccount.token ? "Signed in" : "Offline local mode",
+  );
   const [query, setQuery] = useState("");
+  const [passedLogin, setPassedLogin] = usePersistentState(
+    "conservatio.passedLogin",
+    false,
+  );
 
   const filteredObjects = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -548,7 +556,7 @@ export function WebAppShell() {
     options: RequestInit = {},
     account = syncAccount,
   ): Promise<T> {
-    const response = await fetch(`${account.baseUrl}${path}`, {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -593,22 +601,30 @@ export function WebAppShell() {
     }
   }
 
-  async function signIn(email: string, password: string, mode: "login" | "register") {
+  async function signIn(
+    email: string,
+    password: string,
+    displayName: string,
+    mode: AuthMode,
+  ): Promise<string | null> {
     try {
       setSyncStatus("Signing in");
       const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body =
         mode === "login"
           ? { email, password }
-          : { email, password, displayName: email.split("@")[0] || email };
-      const response = await fetch(`${syncAccount.baseUrl}${path}`, {
+          : { email, password, displayName: displayName || email.split("@")[0] || email };
+      const response = await fetch(`${API_BASE_URL}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (!response.ok) {
-        throw new Error(`Auth ${response.status}`);
+        const status = response.status;
+        if (status === 401) return "Invalid email or password.";
+        if (status === 409) return "An account with this email already exists.";
+        return `Authentication failed (${status}).`;
       }
 
       const auth = (await response.json()) as {
@@ -616,22 +632,24 @@ export function WebAppShell() {
         email: string;
         displayName: string;
       };
-      const account = {
-        ...syncAccount,
+      const account: SyncAccount = {
         token: auth.token,
         email: auth.email,
         displayName: auth.displayName,
       };
       setSyncAccount(account);
       await refreshFromServer(account);
+      return null;
     } catch {
       setSyncStatus("Sign in failed");
+      return "Could not connect. Check your network or try again.";
     }
   }
 
   function signOut() {
     setSyncAccount(defaultSyncAccount);
     setSyncStatus("Offline local mode");
+    setPassedLogin(false);
   }
 
   async function createObject(form: ObjectFormState) {
@@ -824,6 +842,21 @@ export function WebAppShell() {
     setActiveSection("dashboard");
   }
 
+  const showLogin = !passedLogin && !syncAccount.token;
+
+  if (showLogin) {
+    return (
+      <LoginScreen
+        onSignIn={async (email, password, displayName, mode) => {
+          const error = await signIn(email, password, displayName, mode);
+          if (!error) setPassedLogin(true);
+          return error;
+        }}
+        onContinueOffline={() => setPassedLogin(true)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-heritage-bg text-heritage-text">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,#fff0e8_0,#faf7f4_32%,#f2eeea_100%)]" />
@@ -892,10 +925,6 @@ export function WebAppShell() {
                 syncStatus={syncStatus}
                 onResetDemoData={resetDemoData}
                 onRefresh={() => refreshFromServer()}
-                onSetBaseUrl={(baseUrl) =>
-                  setSyncAccount((current) => ({ ...current, baseUrl }))
-                }
-                onSignIn={signIn}
                 onSignOut={signOut}
               />
             )}
@@ -930,6 +959,143 @@ export function WebAppShell() {
           onSave={createReport}
         />
       )}
+    </div>
+  );
+}
+
+function LoginScreen({
+  onSignIn,
+  onContinueOffline,
+}: {
+  onSignIn: (
+    email: string,
+    password: string,
+    displayName: string,
+    mode: AuthMode,
+  ) => Promise<string | null>;
+  onContinueOffline: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!email.trim() || !password.trim()) return;
+    setIsLoading(true);
+    setError(null);
+    const result = await onSignIn(
+      email.trim(),
+      password,
+      displayName.trim(),
+      isRegistering ? "register" : "login",
+    );
+    if (result) setError(result);
+    setIsLoading(false);
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-heritage-bg text-heritage-text">
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,#fff0e8_0,#faf7f4_32%,#f2eeea_100%)]" />
+      <div className="w-full max-w-md px-6">
+        <div className="flex flex-col items-center">
+          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-primary-50">
+            <ShieldCheck className="text-primary" size={44} />
+          </div>
+          <h1 className="mt-5 text-3xl font-bold text-primary">Conservatio</h1>
+          <p className="mt-2 text-sm text-heritage-text-secondary">
+            Document heritage. Protect history.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-10 space-y-3">
+          {isRegistering && (
+            <input
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
+              placeholder="Full Name"
+              type="text"
+              autoComplete="name"
+            />
+          )}
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
+            placeholder="Email"
+            type="email"
+            autoComplete="email"
+            required
+          />
+          <input
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
+            placeholder="Password"
+            type="password"
+            autoComplete={isRegistering ? "new-password" : "current-password"}
+            required
+          />
+
+          {error && (
+            <p className="text-center text-xs text-red-600">{error}</p>
+          )}
+
+          <button
+            className="w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!email.trim() || !password.trim() || isLoading}
+            type="submit"
+          >
+            {isLoading
+              ? "Signing in..."
+              : isRegistering
+                ? "Create Account"
+                : "Sign In"}
+          </button>
+
+          <div className="text-center">
+            <button
+              onClick={() => {
+                setIsRegistering((v) => !v);
+                setError(null);
+              }}
+              className="text-xs font-medium text-primary hover:underline"
+              type="button"
+            >
+              {isRegistering
+                ? "Already have an account? Sign In"
+                : "New here? Create Account"}
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-8 flex items-center gap-3">
+          <div className="h-px flex-1 bg-heritage-outline/20" />
+          <span className="text-xs text-heritage-text-secondary">or</span>
+          <div className="h-px flex-1 bg-heritage-outline/20" />
+        </div>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={onContinueOffline}
+            className="text-sm text-heritage-text-secondary transition hover:text-heritage-text"
+            type="button"
+          >
+            Continue Offline
+          </button>
+          <p className="mt-2 text-xs text-heritage-text-secondary">
+            Data will be saved locally in this browser only.
+          </p>
+        </div>
+
+        <p className="mt-10 text-center text-xs text-heritage-text-secondary">
+          v0.1.0
+        </p>
+      </div>
     </div>
   );
 }
@@ -1331,25 +1497,24 @@ function SettingsView({
   syncStatus,
   onResetDemoData,
   onRefresh,
-  onSetBaseUrl,
-  onSignIn,
   onSignOut,
 }: {
   syncAccount: SyncAccount;
   syncStatus: string;
   onResetDemoData: () => void;
   onRefresh: () => void;
-  onSetBaseUrl: (baseUrl: string) => void;
-  onSignIn: (email: string, password: string, mode: "login" | "register") => void;
   onSignOut: () => void;
 }) {
-  const [email, setEmail] = useState(syncAccount.email);
-  const [password, setPassword] = useState("");
+  const isSignedIn = !!syncAccount.token;
   const groups = [
     {
       title: "Account",
       items: [
-        { label: "Profile", icon: Users, detail: "Local demo profile" },
+        {
+          label: "Profile",
+          icon: Users,
+          detail: isSignedIn ? syncAccount.displayName || syncAccount.email : "Offline",
+        },
         { label: "Sync and Storage", icon: Cloud, detail: syncStatus },
       ],
     },
@@ -1365,7 +1530,7 @@ function SettingsView({
       title: "App",
       items: [
         { label: "Appearance", icon: Palette, detail: "Conservatio theme" },
-        { label: "Storage", icon: HardDrive, detail: "localStorage" },
+        { label: "Storage", icon: HardDrive, detail: isSignedIn ? "Cloud sync" : "localStorage" },
         { label: "About", icon: Info, detail: "v0.1.0" },
       ],
     },
@@ -1375,64 +1540,54 @@ function SettingsView({
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        subtitle="Sign in to sync web records with the same backend used by iOS and Android."
+        subtitle="Manage your account, preferences, and app configuration."
       />
+
       <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-          <TextField
-            label="API URL"
-            value={syncAccount.baseUrl}
-            onChange={onSetBaseUrl}
-          />
-          <TextField
-            label="Email"
-            value={email}
-            onChange={setEmail}
-            type="email"
-          />
-          <TextField
-            label="Password"
-            value={password}
-            onChange={setPassword}
-            type="password"
-          />
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary">
+            <Users size={24} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold">
+              {isSignedIn
+                ? syncAccount.displayName || syncAccount.email
+                : "Offline Mode"}
+            </h2>
+            <p className="text-sm text-heritage-text-secondary">
+              {isSignedIn
+                ? syncAccount.email
+                : "Data is stored locally in this browser."}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            {isSignedIn && (
+              <button
+                onClick={onRefresh}
+                className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
+                type="button"
+              >
+                Sync Now
+              </button>
+            )}
+            {isSignedIn && (
+              <button
+                onClick={onSignOut}
+                className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-red-50 hover:text-red-600"
+                type="button"
+              >
+                Sign Out
+              </button>
+            )}
+          </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button
-            onClick={() => onSignIn(email, password, "login")}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark"
-            type="button"
-          >
-            Sign In and Sync
-          </button>
-          <button
-            onClick={() => onSignIn(email, password, "register")}
-            className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
-            type="button"
-          >
-            Register
-          </button>
-          <button
-            onClick={onRefresh}
-            className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
-            type="button"
-          >
-            Pull From Server
-          </button>
-          <button
-            onClick={onSignOut}
-            className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
-            type="button"
-          >
-            Sign Out
-          </button>
-        </div>
-        <p className="mt-3 text-sm text-heritage-text-secondary">
-          {syncAccount.token
-            ? `Signed in as ${syncAccount.email}. ${syncStatus}.`
-            : `Not signed in. ${syncStatus}.`}
-        </p>
+        {isSignedIn && (
+          <p className="mt-3 text-xs text-heritage-text-secondary">
+            {syncStatus}
+          </p>
+        )}
       </section>
+
       <div className="grid gap-4 lg:grid-cols-3">
         {groups.map((group) => (
           <section
@@ -1459,6 +1614,7 @@ function SettingsView({
           </section>
         ))}
       </div>
+
       <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
