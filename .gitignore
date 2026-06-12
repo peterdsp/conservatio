@@ -22,3 +22,12 @@ Pods/
 xcuserdata/
 */build/
 .gradle/
+
+# Android signing — never commit
+*.jks
+*.keystore
+keystore.properties
+
+# Web build output
+/web/out/
+web/out/

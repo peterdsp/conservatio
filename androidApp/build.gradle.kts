@@ -1,8 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.composeCompiler)
 }
+
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("androidApp/keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun signingValue(key: String, envKey: String): String? =
+    keystoreProperties.getProperty(key) ?: System.getenv(envKey)
 
 android {
     namespace = "com.conservatio.android"
@@ -14,6 +24,35 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+    }
+
+    val storeFilePath = signingValue("storeFile", "CONSERVATIO_STORE_FILE")
+    val storePasswordValue = signingValue("storePassword", "CONSERVATIO_STORE_PASSWORD")
+    val keyAliasValue = signingValue("keyAlias", "CONSERVATIO_KEY_ALIAS")
+    val keyPasswordValue = signingValue("keyPassword", "CONSERVATIO_KEY_PASSWORD")
+    val hasReleaseSigning = storeFilePath != null && storePasswordValue != null &&
+        keyAliasValue != null && keyPasswordValue != null
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(storeFilePath!!)
+                storePassword = storePasswordValue
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
 
     buildFeatures {
