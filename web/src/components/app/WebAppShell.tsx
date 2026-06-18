@@ -464,15 +464,15 @@ const OAUTH_CONFIG = {
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     scope: "openid email profile",
   },
-  linkedin: {
-    clientId: process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID || "",
-    authUrl: "https://www.linkedin.com/oauth/v2/authorization",
-    scope: "openid email profile",
-  },
   apple: {
     clientId: process.env.NEXT_PUBLIC_APPLE_SERVICES_ID || "",
     authUrl: "https://appleid.apple.com/auth/authorize",
     scope: "name email",
+  },
+  github: {
+    clientId: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || "",
+    authUrl: "https://github.com/login/oauth/authorize",
+    scope: "read:user user:email",
   },
 } as const;
 
@@ -1439,17 +1439,11 @@ export function WebAppShell() {
     return (
       <LoginScreen
         t={t}
-        onSignIn={async (email, password, displayName, mode) => {
-          const error = await signIn(email, password, displayName, mode);
-          if (!error) setPassedLogin(true);
-          return error;
-        }}
         onOAuthSession={(account) => {
           setSyncAccount(account);
           setPassedLogin(true);
           void syncWithServer(account);
         }}
-        onContinueOffline={() => setPassedLogin(true)}
       />
     );
   }
@@ -1628,25 +1622,11 @@ export function WebAppShell() {
 
 function LoginScreen({
   t,
-  onSignIn,
   onOAuthSession,
-  onContinueOffline,
 }: {
   t: (key: string) => string;
-  onSignIn: (
-    email: string,
-    password: string,
-    displayName: string,
-    mode: AuthMode,
-  ) => Promise<string | null>;
   onOAuthSession: (account: SyncAccount) => void;
-  onContinueOffline: () => void;
 }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [oauthBusy, setOauthBusy] = useState(false);
 
@@ -1662,7 +1642,6 @@ function LoginScreen({
       "conservatio.oauthProvider",
     ) as OAuthProvider | null;
     if (!provider || !stored || stored !== state) {
-      // Clean up the URL even if we bail.
       window.history.replaceState({}, "", window.location.pathname);
       return;
     }
@@ -1687,22 +1666,6 @@ function LoginScreen({
       });
   }, [onOAuthSession]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!email.trim() || !password.trim()) return;
-    setIsLoading(true);
-    setError(null);
-    const wasRegistering = isRegistering;
-    const result = await onSignIn(
-      email.trim(),
-      password,
-      displayName.trim(),
-      wasRegistering ? "register" : "login",
-    );
-    if (result) setError(result);
-    setIsLoading(false);
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-heritage-bg text-heritage-text">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,#fff0e8_0,#faf7f4_32%,#f2eeea_100%)]" />
@@ -1717,85 +1680,10 @@ function LoginScreen({
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-10 space-y-3">
-          {isRegistering && (
-            <input
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
-              placeholder={t("login.fullName")}
-              type="text"
-              autoComplete="name"
-            />
-          )}
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
-            placeholder={t("login.email")}
-            type="email"
-            autoComplete="email"
-            required
-          />
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
-            placeholder={t("login.password")}
-            type="password"
-            autoComplete={isRegistering ? "new-password" : "current-password"}
-            required
-          />
-
-          {error && (
-            <p className="text-center text-xs text-red-600">{error}</p>
-          )}
-
-          <button
-            className="w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={!email.trim() || !password.trim() || isLoading}
-            type="submit"
-          >
-            {isLoading
-              ? t("login.signingIn")
-              : isRegistering
-                ? t("login.createAccount")
-                : t("login.signIn")}
-          </button>
-
-          <div className="text-center">
-            <button
-              onClick={() => {
-                setIsRegistering((v) => !v);
-                setError(null);
-              }}
-              className="text-xs font-medium text-primary hover:underline"
-              type="button"
-            >
-              {isRegistering ? t("login.haveAccount") : t("login.noAccount")}
-            </button>
-          </div>
-        </form>
-
-        <div className="mt-8 flex items-center gap-3">
-          <div className="h-px flex-1 bg-heritage-outline/20" />
-          <span className="text-xs text-heritage-text-secondary">
-            {t("login.or")}
-          </span>
-          <div className="h-px flex-1 bg-heritage-outline/20" />
-        </div>
-
-        <div className="mt-5 space-y-2">
+        <div className="mt-10 space-y-2">
           <OAuthButton
             provider="google"
             label={t("login.continueGoogle")}
-            disabledLabel={t("login.oauthUnavailable")}
-            onStart={beginOAuthFlow}
-            busy={oauthBusy}
-          />
-          <OAuthButton
-            provider="linkedin"
-            label={t("login.continueLinkedIn")}
             disabledLabel={t("login.oauthUnavailable")}
             onStart={beginOAuthFlow}
             busy={oauthBusy}
@@ -1807,28 +1695,29 @@ function LoginScreen({
             onStart={beginOAuthFlow}
             busy={oauthBusy}
           />
+          <OAuthButton
+            provider="github"
+            label={t("login.continueGitHub")}
+            disabledLabel={t("login.oauthUnavailable")}
+            onStart={beginOAuthFlow}
+            busy={oauthBusy}
+          />
         </div>
 
+        {error && (
+          <p className="mt-3 text-center text-xs text-red-600">{error}</p>
+        )}
         {oauthBusy && (
           <p className="mt-3 text-center text-xs text-heritage-text-secondary">
             {t("login.finishingOauth")}
           </p>
         )}
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={onContinueOffline}
-            className="text-sm text-heritage-text-secondary transition hover:text-heritage-text"
-            type="button"
-          >
-            {t("login.offline")}
-          </button>
-          <p className="mt-2 text-xs text-heritage-text-secondary">
-            {t("login.offlineHint")}
-          </p>
-        </div>
-
         <p className="mt-10 text-center text-xs text-heritage-text-secondary">
+          {t("login.signInOnly")}
+        </p>
+
+        <p className="mt-4 text-center text-xs text-heritage-text-secondary">
           v0.1.0
         </p>
       </div>
@@ -1875,10 +1764,10 @@ function ProviderGlyph({ provider }: { provider: OAuthProvider }) {
           <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.3 4.4-4.3 5.9l5.9 5C39.7 35.7 44 30.4 44 24c0-1.2-.1-2.3-.4-3.5z" />
         </svg>
       );
-    case "linkedin":
+    case "github":
       return (
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="#0A66C2">
-          <path d="M20.5 2h-17C2.7 2 2 2.7 2 3.5v17c0 .8.7 1.5 1.5 1.5h17c.8 0 1.5-.7 1.5-1.5v-17c0-.8-.7-1.5-1.5-1.5zM8 19H5V9h3v10zM6.5 7.7C5.5 7.7 4.8 7 4.8 6s.7-1.7 1.7-1.7c1 0 1.7.7 1.7 1.7s-.7 1.7-1.7 1.7zM19 19h-3v-5.3c0-1.4-.5-2.3-1.7-2.3-.9 0-1.5.6-1.7 1.2-.1.2-.1.5-.1.8V19h-3V9h3v1.3c.4-.6 1.1-1.5 2.7-1.5 2 0 3.5 1.3 3.5 4V19z" />
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="#181717">
+          <path d="M12 1.5C6.2 1.5 1.5 6.2 1.5 12c0 4.6 3 8.6 7.2 10 .5.1.7-.2.7-.5v-1.8c-2.9.6-3.5-1.4-3.5-1.4-.5-1.2-1.2-1.5-1.2-1.5-1-.7.1-.7.1-.7 1.1.1 1.6 1.1 1.6 1.1 1 1.7 2.6 1.2 3.2.9.1-.7.4-1.2.7-1.5-2.3-.3-4.8-1.2-4.8-5.2 0-1.1.4-2.1 1-2.8-.1-.3-.5-1.4.1-3 0 0 .9-.3 2.8 1.1.8-.2 1.7-.3 2.6-.3.9 0 1.8.1 2.6.3 1.9-1.4 2.8-1.1 2.8-1.1.6 1.6.2 2.7.1 3 .7.7 1 1.7 1 2.8 0 4-2.5 4.9-4.8 5.2.4.3.7 1 .7 2v3c0 .3.2.6.7.5 4.2-1.4 7.2-5.4 7.2-10 0-5.8-4.7-10.5-10.5-10.5z" />
         </svg>
       );
     case "apple":

@@ -65,6 +65,28 @@ private data class LinkedInUserInfo(
 )
 
 @Serializable
+private data class GitHubTokenResponse(
+    @SerialName("access_token") val accessToken: String? = null,
+    val error: String? = null,
+    @SerialName("error_description") val errorDescription: String? = null,
+)
+
+@Serializable
+private data class GitHubUser(
+    val id: Long,
+    val login: String,
+    val name: String? = null,
+    val email: String? = null,
+)
+
+@Serializable
+private data class GitHubEmail(
+    val email: String,
+    val primary: Boolean = false,
+    val verified: Boolean = false,
+)
+
+@Serializable
 private data class AppleTokenResponse(
     @SerialName("id_token") val idToken: String? = null,
     val error: String? = null,
@@ -84,6 +106,7 @@ fun Route.oauthRoutes() {
         post("/google") { handleGoogle(call) }
         post("/linkedin") { handleLinkedIn(call) }
         post("/apple") { handleApple(call) }
+        post("/github") { handleGitHub(call) }
     }
 }
 
@@ -248,6 +271,83 @@ private suspend fun handleApple(call: ApplicationCall) {
     val name = email.substringBefore('@')
 
     respondWithJwt(call, provider = "apple", subject = sub, email = email, displayName = name)
+}
+
+private suspend fun handleGitHub(call: ApplicationCall) {
+    val request = call.receive<OAuthExchangeRequest>()
+    val config = call.application.environment.config
+    val clientId = config.propertyOrNull("oauth.github.clientId")?.getString()
+    val clientSecret = config.propertyOrNull("oauth.github.clientSecret")?.getString()
+    if (clientId.isNullOrBlank() || clientSecret.isNullOrBlank()) {
+        call.respond(
+            HttpStatusCode.ServiceUnavailable,
+            ErrorResponse("GitHub sign-in is not configured on the server", 503),
+        )
+        return
+    }
+
+    val params = Parameters.build {
+        append("client_id", clientId)
+        append("client_secret", clientSecret)
+        append("code", request.code)
+        append("redirect_uri", request.redirectUri)
+    }
+    val tokenResponse: GitHubTokenResponse = try {
+        httpClient.submitForm("https://github.com/login/oauth/access_token", formParameters = params) {
+            header(HttpHeaders.Accept, "application/json")
+        }.body()
+    } catch (cause: Throwable) {
+        call.respond(HttpStatusCode.BadGateway, ErrorResponse("Token exchange failed: ${cause.message}", 502))
+        return
+    }
+    val accessToken = tokenResponse.accessToken
+    if (accessToken.isNullOrBlank()) {
+        call.respond(
+            HttpStatusCode.Unauthorized,
+            ErrorResponse(tokenResponse.errorDescription ?: tokenResponse.error ?: "GitHub rejected the code", 401),
+        )
+        return
+    }
+
+    val user: GitHubUser = try {
+        httpClient.get("https://api.github.com/user") {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+            header(HttpHeaders.Accept, "application/vnd.github+json")
+            header("X-GitHub-Api-Version", "2022-11-28")
+        }.body()
+    } catch (cause: Throwable) {
+        call.respond(HttpStatusCode.BadGateway, ErrorResponse("GitHub user fetch failed: ${cause.message}", 502))
+        return
+    }
+
+    // /user only returns the primary email when it's public. Otherwise hit /user/emails
+    // and pick the primary verified one.
+    val email = user.email ?: try {
+        val emails: List<GitHubEmail> = httpClient.get("https://api.github.com/user/emails") {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+            header(HttpHeaders.Accept, "application/vnd.github+json")
+            header("X-GitHub-Api-Version", "2022-11-28")
+        }.body()
+        emails.firstOrNull { it.primary && it.verified }?.email
+            ?: emails.firstOrNull { it.verified }?.email
+    } catch (_: Throwable) {
+        null
+    }
+
+    if (email.isNullOrBlank()) {
+        call.respond(HttpStatusCode.Unauthorized, ErrorResponse("GitHub did not return a verified email", 401))
+        return
+    }
+
+    val name = user.name?.takeIf { it.isNotBlank() } ?: user.login
+
+    respondWithJwt(
+        call,
+        provider = "github",
+        subject = user.id.toString(),
+        email = email,
+        displayName = name,
+    )
 }
 
 private fun decodeIdToken(idToken: String): Map<String, Any?>? = try {
