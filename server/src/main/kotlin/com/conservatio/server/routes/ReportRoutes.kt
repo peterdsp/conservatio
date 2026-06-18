@@ -87,6 +87,36 @@ fun Route.reportRoutes() {
                 call.respond(HttpStatusCode.Created, mapOf("id" to id.toString()))
             }
 
+            put("/{id}") {
+                val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
+                val reportId = call.parameters["id"] ?: throw IllegalArgumentException("Missing id")
+                val request = call.receive<CreateReportRequest>()
+                val now = Clock.System.now()
+
+                val updated = transaction {
+                    ConditionReportsTable.update({
+                        (ConditionReportsTable.id eq UUID.fromString(reportId)) and
+                            (ConditionReportsTable.userId eq UUID.fromString(userId))
+                    }) {
+                        it[objectId] = UUID.fromString(request.objectId)
+                        it[reportType] = request.reportType
+                        it[overallCondition] = request.overallCondition
+                        it[examiner] = request.examiner
+                        it[examinationDate] = parseApiInstant(request.examinationDate)
+                        it[damageAnnotations] = request.damageAnnotations
+                        it[notes] = request.notes
+                        it[recommendations] = request.recommendations
+                        it[imageIds] = request.imageIds.joinToString(",")
+                        it[updatedAt] = now
+                    }
+                }
+                if (updated == 0) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@put
+                }
+                call.respond(mapOf("id" to reportId))
+            }
+
             delete("/{id}") {
                 val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
                 val reportId = call.parameters["id"] ?: throw IllegalArgumentException("Missing id")

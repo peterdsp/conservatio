@@ -122,6 +122,51 @@ fun Route.objectRoutes() {
                 ))
             }
 
+            put("/{id}") {
+                val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
+                val objectId = call.parameters["id"] ?: throw IllegalArgumentException("Missing id")
+                val request = call.receive<CreateObjectRequest>()
+                val now = Clock.System.now()
+
+                val updated = transaction {
+                    ConservationObjectsTable.update({
+                        (ConservationObjectsTable.id eq UUID.fromString(objectId)) and
+                            (ConservationObjectsTable.userId eq UUID.fromString(userId))
+                    }) {
+                        it[title] = request.title
+                        it[objectType] = request.objectType
+                        it[materials] = request.materials.joinToString(",")
+                        it[height] = request.height
+                        it[width] = request.width
+                        it[depth] = request.depth
+                        it[diameter] = request.diameter
+                        it[ConservationObjectsTable.weight] = request.weight
+                        it[measurementUnit] = request.measurementUnit
+                        it[ownerName] = request.ownerName
+                        it[locationDescription] = request.locationDescription
+                        it[inventoryNumber] = request.inventoryNumber
+                        it[description] = request.description
+                        it[imageIds] = request.imageIds.joinToString(",")
+                        it[updatedAt] = now
+                    }
+                }
+
+                if (updated == 0) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@put
+                }
+
+                val row = transaction {
+                    ConservationObjectsTable.selectAll()
+                        .where {
+                            (ConservationObjectsTable.id eq UUID.fromString(objectId)) and
+                                (ConservationObjectsTable.userId eq UUID.fromString(userId))
+                        }
+                        .first().toObjectResponse()
+                }
+                call.respond(row)
+            }
+
             delete("/{id}") {
                 val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
                 val objectId = call.parameters["id"] ?: throw IllegalArgumentException("Missing id")

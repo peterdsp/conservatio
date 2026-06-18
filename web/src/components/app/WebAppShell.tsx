@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   Menu,
   Palette,
+  Pencil,
   Plus,
   Search,
   Settings,
@@ -26,6 +27,12 @@ import {
   X,
 } from "lucide-react";
 import { Sidebar, WebSection } from "@/components/layout/Sidebar";
+import {
+  Lang,
+  enumLabel,
+  makeT,
+  supportedLanguages,
+} from "@/lib/i18n";
 
 type ObjectType =
   | "Painting"
@@ -54,6 +61,8 @@ type ProjectStatus =
   | "Completed"
   | "Archived";
 
+type ImageAsset = { name: string; dataUrl: string };
+
 type ConservationObject = {
   id: string;
   title: string;
@@ -69,7 +78,7 @@ type ConservationObject = {
     depth: string;
     unit: "cm" | "m" | "in";
   };
-  imageNames: string[];
+  images: ImageAsset[];
   createdAt: string;
   updatedAt: string;
 };
@@ -111,7 +120,7 @@ type Report = {
   examinationDate: string;
   notes: string;
   recommendations: string;
-  imageNames: string[];
+  images: ImageAsset[];
   createdAt: string;
   updatedAt: string;
 };
@@ -128,13 +137,19 @@ type ObjectFormState = {
   width: string;
   depth: string;
   unit: "cm" | "m" | "in";
-  imageNames: string[];
+  images: ImageAsset[];
 };
 
 type ClientFormState = Omit<Client, "id" | "createdAt" | "updatedAt">;
 type ProjectFormState = Omit<Project, "id" | "createdAt" | "updatedAt">;
 type ReportFormState = Omit<Report, "id" | "createdAt" | "updatedAt">;
-type ModalKind = "object" | "client" | "project" | "report";
+
+type ModalState =
+  | { kind: "object"; mode: "create" | "edit"; record?: ConservationObject }
+  | { kind: "client"; mode: "create" | "edit"; record?: Client }
+  | { kind: "project"; mode: "create" | "edit"; record?: Project }
+  | { kind: "report"; mode: "create" | "edit"; record?: Report }
+  | null;
 
 type AuthMode = "login" | "register";
 
@@ -279,7 +294,7 @@ const emptyObjectForm: ObjectFormState = {
   width: "",
   depth: "",
   unit: "cm",
-  imageNames: [],
+  images: [],
 };
 
 const emptyClientForm: ClientFormState = {
@@ -312,7 +327,7 @@ const emptyReportForm: ReportFormState = {
   examinationDate: "",
   notes: "",
   recommendations: "",
-  imageNames: [],
+  images: [],
 };
 
 const seedObjects: ConservationObject[] = [
@@ -327,7 +342,10 @@ const seedObjects: ConservationObject[] = [
     description:
       "Panel icon with edge abrasions, localized flaking, and surface grime requiring initial assessment.",
     dimensions: { height: "42", width: "31", depth: "2.4", unit: "cm" },
-    imageNames: ["front-detail.jpg", "corner-loss.jpg"],
+    images: [
+      { name: "front-detail.jpg", dataUrl: "" },
+      { name: "corner-loss.jpg", dataUrl: "" },
+    ],
     createdAt: "2026-05-18",
     updatedAt: "2026-06-01",
   },
@@ -342,7 +360,7 @@ const seedObjects: ConservationObject[] = [
     description:
       "Historic lamp with active corrosion checks pending before storage recommendation.",
     dimensions: { height: "12", width: "18", depth: "9", unit: "cm" },
-    imageNames: ["lamp-overview.jpg"],
+    images: [{ name: "lamp-overview.jpg", dataUrl: "" }],
     createdAt: "2026-05-12",
     updatedAt: "2026-05-28",
   },
@@ -416,7 +434,7 @@ const seedReports: Report[] = [
     examinationDate: "2026-06-01",
     notes: "Surface grime and localized paint instability observed.",
     recommendations: "Stabilize flakes before cleaning tests.",
-    imageNames: ["front-detail.jpg"],
+    images: [{ name: "front-detail.jpg", dataUrl: "" }],
     createdAt: "2026-06-01",
     updatedAt: "2026-06-01",
   },
@@ -429,21 +447,11 @@ const seedReports: Report[] = [
     examinationDate: "2026-05-28",
     notes: "Stable surface deposits. No active corrosion confirmed.",
     recommendations: "Keep humidity stable and recheck in six months.",
-    imageNames: ["lamp-overview.jpg"],
+    images: [{ name: "lamp-overview.jpg", dataUrl: "" }],
     createdAt: "2026-05-28",
     updatedAt: "2026-05-28",
   },
 ];
-
-const navItems: Array<{ section: WebSection; label: string; icon: typeof Box }> =
-  [
-    { section: "dashboard", label: "Home", icon: LayoutDashboard },
-    { section: "objects", label: "Objects", icon: Box },
-    { section: "projects", label: "Projects", icon: FolderKanban },
-    { section: "clients", label: "Clients", icon: Users },
-    { section: "reports", label: "Reports", icon: FileText },
-    { section: "settings", label: "Settings", icon: Settings },
-  ];
 
 const API_BASE_URL = "https://conservatio-api.peterdsp.dev";
 
@@ -488,11 +496,66 @@ function usePersistentState<T>(key: string, fallback: T) {
   return [value, setValue] as const;
 }
 
+// Older persisted data used `imageNames: string[]`. Hydrate it to ImageAsset[].
+function normalizeImages(raw: unknown): ImageAsset[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => {
+      if (typeof entry === "string") return { name: entry, dataUrl: "" };
+      if (entry && typeof entry === "object" && "name" in entry) {
+        return {
+          name: String((entry as ImageAsset).name ?? ""),
+          dataUrl: String((entry as ImageAsset).dataUrl ?? ""),
+        };
+      }
+      return null;
+    })
+    .filter((entry): entry is ImageAsset => entry !== null && !!entry.name);
+}
+
+function normalizeObject(raw: any): ConservationObject {
+  return {
+    id: raw.id,
+    title: raw.title ?? "",
+    objectType: raw.objectType ?? "Other",
+    materials: raw.materials ?? [],
+    ownerName: raw.ownerName ?? "",
+    locationDescription: raw.locationDescription ?? "",
+    inventoryNumber: raw.inventoryNumber ?? "",
+    description: raw.description ?? "",
+    dimensions: raw.dimensions ?? { height: "", width: "", depth: "", unit: "cm" },
+    images: raw.images ? normalizeImages(raw.images) : normalizeImages(raw.imageNames),
+    createdAt: raw.createdAt ?? today(),
+    updatedAt: raw.updatedAt ?? today(),
+  };
+}
+
+function normalizeReport(raw: any): Report {
+  return {
+    id: raw.id,
+    objectId: raw.objectId ?? "",
+    reportType: raw.reportType ?? "Initial assessment",
+    condition: raw.condition ?? "Fair",
+    examiner: raw.examiner ?? "",
+    examinationDate: raw.examinationDate ?? "",
+    notes: raw.notes ?? "",
+    recommendations: raw.recommendations ?? "",
+    images: raw.images ? normalizeImages(raw.images) : normalizeImages(raw.imageNames),
+    createdAt: raw.createdAt ?? today(),
+    updatedAt: raw.updatedAt ?? today(),
+  };
+}
+
 export function WebAppShell() {
   const [activeSection, setActiveSection] = useState<WebSection>("dashboard");
   const [collapsed, setCollapsed] = useState(false);
-  const [modal, setModal] = useState<ModalKind | null>(null);
-  const [objects, setObjects] = usePersistentState(
+  const [modal, setModal] = useState<ModalState>(null);
+  const [language, setLanguage] = usePersistentState<Lang>(
+    "conservatio.lang",
+    "en",
+  );
+  const t = useMemo(() => makeT(language), [language]);
+  const [rawObjects, setObjects] = usePersistentState<ConservationObject[]>(
     "conservatio.objects",
     seedObjects,
   );
@@ -504,7 +567,7 @@ export function WebAppShell() {
     "conservatio.projects",
     seedProjects,
   );
-  const [reports, setReports] = usePersistentState(
+  const [rawReports, setReports] = usePersistentState<Report[]>(
     "conservatio.reports",
     seedReports,
   );
@@ -513,12 +576,22 @@ export function WebAppShell() {
     defaultSyncAccount,
   );
   const [syncStatus, setSyncStatus] = useState(
-    syncAccount.token ? "Signed in" : "Offline local mode",
+    syncAccount.token ? t("sync.signedIn") : t("sync.offline"),
   );
   const [query, setQuery] = useState("");
   const [passedLogin, setPassedLogin] = usePersistentState(
     "conservatio.passedLogin",
     false,
+  );
+
+  // Hydrate legacy persisted records that used `imageNames`.
+  const objects = useMemo(
+    () => rawObjects.map(normalizeObject),
+    [rawObjects],
+  );
+  const reports = useMemo(
+    () => rawReports.map(normalizeReport),
+    [rawReports],
   );
 
   const filteredObjects = useMemo(() => {
@@ -545,9 +618,7 @@ export function WebAppShell() {
     if (!syncAccount.token) {
       return;
     }
-
-    void refreshFromServer(syncAccount);
-    // Refresh persisted sessions only when the saved token changes.
+    void syncWithServer(syncAccount);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncAccount.token]);
 
@@ -576,13 +647,67 @@ export function WebAppShell() {
     return (await response.json()) as T;
   }
 
-  async function refreshFromServer(account = syncAccount) {
-    if (!account.token) {
-      return;
+  async function pushPendingItems(
+    account: SyncAccount,
+    remoteIds: {
+      objects: Set<string>;
+      clients: Set<string>;
+      projects: Set<string>;
+      reports: Set<string>;
+    },
+  ) {
+    let pushed = 0;
+    for (const item of objects) {
+      if (remoteIds.objects.has(item.id)) continue;
+      try {
+        await apiRequest("/api/objects", {
+          method: "POST",
+          body: JSON.stringify(toApiObjectRequest(item)),
+        }, account);
+        pushed++;
+      } catch {
+        /* swallow — keep local copy */
+      }
     }
+    for (const item of clients) {
+      if (remoteIds.clients.has(item.id)) continue;
+      try {
+        await apiRequest("/api/clients", {
+          method: "POST",
+          body: JSON.stringify(toApiClientRequest(item)),
+        }, account);
+        pushed++;
+      } catch { /* swallow */ }
+    }
+    for (const item of projects) {
+      if (remoteIds.projects.has(item.id)) continue;
+      try {
+        await apiRequest("/api/projects", {
+          method: "POST",
+          body: JSON.stringify(toApiProjectRequest(item)),
+        }, account);
+        pushed++;
+      } catch { /* swallow */ }
+    }
+    for (const item of reports) {
+      if (remoteIds.reports.has(item.id)) continue;
+      try {
+        await apiRequest("/api/reports", {
+          method: "POST",
+          body: JSON.stringify(toApiReportRequest(item)),
+        }, account);
+        pushed++;
+      } catch { /* swallow */ }
+    }
+    return pushed;
+  }
 
+  // Full sync: pull what's on the server, push anything local that isn't there,
+  // then pull again so the merged set is reflected locally.
+  async function syncWithServer(account = syncAccount) {
+    if (!account.token) return;
     try {
-      setSyncStatus("Syncing with server");
+      setSyncStatus(t("sync.syncing"));
       const [remoteObjects, remoteClients, remoteProjects, remoteReports] =
         await Promise.all([
           apiRequest<ApiObject[]>("/api/objects", {}, account),
@@ -591,13 +716,50 @@ export function WebAppShell() {
           apiRequest<ApiReport[]>("/api/reports", {}, account),
         ]);
 
-      setObjects(remoteObjects.map(fromApiObject));
-      setClients(remoteClients.map(fromApiClient));
-      setProjects(remoteProjects.map(fromApiProject));
-      setReports(remoteReports.map(fromApiReport));
-      setSyncStatus(`Synced ${new Date().toLocaleTimeString()}`);
+      const remoteIds = {
+        objects: new Set(remoteObjects.map((entry) => entry.id)),
+        clients: new Set(remoteClients.map((entry) => entry.id)),
+        projects: new Set(remoteProjects.map((entry) => entry.id)),
+        reports: new Set(remoteReports.map((entry) => entry.id)),
+      };
+
+      const pushedCount = await pushPendingItems(account, remoteIds);
+
+      const [finalObjects, finalClients, finalProjects, finalReports] =
+        await Promise.all([
+          apiRequest<ApiObject[]>("/api/objects", {}, account),
+          apiRequest<ApiClient[]>("/api/clients", {}, account),
+          apiRequest<ApiProject[]>("/api/projects", {}, account),
+          apiRequest<ApiReport[]>("/api/reports", {}, account),
+        ]);
+
+      // Preserve any local-only image data URLs after refresh.
+      const objectImagesById = new Map(
+        objects.map((entry) => [entry.id, entry.images] as const),
+      );
+      const reportImagesById = new Map(
+        reports.map((entry) => [entry.id, entry.images] as const),
+      );
+
+      setObjects(
+        finalObjects.map((entry) =>
+          mergeImagesIntoObject(fromApiObject(entry), objectImagesById.get(entry.id)),
+        ),
+      );
+      setClients(finalClients.map(fromApiClient));
+      setProjects(finalProjects.map(fromApiProject));
+      setReports(
+        finalReports.map((entry) =>
+          mergeImagesIntoReport(fromApiReport(entry), reportImagesById.get(entry.id)),
+        ),
+      );
+      setSyncStatus(
+        pushedCount > 0
+          ? `${t("sync.pushed")} · ${new Date().toLocaleTimeString()}`
+          : `${t("sync.syncedAt")} ${new Date().toLocaleTimeString()}`,
+      );
     } catch {
-      setSyncStatus("Sync failed, using local data");
+      setSyncStatus(t("sync.failed"));
     }
   }
 
@@ -608,7 +770,7 @@ export function WebAppShell() {
     mode: AuthMode,
   ): Promise<string | null> {
     try {
-      setSyncStatus("Signing in");
+      setSyncStatus(t("sync.signingIn"));
       const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body =
         mode === "login"
@@ -622,9 +784,9 @@ export function WebAppShell() {
 
       if (!response.ok) {
         const status = response.status;
-        if (status === 401) return "Invalid email or password.";
-        if (status === 409) return "An account with this email already exists.";
-        return `Authentication failed (${status}).`;
+        if (status === 401) return t("login.errInvalid");
+        if (status === 409) return t("login.errExists");
+        return `${t("login.errAuth")} (${status}).`;
       }
 
       const auth = (await response.json()) as {
@@ -638,17 +800,17 @@ export function WebAppShell() {
         displayName: auth.displayName,
       };
       setSyncAccount(account);
-      await refreshFromServer(account);
+      await syncWithServer(account);
       return null;
     } catch {
-      setSyncStatus("Sign in failed");
-      return "Could not connect. Check your network or try again.";
+      setSyncStatus(t("login.errAuth"));
+      return t("login.errNetwork");
     }
   }
 
   function signOut() {
     setSyncAccount(defaultSyncAccount);
-    setSyncStatus("Offline local mode");
+    setSyncStatus(t("sync.offline"));
     setPassedLogin(false);
   }
 
@@ -673,7 +835,7 @@ export function WebAppShell() {
         depth: form.depth.trim(),
         unit: form.unit,
       },
-      imageNames: form.imageNames,
+      images: form.images,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -684,16 +846,65 @@ export function WebAppShell() {
           method: "POST",
           body: JSON.stringify(toApiObjectRequest(object)),
         });
-        setObjects((current) => [fromApiObject(remote), ...current]);
-        setSyncStatus("Object synced");
+        const merged = mergeImagesIntoObject(fromApiObject(remote), object.images);
+        setObjects((current) => [merged, ...current]);
+        setSyncStatus(`${t("nav.objects")} ${t("sync.synced")}`);
       } catch {
         setObjects((current) => [object, ...current]);
-        setSyncStatus("Object saved locally, sync failed");
+        setSyncStatus(`${t("nav.objects")} ${t("sync.savedLocal")}`);
       }
     } else {
       setObjects((current) => [object, ...current]);
     }
     setActiveSection("objects");
+    setModal(null);
+  }
+
+  async function updateObject(id: string, form: ObjectFormState) {
+    const timestamp = today();
+    const materials = form.materialsText
+      .split(",")
+      .map((material) => material.trim())
+      .filter(Boolean);
+    const existing = objects.find((object) => object.id === id);
+    if (!existing) {
+      setModal(null);
+      return;
+    }
+    const updated: ConservationObject = {
+      ...existing,
+      title: form.title.trim(),
+      objectType: form.objectType,
+      materials,
+      ownerName: form.ownerName.trim(),
+      locationDescription: form.locationDescription.trim(),
+      inventoryNumber: form.inventoryNumber.trim(),
+      description: form.description.trim(),
+      dimensions: {
+        height: form.height.trim(),
+        width: form.width.trim(),
+        depth: form.depth.trim(),
+        unit: form.unit,
+      },
+      images: form.images,
+      updatedAt: timestamp,
+    };
+
+    setObjects((current) =>
+      current.map((object) => (object.id === id ? updated : object)),
+    );
+
+    if (syncAccount.token) {
+      try {
+        await apiRequest(`/api/objects/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(toApiObjectRequest(updated)),
+        });
+        setSyncStatus(`${t("nav.objects")} ${t("sync.synced")}`);
+      } catch {
+        setSyncStatus(`${t("nav.objects")} ${t("sync.savedLocal")}`);
+      }
+    }
     setModal(null);
   }
 
@@ -719,15 +930,50 @@ export function WebAppShell() {
           body: JSON.stringify(toApiClientRequest(client)),
         });
         setClients((current) => [fromApiClient(remote), ...current]);
-        setSyncStatus("Client synced");
+        setSyncStatus(`${t("nav.clients")} ${t("sync.synced")}`);
       } catch {
         setClients((current) => [client, ...current]);
-        setSyncStatus("Client saved locally, sync failed");
+        setSyncStatus(`${t("nav.clients")} ${t("sync.savedLocal")}`);
       }
     } else {
       setClients((current) => [client, ...current]);
     }
     setActiveSection("clients");
+    setModal(null);
+  }
+
+  async function updateClient(id: string, form: ClientFormState) {
+    const timestamp = today();
+    const existing = clients.find((client) => client.id === id);
+    if (!existing) {
+      setModal(null);
+      return;
+    }
+    const updated: Client = {
+      ...existing,
+      ...form,
+      name: form.name.trim(),
+      contactPerson: form.contactPerson.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      notes: form.notes.trim(),
+      updatedAt: timestamp,
+    };
+    setClients((current) =>
+      current.map((client) => (client.id === id ? updated : client)),
+    );
+    if (syncAccount.token) {
+      try {
+        await apiRequest(`/api/clients/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(toApiClientRequest(updated)),
+        });
+        setSyncStatus(`${t("nav.clients")} ${t("sync.synced")}`);
+      } catch {
+        setSyncStatus(`${t("nav.clients")} ${t("sync.savedLocal")}`);
+      }
+    }
     setModal(null);
   }
 
@@ -751,15 +997,48 @@ export function WebAppShell() {
           body: JSON.stringify(toApiProjectRequest(project)),
         });
         setProjects((current) => [fromApiProject(remote), ...current]);
-        setSyncStatus("Project synced");
+        setSyncStatus(`${t("nav.projects")} ${t("sync.synced")}`);
       } catch {
         setProjects((current) => [project, ...current]);
-        setSyncStatus("Project saved locally, sync failed");
+        setSyncStatus(`${t("nav.projects")} ${t("sync.savedLocal")}`);
       }
     } else {
       setProjects((current) => [project, ...current]);
     }
     setActiveSection("projects");
+    setModal(null);
+  }
+
+  async function updateProject(id: string, form: ProjectFormState) {
+    const timestamp = today();
+    const existing = projects.find((project) => project.id === id);
+    if (!existing) {
+      setModal(null);
+      return;
+    }
+    const updated: Project = {
+      ...existing,
+      ...form,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      budget: form.budget.trim(),
+      currency: form.currency.trim() || "EUR",
+      updatedAt: timestamp,
+    };
+    setProjects((current) =>
+      current.map((project) => (project.id === id ? updated : project)),
+    );
+    if (syncAccount.token) {
+      try {
+        await apiRequest(`/api/projects/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(toApiProjectRequest(updated)),
+        });
+        setSyncStatus(`${t("nav.projects")} ${t("sync.synced")}`);
+      } catch {
+        setSyncStatus(`${t("nav.projects")} ${t("sync.savedLocal")}`);
+      }
+    }
     setModal(null);
   }
 
@@ -781,16 +1060,48 @@ export function WebAppShell() {
           method: "POST",
           body: JSON.stringify(toApiReportRequest(report)),
         });
-        await refreshFromServer();
-        setSyncStatus("Report synced");
+        setReports((current) => [report, ...current]);
+        setSyncStatus(`${t("nav.reports")} ${t("sync.synced")}`);
       } catch {
         setReports((current) => [report, ...current]);
-        setSyncStatus("Report saved locally, sync failed");
+        setSyncStatus(`${t("nav.reports")} ${t("sync.savedLocal")}`);
       }
     } else {
       setReports((current) => [report, ...current]);
     }
     setActiveSection("reports");
+    setModal(null);
+  }
+
+  async function updateReport(id: string, form: ReportFormState) {
+    const timestamp = today();
+    const existing = reports.find((report) => report.id === id);
+    if (!existing) {
+      setModal(null);
+      return;
+    }
+    const updated: Report = {
+      ...existing,
+      ...form,
+      examiner: form.examiner.trim(),
+      notes: form.notes.trim(),
+      recommendations: form.recommendations.trim(),
+      updatedAt: timestamp,
+    };
+    setReports((current) =>
+      current.map((report) => (report.id === id ? updated : report)),
+    );
+    if (syncAccount.token) {
+      try {
+        await apiRequest(`/api/reports/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(toApiReportRequest(updated)),
+        });
+        setSyncStatus(`${t("nav.reports")} ${t("sync.synced")}`);
+      } catch {
+        setSyncStatus(`${t("nav.reports")} ${t("sync.savedLocal")}`);
+      }
+    }
     setModal(null);
   }
 
@@ -834,7 +1145,18 @@ export function WebAppShell() {
     setReports((current) => current.filter((report) => report.id !== id));
   }
 
-  function resetDemoData() {
+  function clearAllData() {
+    if (typeof window !== "undefined") {
+      if (!window.confirm(t("settings.clearConfirm"))) return;
+    }
+    setObjects([]);
+    setClients([]);
+    setProjects([]);
+    setReports([]);
+    setActiveSection("dashboard");
+  }
+
+  function loadSampleData() {
     setObjects(seedObjects);
     setClients(seedClients);
     setProjects(seedProjects);
@@ -842,11 +1164,16 @@ export function WebAppShell() {
     setActiveSection("dashboard");
   }
 
+  function saveProfile(displayName: string) {
+    setSyncAccount({ ...syncAccount, displayName: displayName.trim() });
+  }
+
   const showLogin = !passedLogin && !syncAccount.token;
 
   if (showLogin) {
     return (
       <LoginScreen
+        t={t}
         onSignIn={async (email, password, displayName, mode) => {
           const error = await signIn(email, password, displayName, mode);
           if (!error) setPassedLogin(true);
@@ -866,65 +1193,94 @@ export function WebAppShell() {
           collapsed={collapsed}
           onNavigate={setActiveSection}
           onToggleCollapsed={() => setCollapsed((value) => !value)}
+          t={t}
         />
         <main className="flex-1 overflow-auto">
           <TopBar
+            t={t}
             activeSection={activeSection}
-            onCreateObject={() => setModal("object")}
+            onCreateObject={() => setModal({ kind: "object", mode: "create" })}
             onNavigate={setActiveSection}
           />
           <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             {activeSection === "dashboard" && (
               <DashboardView
+                t={t}
+                lang={language}
                 objects={objects}
                 clients={clients}
                 projects={projects}
                 reports={reports}
                 syncStatus={syncStatus}
-                onCreate={setModal}
+                onCreate={(kind) => setModal({ kind, mode: "create" } as ModalState)}
                 onNavigate={setActiveSection}
               />
             )}
             {activeSection === "objects" && (
               <ObjectsView
+                t={t}
+                lang={language}
                 objects={filteredObjects}
                 query={query}
                 onQueryChange={setQuery}
-                onCreateObject={() => setModal("object")}
+                onCreateObject={() => setModal({ kind: "object", mode: "create" })}
+                onEditObject={(record) =>
+                  setModal({ kind: "object", mode: "edit", record })
+                }
                 onDeleteObject={deleteObject}
               />
             )}
             {activeSection === "projects" && (
               <ProjectsView
+                t={t}
+                lang={language}
                 projects={projects}
                 clients={clients}
                 objects={objects}
-                onCreateProject={() => setModal("project")}
+                onCreateProject={() => setModal({ kind: "project", mode: "create" })}
+                onEditProject={(record) =>
+                  setModal({ kind: "project", mode: "edit", record })
+                }
                 onDeleteProject={deleteProject}
               />
             )}
             {activeSection === "clients" && (
               <ClientsView
+                t={t}
+                lang={language}
                 clients={clients}
                 projects={projects}
-                onCreateClient={() => setModal("client")}
+                onCreateClient={() => setModal({ kind: "client", mode: "create" })}
+                onEditClient={(record) =>
+                  setModal({ kind: "client", mode: "edit", record })
+                }
                 onDeleteClient={deleteClient}
               />
             )}
             {activeSection === "reports" && (
               <ReportsView
+                t={t}
+                lang={language}
                 reports={reports}
                 objects={objects}
-                onCreateReport={() => setModal("report")}
+                onCreateReport={() => setModal({ kind: "report", mode: "create" })}
+                onEditReport={(record) =>
+                  setModal({ kind: "report", mode: "edit", record })
+                }
                 onDeleteReport={deleteReport}
               />
             )}
             {activeSection === "settings" && (
               <SettingsView
+                t={t}
+                language={language}
+                onLanguageChange={setLanguage}
                 syncAccount={syncAccount}
                 syncStatus={syncStatus}
-                onResetDemoData={resetDemoData}
-                onRefresh={() => refreshFromServer()}
+                onSaveProfile={saveProfile}
+                onClearAll={clearAllData}
+                onLoadSample={loadSampleData}
+                onRefresh={() => syncWithServer()}
                 onSignOut={signOut}
               />
             )}
@@ -932,31 +1288,63 @@ export function WebAppShell() {
         </main>
       </div>
 
-      {modal === "object" && (
-        <CreateObjectModal
+      {modal?.kind === "object" && (
+        <ObjectModal
+          t={t}
+          lang={language}
+          mode={modal.mode}
+          initial={modal.record}
           onClose={() => setModal(null)}
-          onSave={createObject}
+          onSave={(form) =>
+            modal.mode === "edit" && modal.record
+              ? updateObject(modal.record.id, form)
+              : createObject(form)
+          }
         />
       )}
-      {modal === "client" && (
-        <CreateClientModal
+      {modal?.kind === "client" && (
+        <ClientModal
+          t={t}
+          lang={language}
+          mode={modal.mode}
+          initial={modal.record}
           onClose={() => setModal(null)}
-          onSave={createClient}
+          onSave={(form) =>
+            modal.mode === "edit" && modal.record
+              ? updateClient(modal.record.id, form)
+              : createClient(form)
+          }
         />
       )}
-      {modal === "project" && (
-        <CreateProjectModal
+      {modal?.kind === "project" && (
+        <ProjectModal
+          t={t}
+          lang={language}
+          mode={modal.mode}
+          initial={modal.record}
           clients={clients}
           objects={objects}
           onClose={() => setModal(null)}
-          onSave={createProject}
+          onSave={(form) =>
+            modal.mode === "edit" && modal.record
+              ? updateProject(modal.record.id, form)
+              : createProject(form)
+          }
         />
       )}
-      {modal === "report" && (
-        <CreateReportModal
+      {modal?.kind === "report" && (
+        <ReportModal
+          t={t}
+          lang={language}
+          mode={modal.mode}
+          initial={modal.record}
           objects={objects}
           onClose={() => setModal(null)}
-          onSave={createReport}
+          onSave={(form) =>
+            modal.mode === "edit" && modal.record
+              ? updateReport(modal.record.id, form)
+              : createReport(form)
+          }
         />
       )}
     </div>
@@ -964,9 +1352,11 @@ export function WebAppShell() {
 }
 
 function LoginScreen({
+  t,
   onSignIn,
   onContinueOffline,
 }: {
+  t: (key: string) => string;
   onSignIn: (
     email: string,
     password: string,
@@ -981,19 +1371,23 @@ function LoginScreen({
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.trim() || !password.trim()) return;
     setIsLoading(true);
     setError(null);
+    setNotice(null);
+    const wasRegistering = isRegistering;
     const result = await onSignIn(
       email.trim(),
       password,
       displayName.trim(),
-      isRegistering ? "register" : "login",
+      wasRegistering ? "register" : "login",
     );
     if (result) setError(result);
+    else if (wasRegistering) setNotice(t("login.verifyNote"));
     setIsLoading(false);
   }
 
@@ -1007,7 +1401,7 @@ function LoginScreen({
           </div>
           <h1 className="mt-5 text-3xl font-bold text-primary">Conservatio</h1>
           <p className="mt-2 text-sm text-heritage-text-secondary">
-            Document heritage. Protect history.
+            {t("login.tagline")}
           </p>
         </div>
 
@@ -1017,7 +1411,7 @@ function LoginScreen({
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
               className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
-              placeholder="Full Name"
+              placeholder={t("login.fullName")}
               type="text"
               autoComplete="name"
             />
@@ -1026,7 +1420,7 @@ function LoginScreen({
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
-            placeholder="Email"
+            placeholder={t("login.email")}
             type="email"
             autoComplete="email"
             required
@@ -1035,7 +1429,7 @@ function LoginScreen({
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-primary"
-            placeholder="Password"
+            placeholder={t("login.password")}
             type="password"
             autoComplete={isRegistering ? "new-password" : "current-password"}
             required
@@ -1044,6 +1438,11 @@ function LoginScreen({
           {error && (
             <p className="text-center text-xs text-red-600">{error}</p>
           )}
+          {notice && (
+            <p className="rounded-2xl bg-primary-50 px-4 py-3 text-center text-xs text-primary">
+              {notice}
+            </p>
+          )}
 
           <button
             className="w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
@@ -1051,10 +1450,10 @@ function LoginScreen({
             type="submit"
           >
             {isLoading
-              ? "Signing in..."
+              ? t("login.signingIn")
               : isRegistering
-                ? "Create Account"
-                : "Sign In"}
+                ? t("login.createAccount")
+                : t("login.signIn")}
           </button>
 
           <div className="text-center">
@@ -1062,20 +1461,21 @@ function LoginScreen({
               onClick={() => {
                 setIsRegistering((v) => !v);
                 setError(null);
+                setNotice(null);
               }}
               className="text-xs font-medium text-primary hover:underline"
               type="button"
             >
-              {isRegistering
-                ? "Already have an account? Sign In"
-                : "New here? Create Account"}
+              {isRegistering ? t("login.haveAccount") : t("login.noAccount")}
             </button>
           </div>
         </form>
 
         <div className="mt-8 flex items-center gap-3">
           <div className="h-px flex-1 bg-heritage-outline/20" />
-          <span className="text-xs text-heritage-text-secondary">or</span>
+          <span className="text-xs text-heritage-text-secondary">
+            {t("login.or")}
+          </span>
           <div className="h-px flex-1 bg-heritage-outline/20" />
         </div>
 
@@ -1085,10 +1485,10 @@ function LoginScreen({
             className="text-sm text-heritage-text-secondary transition hover:text-heritage-text"
             type="button"
           >
-            Continue Offline
+            {t("login.offline")}
           </button>
           <p className="mt-2 text-xs text-heritage-text-secondary">
-            Data will be saved locally in this browser only.
+            {t("login.offlineHint")}
           </p>
         </div>
 
@@ -1101,10 +1501,12 @@ function LoginScreen({
 }
 
 function TopBar({
+  t,
   activeSection,
   onCreateObject,
   onNavigate,
 }: {
+  t: (key: string) => string;
   activeSection: WebSection;
   onCreateObject: () => void;
   onNavigate: (section: WebSection) => void;
@@ -1116,20 +1518,20 @@ function TopBar({
           <Menu className="text-primary" size={22} />
           <div>
             <p className="text-base font-bold text-primary">
-              Conservatio Web App
+              Conservatio {t("top.webApp")}
             </p>
             <p className="text-xs text-heritage-text-secondary">
-              {labelForSection(activeSection)}
+              {t(navLabelKey(activeSection))}
             </p>
           </div>
         </div>
         <div className="hidden flex-1 lg:block">
           <div className="flex items-center gap-3">
             <p className="text-sm font-medium text-heritage-text-secondary">
-              {labelForSection(activeSection)}
+              {t(navLabelKey(activeSection))}
             </p>
             <span className="rounded-full bg-primary-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-              Web App
+              {t("top.webApp")}
             </span>
           </div>
         </div>
@@ -1139,23 +1541,32 @@ function TopBar({
           type="button"
         >
           <Plus size={18} />
-          New Object
+          {t("top.newObject")}
         </button>
       </div>
       <div className="flex gap-2 overflow-x-auto px-4 pb-3 lg:hidden">
-        {navItems.map((item) => (
+        {(
+          [
+            ["dashboard", LayoutDashboard],
+            ["objects", Box],
+            ["projects", FolderKanban],
+            ["clients", Users],
+            ["reports", FileText],
+            ["settings", Settings],
+          ] as Array<[WebSection, typeof Box]>
+        ).map(([section, Icon]) => (
           <button
-            key={item.section}
-            onClick={() => onNavigate(item.section)}
+            key={section}
+            onClick={() => onNavigate(section)}
             className={`flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium ${
-              activeSection === item.section
+              activeSection === section
                 ? "bg-primary-50 text-primary"
                 : "bg-white/80 text-heritage-text-secondary"
             }`}
             type="button"
           >
-            <item.icon size={16} />
-            {item.label}
+            <Icon size={16} />
+            {t(navLabelKey(section))}
           </button>
         ))}
       </div>
@@ -1163,7 +1574,13 @@ function TopBar({
   );
 }
 
+function navLabelKey(section: WebSection) {
+  return `nav.${section}`;
+}
+
 function DashboardView({
+  t,
+  lang,
   objects,
   clients,
   projects,
@@ -1172,12 +1589,14 @@ function DashboardView({
   onCreate,
   onNavigate,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
   objects: ConservationObject[];
   clients: Client[];
   projects: Project[];
   reports: Report[];
   syncStatus: string;
-  onCreate: (kind: ModalKind) => void;
+  onCreate: (kind: "object" | "client" | "project" | "report") => void;
   onNavigate: (section: WebSection) => void;
 }) {
   return (
@@ -1185,17 +1604,15 @@ function DashboardView({
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm lg:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-            Welcome back
+            {t("dash.welcome")}
           </p>
           <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="font-serif text-3xl font-bold text-heritage-text sm:text-4xl">
-                Conservatio Web App
+                {t("dash.title")}
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-heritage-text-secondary">
-                The same conservation workflow from iOS and Android, expanded
-                for desktop screens with wider lists, panels, and creation
-                forms. Data is saved in this browser.
+                {t("dash.intro")}
               </p>
             </div>
             <button
@@ -1204,7 +1621,7 @@ function DashboardView({
               type="button"
             >
               <Plus size={18} />
-              New Object
+              {t("top.newObject")}
             </button>
           </div>
         </section>
@@ -1213,61 +1630,60 @@ function DashboardView({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-secondary-100">
-                Storage status
+                {t("dash.storageStatus")}
               </p>
               <h2 className="mt-2 text-2xl font-bold">{syncStatus}</h2>
             </div>
             <Cloud className="text-secondary-200" size={28} />
           </div>
           <p className="mt-4 text-sm leading-6 text-secondary-100">
-            Objects, clients, projects, and reports persist with local browser
-            storage until backend sync is connected.
+            {t("dash.storageInfo")}
           </p>
           <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-            <StatusPill label="Local save" />
-            <StatusPill label="Ready for sync" />
+            <StatusPill label={t("dash.localSave")} />
+            <StatusPill label={t("dash.readyForSync")} />
           </div>
         </section>
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Objects" value={`${objects.length}`} icon={Box} />
-        <StatCard label="Reports" value={`${reports.length}`} icon={FileText} />
+        <StatCard label={t("stat.objects")} value={`${objects.length}`} icon={Box} />
+        <StatCard label={t("stat.reports")} value={`${reports.length}`} icon={FileText} />
         <StatCard
-          label="Projects"
+          label={t("stat.projects")}
           value={`${projects.length}`}
           icon={FolderKanban}
         />
-        <StatCard label="Clients" value={`${clients.length}`} icon={Users} />
+        <StatCard label={t("stat.clients")} value={`${clients.length}`} icon={Users} />
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.45fr]">
         <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm lg:p-6">
           <SectionTitle
-            title="Quick Actions"
-            subtitle="Create real records that stay available after refresh."
+            title={t("dash.quickActions")}
+            subtitle={t("dash.quickActionsSub")}
           />
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <QuickActionCard
-              title="New Object"
+              title={t("top.newObject")}
               icon={Box}
               color="text-primary"
               onClick={() => onCreate("object")}
             />
             <QuickActionCard
-              title="Take Photo"
+              title={t("dash.takePhoto")}
               icon={Camera}
               color="text-secondary"
               onClick={() => onCreate("object")}
             />
             <QuickActionCard
-              title="New Report"
+              title={t("dash.newReport")}
               icon={FileText}
               color="text-tertiary"
               onClick={() => onCreate("report")}
             />
             <QuickActionCard
-              title="New Project"
+              title={t("dash.newProject")}
               icon={FolderKanban}
               color="text-primary-dark"
               onClick={() => onCreate("project")}
@@ -1278,21 +1694,21 @@ function DashboardView({
         <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm lg:p-6">
           <div className="flex items-start justify-between gap-4">
             <SectionTitle
-              title="Recent Objects"
-              subtitle="Newest object records with inventory metadata."
+              title={t("dash.recentObjects")}
+              subtitle={t("dash.recentObjectsSub")}
             />
             <button
               onClick={() => onNavigate("objects")}
               className="hidden items-center gap-2 rounded-xl bg-heritage-surface-variant px-3 py-2 text-sm font-semibold text-heritage-text sm:inline-flex"
               type="button"
             >
-              View all
+              {t("dash.viewAll")}
               <ArrowRight size={16} />
             </button>
           </div>
           <div className="mt-5 space-y-3">
             {objects.slice(0, 5).map((object) => (
-              <ObjectRow key={object.id} object={object} />
+              <ObjectRow key={object.id} object={object} lang={lang} />
             ))}
           </div>
         </section>
@@ -1302,24 +1718,30 @@ function DashboardView({
 }
 
 function ObjectsView({
+  t,
+  lang,
   objects,
   query,
   onQueryChange,
   onCreateObject,
+  onEditObject,
   onDeleteObject,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
   objects: ConservationObject[];
   query: string;
   onQueryChange: (query: string) => void;
   onCreateObject: () => void;
+  onEditObject: (record: ConservationObject) => void;
   onDeleteObject: (id: string) => void;
 }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Objects"
-        subtitle="Search, create, and delete conservation objects using the same fields as the mobile apps."
-        actionLabel="New Object"
+        title={t("objects.title")}
+        subtitle={t("objects.subtitle")}
+        actionLabel={t("objects.new")}
         onAction={onCreateObject}
       />
 
@@ -1334,12 +1756,12 @@ function ObjectsView({
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               className="w-full rounded-2xl border border-heritage-outline/20 bg-heritage-surface-variant py-3 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:bg-white"
-              placeholder="Search objects, type, inventory, owner, location"
+              placeholder={t("objects.searchPlaceholder")}
               type="search"
             />
           </label>
           <p className="text-sm font-medium text-heritage-text-secondary">
-            {objects.length} visible
+            {objects.length} {t("g.visible")}
           </p>
         </div>
 
@@ -1347,7 +1769,10 @@ function ObjectsView({
           {objects.map((object) => (
             <ObjectCard
               key={object.id}
+              t={t}
+              lang={lang}
               object={object}
+              onEdit={() => onEditObject(object)}
               onDelete={() => onDeleteObject(object.id)}
             />
           ))}
@@ -1358,24 +1783,30 @@ function ObjectsView({
 }
 
 function ProjectsView({
+  t,
+  lang,
   projects,
   clients,
   objects,
   onCreateProject,
+  onEditProject,
   onDeleteProject,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
   projects: Project[];
   clients: Client[];
   objects: ConservationObject[];
   onCreateProject: () => void;
+  onEditProject: (record: Project) => void;
   onDeleteProject: (id: string) => void;
 }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Projects"
-        subtitle="Track conservation work by client, status, timeline, budget, and linked objects."
-        actionLabel="New Project"
+        title={t("projects.title")}
+        subtitle={t("projects.subtitle")}
+        actionLabel={t("projects.new")}
         onAction={onCreateProject}
       />
       <div className="grid gap-3 xl:grid-cols-2">
@@ -1384,14 +1815,17 @@ function ProjectsView({
             key={project.id}
             icon={FolderKanban}
             title={project.title}
-            badge={project.status}
+            badge={enumLabel(lang, "projectStatus", project.status)}
+            editLabel={t("g.edit")}
+            deleteLabel={t("g.delete")}
+            onEdit={() => onEditProject(project)}
             onDelete={() => onDeleteProject(project.id)}
             rows={[
-              ["Client", clientName(clients, project.clientId)],
-              ["Objects", objectNames(objects, project.objectIds)],
-              ["Dates", formatDateRange(project.startDate, project.endDate)],
-              ["Budget", project.budget ? `${project.budget} ${project.currency}` : "Not set"],
-              ["Description", project.description || "Not set"],
+              [t("projects.client"), clientName(t, clients, project.clientId)],
+              [t("projects.objects"), objectNames(t, objects, project.objectIds)],
+              [t("projects.dates"), formatDateRange(t, project.startDate, project.endDate)],
+              [t("projects.budget"), project.budget ? `${project.budget} ${project.currency}` : t("g.notSet")],
+              [t("projects.description"), project.description || t("g.notSet")],
             ]}
           />
         ))}
@@ -1401,22 +1835,28 @@ function ProjectsView({
 }
 
 function ClientsView({
+  t,
+  lang,
   clients,
   projects,
   onCreateClient,
+  onEditClient,
   onDeleteClient,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
   clients: Client[];
   projects: Project[];
   onCreateClient: () => void;
+  onEditClient: (record: Client) => void;
   onDeleteClient: (id: string) => void;
 }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Clients"
-        subtitle="Manage churches, museums, galleries, collectors, and other conservation clients."
-        actionLabel="New Client"
+        title={t("clients.title")}
+        subtitle={t("clients.subtitle")}
+        actionLabel={t("clients.new")}
         onAction={onCreateClient}
       />
       <div className="grid gap-3 xl:grid-cols-2">
@@ -1425,18 +1865,21 @@ function ClientsView({
             key={client.id}
             icon={Users}
             title={client.name}
-            badge={client.type}
+            badge={enumLabel(lang, "clientType", client.type)}
+            editLabel={t("g.edit")}
+            deleteLabel={t("g.delete")}
+            onEdit={() => onEditClient(client)}
             onDelete={() => onDeleteClient(client.id)}
             rows={[
-              ["Contact", client.contactPerson || "Not set"],
-              ["Email", client.email || "Not set"],
-              ["Phone", client.phone || "Not set"],
-              ["Address", client.address || "Not set"],
+              [t("clients.contactPerson"), client.contactPerson || t("g.notSet")],
+              [t("login.email"), client.email || t("g.notSet")],
+              [t("clients.phone"), client.phone || t("g.notSet")],
+              [t("clients.address"), client.address || t("g.notSet")],
               [
-                "Projects",
+                t("clients.projects"),
                 `${projects.filter((project) => project.clientId === client.id).length}`,
               ],
-              ["Notes", client.notes || "Not set"],
+              [t("clients.notes"), client.notes || t("g.notSet")],
             ]}
           />
         ))}
@@ -1446,45 +1889,40 @@ function ClientsView({
 }
 
 function ReportsView({
+  t,
+  lang,
   reports,
   objects,
   onCreateReport,
+  onEditReport,
   onDeleteReport,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
   reports: Report[];
   objects: ConservationObject[];
   onCreateReport: () => void;
+  onEditReport: (record: Report) => void;
   onDeleteReport: (id: string) => void;
 }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Reports"
-        subtitle="Create condition reports linked to real object records."
-        actionLabel="New Report"
+        title={t("reports.title")}
+        subtitle={t("reports.subtitle")}
+        actionLabel={t("reports.new")}
         onAction={onCreateReport}
       />
       <div className="grid gap-3 xl:grid-cols-2">
         {reports.map((report) => (
-          <RecordCard
+          <ReportRecordCard
             key={report.id}
-            icon={FileText}
-            title={report.reportType}
-            badge={report.condition}
+            t={t}
+            lang={lang}
+            report={report}
+            objects={objects}
+            onEdit={() => onEditReport(report)}
             onDelete={() => onDeleteReport(report.id)}
-            rows={[
-              ["Object", objectName(objects, report.objectId)],
-              ["Examiner", report.examiner || "Not set"],
-              ["Date", report.examinationDate || "Not set"],
-              ["Notes", report.notes || "Not set"],
-              ["Recommendations", report.recommendations || "Not set"],
-              [
-                "Photos",
-                report.imageNames.length
-                  ? report.imageNames.join(", ")
-                  : "No photos attached",
-              ],
-            ]}
           />
         ))}
       </div>
@@ -1492,73 +1930,113 @@ function ReportsView({
   );
 }
 
+function ReportRecordCard({
+  t,
+  lang,
+  report,
+  objects,
+  onEdit,
+  onDelete,
+}: {
+  t: (key: string) => string;
+  lang: Lang;
+  report: Report;
+  objects: ConservationObject[];
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <article className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary">
+            <FileText size={22} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="truncate font-semibold">
+              {enumLabel(lang, "reportType", report.reportType)}
+            </h2>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              {enumLabel(lang, "condition", report.condition)}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <EditButton onEdit={onEdit} label={t("g.edit")} />
+          <DeleteButton onDelete={onDelete} label={t("g.delete")} />
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+        <MetaBlock
+          label={t("reports.object")}
+          value={objectName(t, objects, report.objectId)}
+        />
+        <MetaBlock label={t("reports.examiner")} value={report.examiner || t("g.notSet")} />
+        <MetaBlock
+          label={t("reports.date")}
+          value={report.examinationDate || t("g.notSet")}
+        />
+        <MetaBlock label={t("reports.notes")} value={report.notes || t("g.notSet")} />
+        <MetaBlock
+          label={t("reports.recommendations")}
+          value={report.recommendations || t("g.notSet")}
+        />
+      </div>
+      <ImageGrid t={t} images={report.images} />
+    </article>
+  );
+}
+
 function SettingsView({
+  t,
+  language,
+  onLanguageChange,
   syncAccount,
   syncStatus,
-  onResetDemoData,
+  onSaveProfile,
+  onClearAll,
+  onLoadSample,
   onRefresh,
   onSignOut,
 }: {
+  t: (key: string) => string;
+  language: Lang;
+  onLanguageChange: (language: Lang) => void;
   syncAccount: SyncAccount;
   syncStatus: string;
-  onResetDemoData: () => void;
+  onSaveProfile: (displayName: string) => void;
+  onClearAll: () => void;
+  onLoadSample: () => void;
   onRefresh: () => void;
   onSignOut: () => void;
 }) {
   const isSignedIn = !!syncAccount.token;
-  const groups = [
-    {
-      title: "Account",
-      items: [
-        {
-          label: "Profile",
-          icon: Users,
-          detail: isSignedIn ? syncAccount.displayName || syncAccount.email : "Offline",
-        },
-        { label: "Sync and Storage", icon: Cloud, detail: syncStatus },
-      ],
-    },
-    {
-      title: "Reports",
-      items: [
-        { label: "Templates", icon: FileText, detail: "Default template" },
-        { label: "Export Settings", icon: Upload, detail: "PDF wiring pending" },
-        { label: "Language", icon: Globe, detail: "English" },
-      ],
-    },
-    {
-      title: "App",
-      items: [
-        { label: "Appearance", icon: Palette, detail: "Conservatio theme" },
-        { label: "Storage", icon: HardDrive, detail: isSignedIn ? "Cloud sync" : "localStorage" },
-        { label: "About", icon: Info, detail: "v0.1.0" },
-      ],
-    },
-  ];
+  const [displayName, setDisplayName] = useState(syncAccount.displayName);
+
+  useEffect(() => {
+    setDisplayName(syncAccount.displayName);
+  }, [syncAccount.displayName]);
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Settings"
-        subtitle="Manage your account, preferences, and app configuration."
-      />
+      <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
 
       <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary">
-            <Users size={24} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="font-semibold">
-              {isSignedIn
-                ? syncAccount.displayName || syncAccount.email
-                : "Offline Mode"}
-            </h2>
-            <p className="text-sm text-heritage-text-secondary">
-              {isSignedIn
-                ? syncAccount.email
-                : "Data is stored locally in this browser."}
-            </p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary">
+              <Users size={24} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold">
+                {isSignedIn
+                  ? syncAccount.displayName || syncAccount.email
+                  : t("settings.offlineMode")}
+              </h2>
+              <p className="text-sm text-heritage-text-secondary">
+                {isSignedIn ? syncAccount.email : t("settings.offlineHint")}
+              </p>
+            </div>
           </div>
           <div className="flex gap-3">
             {isSignedIn && (
@@ -1567,7 +2045,7 @@ function SettingsView({
                 className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
                 type="button"
               >
-                Sync Now
+                {t("g.syncNow")}
               </button>
             )}
             {isSignedIn && (
@@ -1576,75 +2054,197 @@ function SettingsView({
                 className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-red-50 hover:text-red-600"
                 type="button"
               >
-                Sign Out
+                {t("g.signOut")}
               </button>
             )}
           </div>
         </div>
         {isSignedIn && (
-          <p className="mt-3 text-xs text-heritage-text-secondary">
-            {syncStatus}
-          </p>
+          <p className="mt-3 text-xs text-heritage-text-secondary">{syncStatus}</p>
         )}
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {groups.map((group) => (
-          <section
-            key={group.title}
-            className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm"
+      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">{t("settings.profile")}</h2>
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="space-y-3">
+            <label className="block space-y-2 text-sm font-medium">
+              <span>{t("settings.displayName")}</span>
+              <input
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                disabled={!isSignedIn}
+                className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary disabled:cursor-not-allowed disabled:bg-heritage-surface-variant"
+                type="text"
+              />
+            </label>
+            <label className="block space-y-2 text-sm font-medium">
+              <span>{t("settings.email")}</span>
+              <input
+                value={syncAccount.email}
+                disabled
+                className="w-full rounded-2xl border border-heritage-outline/20 bg-heritage-surface-variant px-4 py-3 text-heritage-text-secondary outline-none"
+                type="email"
+              />
+            </label>
+          </div>
+          <button
+            onClick={() => onSaveProfile(displayName)}
+            disabled={!isSignedIn}
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
           >
-            <h2 className="text-base font-semibold">{group.title}</h2>
-            <div className="mt-4 space-y-2">
-              {group.items.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex w-full items-center justify-between rounded-2xl bg-heritage-surface-variant px-4 py-3 text-left"
-                >
-                  <span className="flex items-center gap-3 text-sm font-medium">
-                    <item.icon size={18} />
-                    {item.label}
-                  </span>
-                  <span className="text-xs text-heritage-text-secondary">
-                    {item.detail}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
+            {t("settings.saveProfile")}
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">{t("settings.language")}</h2>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:max-w-md">
+          {supportedLanguages.map((option) => (
+            <button
+              key={option.code}
+              onClick={() => onLanguageChange(option.code)}
+              className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                option.code === language
+                  ? "border-primary bg-primary-50 text-primary"
+                  : "border-heritage-outline/20 bg-heritage-surface-variant text-heritage-text hover:bg-white"
+              }`}
+              type="button"
+            >
+              <span className="flex items-center gap-2">
+                <Globe size={16} />
+                {option.label}
+              </span>
+              {option.code === language && <CheckCircle2 size={16} />}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <SettingsGroup
+          title={t("settings.reports")}
+          items={[
+            { label: t("settings.templates"), icon: FileText, detail: t("settings.templatesDetail") },
+            { label: t("settings.exportSettings"), icon: Upload, detail: t("settings.exportDetail") },
+          ]}
+        />
+        <SettingsGroup
+          title={t("settings.app")}
+          items={[
+            { label: t("settings.appearance"), icon: Palette, detail: t("settings.theme") },
+            {
+              label: t("settings.storage"),
+              icon: HardDrive,
+              detail: isSignedIn ? t("settings.cloudSync") : t("settings.localStorage"),
+            },
+            { label: t("settings.about"), icon: Info, detail: "v0.1.0" },
+          ]}
+        />
+        <SettingsGroup
+          title={t("settings.syncStorage")}
+          items={[
+            { label: t("settings.account"), icon: Users, detail: isSignedIn ? syncAccount.email : t("g.offline") },
+            { label: t("dash.storageStatus"), icon: Cloud, detail: syncStatus },
+          ]}
+        />
       </div>
 
       <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="font-semibold">Reset local data</h2>
+            <h2 className="font-semibold">{t("settings.dangerTitle")}</h2>
             <p className="mt-1 text-sm text-heritage-text-secondary">
-              Restores the browser demo records for objects, clients, projects,
-              and reports.
+              {t("settings.dangerSub")}
             </p>
           </div>
-          <button
-            onClick={onResetDemoData}
-            className="inline-flex items-center justify-center rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
-            type="button"
-          >
-            Reset Demo Data
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={onLoadSample}
+              className="inline-flex items-center justify-center rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
+              type="button"
+            >
+              {t("settings.loadSample")}
+            </button>
+            <button
+              onClick={onClearAll}
+              className="inline-flex items-center justify-center rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+              type="button"
+            >
+              {t("settings.clearAll")}
+            </button>
+          </div>
         </div>
       </section>
     </div>
   );
 }
 
-function CreateObjectModal({
+function SettingsGroup({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ label: string; icon: typeof Box; detail: string }>;
+}) {
+  return (
+    <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+      <h2 className="text-base font-semibold">{title}</h2>
+      <div className="mt-4 space-y-2">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-heritage-surface-variant px-4 py-3 text-left"
+          >
+            <span className="flex items-center gap-3 text-sm font-medium">
+              <item.icon size={18} />
+              {item.label}
+            </span>
+            <span className="truncate text-right text-xs text-heritage-text-secondary">
+              {item.detail}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ObjectModal({
+  t,
+  lang,
+  mode,
+  initial,
   onClose,
   onSave,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
+  mode: "create" | "edit";
+  initial?: ConservationObject;
   onClose: () => void;
   onSave: (form: ObjectFormState) => void;
 }) {
-  const [form, setForm] = useState<ObjectFormState>(emptyObjectForm);
+  const [form, setForm] = useState<ObjectFormState>(() =>
+    initial
+      ? {
+          title: initial.title,
+          objectType: initial.objectType,
+          materialsText: initial.materials.join(", "),
+          ownerName: initial.ownerName,
+          locationDescription: initial.locationDescription,
+          inventoryNumber: initial.inventoryNumber,
+          description: initial.description,
+          height: initial.dimensions.height,
+          width: initial.dimensions.width,
+          depth: initial.dimensions.depth,
+          unit: initial.dimensions.unit,
+          images: initial.images,
+        }
+      : emptyObjectForm,
+  );
 
   function update<Key extends keyof ObjectFormState>(
     key: Key,
@@ -1663,62 +2263,58 @@ function CreateObjectModal({
 
   return (
     <ModalFrame
-      eyebrow="New Object"
-      title="Create conservation object"
+      t={t}
+      eyebrow={mode === "edit" ? t("objects.edit") : t("objects.new")}
+      title={mode === "edit" ? t("objects.edit") : t("objects.create")}
       onClose={onClose}
       onSubmit={handleSubmit}
       submitDisabled={!form.title.trim()}
     >
       <div className="grid gap-5 lg:grid-cols-2">
-        <FormSection title="Basic Information">
+        <FormSection title={t("objects.basic")}>
           <TextField
-            label="Object title"
+            label={t("objects.objectTitle")}
             value={form.title}
             onChange={(value) => update("title", value)}
             required
           />
           <SelectField
-            label="Type"
+            label={t("objects.type")}
             value={form.objectType}
             options={objectTypes}
+            optionLabels={objectTypes.reduce<Record<string, string>>(
+              (acc, type) => {
+                acc[type] = enumLabel(lang, "objectType", type);
+                return acc;
+              },
+              {},
+            )}
             onChange={(value) => update("objectType", value as ObjectType)}
           />
           <TextField
-            label="Inventory number"
+            label={t("objects.inventoryNumber")}
             value={form.inventoryNumber}
             onChange={(value) => update("inventoryNumber", value)}
           />
         </FormSection>
 
-        <FormSection title="Materials">
+        <FormSection title={t("objects.materials")}>
           <TextField
-            label="Materials"
+            label={t("objects.materials")}
             value={form.materialsText}
             onChange={(value) => update("materialsText", value)}
-            placeholder="tempera, wood panel, gold leaf"
+            placeholder={t("objects.materialsPlaceholder")}
           />
           <p className="text-xs text-heritage-text-secondary">
-            Separate multiple materials with commas.
+            {t("objects.materialsHint")}
           </p>
         </FormSection>
 
-        <FormSection title="Dimensions">
+        <FormSection title={t("objects.dimensions")}>
           <div className="grid grid-cols-3 gap-3">
-            <TextField
-              label="H"
-              value={form.height}
-              onChange={(value) => update("height", value)}
-            />
-            <TextField
-              label="W"
-              value={form.width}
-              onChange={(value) => update("width", value)}
-            />
-            <TextField
-              label="D"
-              value={form.depth}
-              onChange={(value) => update("depth", value)}
-            />
+            <TextField label="H" value={form.height} onChange={(value) => update("height", value)} />
+            <TextField label="W" value={form.width} onChange={(value) => update("width", value)} />
+            <TextField label="D" value={form.depth} onChange={(value) => update("depth", value)} />
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-2xl bg-heritage-surface-variant p-1">
             {(["cm", "m", "in"] as const).map((unit) => (
@@ -1738,32 +2334,33 @@ function CreateObjectModal({
           </div>
         </FormSection>
 
-        <FormSection title="Location and Owner">
+        <FormSection title={t("objects.locationOwner")}>
           <TextField
-            label="Owner name"
+            label={t("objects.ownerName")}
             value={form.ownerName}
             onChange={(value) => update("ownerName", value)}
           />
           <TextField
-            label="Location description"
+            label={t("objects.locationDescription")}
             value={form.locationDescription}
             onChange={(value) => update("locationDescription", value)}
           />
         </FormSection>
 
-        <FormSection title="Photos">
+        <FormSection title={t("objects.photos")}>
           <PhotoInput
-            imageNames={form.imageNames}
-            onChange={(imageNames) => update("imageNames", imageNames)}
+            t={t}
+            images={form.images}
+            onChange={(images) => update("images", images)}
           />
         </FormSection>
 
-        <FormSection title="Description">
+        <FormSection title={t("objects.description")}>
           <TextAreaField
-            label="Description"
+            label={t("objects.description")}
             value={form.description}
             onChange={(value) => update("description", value)}
-            placeholder="Condition context, handling notes, or acquisition details"
+            placeholder={t("objects.descPlaceholder")}
           />
         </FormSection>
       </div>
@@ -1771,14 +2368,34 @@ function CreateObjectModal({
   );
 }
 
-function CreateClientModal({
+function ClientModal({
+  t,
+  lang,
+  mode,
+  initial,
   onClose,
   onSave,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
+  mode: "create" | "edit";
+  initial?: Client;
   onClose: () => void;
   onSave: (form: ClientFormState) => void;
 }) {
-  const [form, setForm] = useState<ClientFormState>(emptyClientForm);
+  const [form, setForm] = useState<ClientFormState>(() =>
+    initial
+      ? {
+          name: initial.name,
+          type: initial.type,
+          contactPerson: initial.contactPerson,
+          email: initial.email,
+          phone: initial.phone,
+          address: initial.address,
+          notes: initial.notes,
+        }
+      : emptyClientForm,
+  );
 
   function update<Key extends keyof ClientFormState>(
     key: Key,
@@ -1789,61 +2406,67 @@ function CreateClientModal({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form.name.trim()) {
-      return;
-    }
+    if (!form.name.trim()) return;
     onSave(form);
   }
 
   return (
     <ModalFrame
-      eyebrow="New Client"
-      title="Create client"
+      t={t}
+      eyebrow={mode === "edit" ? t("clients.edit") : t("clients.new")}
+      title={mode === "edit" ? t("clients.edit") : t("clients.create")}
       onClose={onClose}
       onSubmit={handleSubmit}
       submitDisabled={!form.name.trim()}
     >
       <div className="grid gap-5 lg:grid-cols-2">
-        <FormSection title="Client">
+        <FormSection title={t("clients.client")}>
           <TextField
-            label="Name"
+            label={t("clients.name")}
             value={form.name}
             onChange={(value) => update("name", value)}
             required
           />
           <SelectField
-            label="Type"
+            label={t("clients.type")}
             value={form.type}
             options={clientTypes}
+            optionLabels={clientTypes.reduce<Record<string, string>>(
+              (acc, type) => {
+                acc[type] = enumLabel(lang, "clientType", type);
+                return acc;
+              },
+              {},
+            )}
             onChange={(value) => update("type", value)}
           />
           <TextField
-            label="Contact person"
+            label={t("clients.contactPerson")}
             value={form.contactPerson}
             onChange={(value) => update("contactPerson", value)}
           />
         </FormSection>
-        <FormSection title="Contact">
+        <FormSection title={t("clients.contact")}>
           <TextField
-            label="Email"
+            label={t("login.email")}
             value={form.email}
             onChange={(value) => update("email", value)}
             type="email"
           />
           <TextField
-            label="Phone"
+            label={t("clients.phone")}
             value={form.phone}
             onChange={(value) => update("phone", value)}
           />
           <TextField
-            label="Address"
+            label={t("clients.address")}
             value={form.address}
             onChange={(value) => update("address", value)}
           />
         </FormSection>
-        <FormSection title="Notes">
+        <FormSection title={t("clients.notes")}>
           <TextAreaField
-            label="Notes"
+            label={t("clients.notes")}
             value={form.notes}
             onChange={(value) => update("notes", value)}
           />
@@ -1853,21 +2476,40 @@ function CreateClientModal({
   );
 }
 
-function CreateProjectModal({
+function ProjectModal({
+  t,
+  lang,
+  mode,
+  initial,
   clients,
   objects,
   onClose,
   onSave,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
+  mode: "create" | "edit";
+  initial?: Project;
   clients: Client[];
   objects: ConservationObject[];
   onClose: () => void;
   onSave: (form: ProjectFormState) => void;
 }) {
-  const [form, setForm] = useState<ProjectFormState>({
-    ...emptyProjectForm,
-    clientId: clients[0]?.id ?? "",
-  });
+  const [form, setForm] = useState<ProjectFormState>(() =>
+    initial
+      ? {
+          title: initial.title,
+          clientId: initial.clientId,
+          objectIds: initial.objectIds,
+          status: initial.status,
+          startDate: initial.startDate,
+          endDate: initial.endDate,
+          description: initial.description,
+          budget: initial.budget,
+          currency: initial.currency,
+        }
+      : { ...emptyProjectForm, clientId: clients[0]?.id ?? "" },
+  );
 
   function update<Key extends keyof ProjectFormState>(
     key: Key,
@@ -1887,69 +2529,75 @@ function CreateProjectModal({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form.title.trim()) {
-      return;
-    }
+    if (!form.title.trim()) return;
     onSave(form);
   }
 
   return (
     <ModalFrame
-      eyebrow="New Project"
-      title="Create project"
+      t={t}
+      eyebrow={mode === "edit" ? t("projects.edit") : t("projects.new")}
+      title={mode === "edit" ? t("projects.edit") : t("projects.create")}
       onClose={onClose}
       onSubmit={handleSubmit}
       submitDisabled={!form.title.trim()}
     >
       <div className="grid gap-5 lg:grid-cols-2">
-        <FormSection title="Project">
+        <FormSection title={t("projects.project")}>
           <TextField
-            label="Title"
+            label={t("projects.titleField")}
             value={form.title}
             onChange={(value) => update("title", value)}
             required
           />
           <SelectField
-            label="Client"
+            label={t("projects.client")}
             value={form.clientId}
             options={["", ...clients.map((client) => client.id)]}
-            optionLabels={{ "": "No client", ...labelMap(clients) }}
+            optionLabels={{ "": t("projects.noClient"), ...labelMap(clients) }}
             onChange={(value) => update("clientId", value)}
           />
           <SelectField
-            label="Status"
+            label={t("projects.status")}
             value={form.status}
             options={projectStatuses}
+            optionLabels={projectStatuses.reduce<Record<string, string>>(
+              (acc, status) => {
+                acc[status] = enumLabel(lang, "projectStatus", status);
+                return acc;
+              },
+              {},
+            )}
             onChange={(value) => update("status", value as ProjectStatus)}
           />
         </FormSection>
-        <FormSection title="Timeline and Budget">
+        <FormSection title={t("projects.timelineBudget")}>
           <TextField
-            label="Start date"
+            label={t("projects.startDate")}
             value={form.startDate}
             onChange={(value) => update("startDate", value)}
             type="date"
           />
           <TextField
-            label="End date"
+            label={t("projects.endDate")}
             value={form.endDate}
             onChange={(value) => update("endDate", value)}
             type="date"
           />
           <div className="grid grid-cols-[1fr_96px] gap-3">
             <TextField
-              label="Budget"
+              label={t("projects.budget")}
               value={form.budget}
               onChange={(value) => update("budget", value)}
             />
             <TextField
-              label="Currency"
+              label={t("projects.currency")}
               value={form.currency}
               onChange={(value) => update("currency", value)}
             />
           </div>
         </FormSection>
-        <FormSection title="Linked Objects">
+        <FormSection title={t("projects.linkedObjects")}>
           <div className="space-y-2">
             {objects.map((object) => (
               <label
@@ -1966,9 +2614,9 @@ function CreateProjectModal({
             ))}
           </div>
         </FormSection>
-        <FormSection title="Description">
+        <FormSection title={t("projects.description")}>
           <TextAreaField
-            label="Description"
+            label={t("projects.description")}
             value={form.description}
             onChange={(value) => update("description", value)}
           />
@@ -1978,20 +2626,41 @@ function CreateProjectModal({
   );
 }
 
-function CreateReportModal({
+function ReportModal({
+  t,
+  lang,
+  mode,
+  initial,
   objects,
   onClose,
   onSave,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
+  mode: "create" | "edit";
+  initial?: Report;
   objects: ConservationObject[];
   onClose: () => void;
   onSave: (form: ReportFormState) => void;
 }) {
-  const [form, setForm] = useState<ReportFormState>({
-    ...emptyReportForm,
-    objectId: objects[0]?.id ?? "",
-    examinationDate: today(),
-  });
+  const [form, setForm] = useState<ReportFormState>(() =>
+    initial
+      ? {
+          objectId: initial.objectId,
+          reportType: initial.reportType,
+          condition: initial.condition,
+          examiner: initial.examiner,
+          examinationDate: initial.examinationDate,
+          notes: initial.notes,
+          recommendations: initial.recommendations,
+          images: initial.images,
+        }
+      : {
+          ...emptyReportForm,
+          objectId: objects[0]?.id ?? "",
+          examinationDate: today(),
+        },
+  );
 
   function update<Key extends keyof ReportFormState>(
     key: Key,
@@ -2002,69 +2671,83 @@ function CreateReportModal({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form.objectId) {
-      return;
-    }
+    if (!form.objectId) return;
     onSave(form);
   }
 
   return (
     <ModalFrame
-      eyebrow="New Report"
-      title="Create condition report"
+      t={t}
+      eyebrow={mode === "edit" ? t("reports.edit") : t("reports.new")}
+      title={mode === "edit" ? t("reports.edit") : t("reports.create")}
       onClose={onClose}
       onSubmit={handleSubmit}
       submitDisabled={!form.objectId}
     >
       <div className="grid gap-5 lg:grid-cols-2">
-        <FormSection title="Report">
+        <FormSection title={t("reports.report")}>
           <SelectField
-            label="Object"
+            label={t("reports.object")}
             value={form.objectId}
             options={objects.map((object) => object.id)}
             optionLabels={labelMap(objects)}
             onChange={(value) => update("objectId", value)}
           />
           <SelectField
-            label="Report type"
+            label={t("reports.reportType")}
             value={form.reportType}
             options={reportTypes}
+            optionLabels={reportTypes.reduce<Record<string, string>>(
+              (acc, type) => {
+                acc[type] = enumLabel(lang, "reportType", type);
+                return acc;
+              },
+              {},
+            )}
             onChange={(value) => update("reportType", value)}
           />
           <SelectField
-            label="Condition"
+            label={t("reports.condition")}
             value={form.condition}
             options={conditionRatings}
+            optionLabels={conditionRatings.reduce<Record<string, string>>(
+              (acc, condition) => {
+                acc[condition] = enumLabel(lang, "condition", condition);
+                return acc;
+              },
+              {},
+            )}
             onChange={(value) => update("condition", value as ConditionRating)}
           />
         </FormSection>
-        <FormSection title="Examination">
+        <FormSection title={t("reports.examination")}>
           <TextField
-            label="Examiner"
+            label={t("reports.examiner")}
             value={form.examiner}
             onChange={(value) => update("examiner", value)}
           />
           <TextField
-            label="Date"
+            label={t("reports.date")}
             value={form.examinationDate}
             onChange={(value) => update("examinationDate", value)}
             type="date"
           />
           <PhotoInput
-            imageNames={form.imageNames}
-            onChange={(imageNames) => update("imageNames", imageNames)}
+            t={t}
+            images={form.images}
+            onChange={(images) => update("images", images)}
           />
         </FormSection>
-        <FormSection title="Notes">
+        <FormSection title={t("reports.notes")}>
           <TextAreaField
-            label="Notes"
+            label={t("reports.notes")}
             value={form.notes}
             onChange={(value) => update("notes", value)}
           />
         </FormSection>
-        <FormSection title="Recommendations">
+        <FormSection title={t("reports.recommendations")}>
           <TextAreaField
-            label="Recommendations"
+            label={t("reports.recommendations")}
             value={form.recommendations}
             onChange={(value) => update("recommendations", value)}
           />
@@ -2075,6 +2758,7 @@ function CreateReportModal({
 }
 
 function ModalFrame({
+  t,
   eyebrow,
   title,
   children,
@@ -2082,6 +2766,7 @@ function ModalFrame({
   onClose,
   onSubmit,
 }: {
+  t: (key: string) => string;
   eyebrow: string;
   title: string;
   children: React.ReactNode;
@@ -2111,23 +2796,21 @@ function ModalFrame({
             <X size={20} />
           </button>
         </div>
-        <div className="max-h-[66vh] overflow-y-auto p-5 lg:p-6">
-          {children}
-        </div>
+        <div className="max-h-[66vh] overflow-y-auto p-5 lg:p-6">{children}</div>
         <div className="flex items-center justify-end gap-3 border-t border-heritage-outline/10 p-5 lg:p-6">
           <button
             onClick={onClose}
             className="rounded-xl px-4 py-2.5 text-sm font-semibold text-heritage-text-secondary hover:bg-heritage-surface-variant"
             type="button"
           >
-            Cancel
+            {t("g.cancel")}
           </button>
           <button
             className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
             disabled={submitDisabled}
             type="submit"
           >
-            Save
+            {t("g.save")}
           </button>
         </div>
       </form>
@@ -2222,21 +2905,18 @@ function QuickActionCard({
         <Icon size={22} />
       </div>
       <p className="mt-4 text-sm font-bold">{title}</p>
-      <p className="mt-1 text-xs text-heritage-text-secondary">
-        Open {title.toLowerCase()} flow
-      </p>
     </button>
   );
 }
 
-function ObjectRow({ object }: { object: ConservationObject }) {
+function ObjectRow({ object, lang }: { object: ConservationObject; lang: Lang }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-heritage-surface-variant p-3">
-      <ObjectThumb objectType={object.objectType} />
+      <ObjectThumb object={object} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{object.title}</p>
         <p className="truncate text-xs text-heritage-text-secondary">
-          {object.objectType}
+          {enumLabel(lang, "objectType", object.objectType)}
           {object.inventoryNumber ? ` - ${object.inventoryNumber}` : ""}
         </p>
       </div>
@@ -2248,54 +2928,54 @@ function ObjectRow({ object }: { object: ConservationObject }) {
 }
 
 function ObjectCard({
+  t,
+  lang,
   object,
+  onEdit,
   onDelete,
 }: {
+  t: (key: string) => string;
+  lang: Lang;
   object: ConservationObject;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
     <article className="rounded-3xl border border-heritage-outline/10 bg-heritage-surface-variant p-4">
       <div className="flex gap-4">
-        <ObjectThumb objectType={object.objectType} large />
+        <ObjectThumb object={object} large />
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="font-semibold">{object.title}</h2>
               <p className="mt-1 text-sm text-heritage-text-secondary">
-                {object.objectType}
+                {enumLabel(lang, "objectType", object.objectType)}
                 {object.inventoryNumber ? ` - ${object.inventoryNumber}` : ""}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <ConditionBadge label="Documented" />
-              <DeleteButton onDelete={onDelete} label="Delete object" />
+              <ConditionBadge label={t("g.documented")} />
+              <EditButton onEdit={onEdit} label={t("g.edit")} />
+              <DeleteButton onDelete={onDelete} label={t("g.delete")} />
             </div>
           </div>
           <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-            <MetaBlock label="Owner" value={object.ownerName || "Not set"} />
+            <MetaBlock label={t("objects.owner")} value={object.ownerName || t("g.notSet")} />
             <MetaBlock
-              label="Location"
-              value={object.locationDescription || "Not set"}
+              label={t("objects.location")}
+              value={object.locationDescription || t("g.notSet")}
             />
             <MetaBlock
-              label="Materials"
-              value={object.materials.length ? object.materials.join(", ") : "Not set"}
+              label={t("objects.materials")}
+              value={object.materials.length ? object.materials.join(", ") : t("g.notSet")}
             />
-            <MetaBlock label="Dimensions" value={formatDimensions(object)} />
+            <MetaBlock label={t("objects.dimensions")} value={formatDimensions(t, object)} />
             <MetaBlock
-              label="Photos"
-              value={
-                object.imageNames.length
-                  ? object.imageNames.join(", ")
-                  : "No photos attached"
-              }
-            />
-            <MetaBlock
-              label="Description"
-              value={object.description || "Not set"}
+              label={t("objects.description")}
+              value={object.description || t("g.notSet")}
             />
           </div>
+          <ImageGrid t={t} images={object.images} />
         </div>
       </div>
     </article>
@@ -2307,12 +2987,18 @@ function RecordCard({
   title,
   badge,
   rows,
+  editLabel,
+  deleteLabel,
+  onEdit,
   onDelete,
 }: {
   icon: typeof Box;
   title: string;
   badge: string;
   rows: Array<[string, string]>;
+  editLabel: string;
+  deleteLabel: string;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -2329,7 +3015,10 @@ function RecordCard({
             </p>
           </div>
         </div>
-        <DeleteButton onDelete={onDelete} label={`Delete ${title}`} />
+        <div className="flex gap-1">
+          <EditButton onEdit={onEdit} label={editLabel} />
+          <DeleteButton onDelete={onDelete} label={deleteLabel} />
+        </div>
       </div>
       <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
         {rows.map(([label, value]) => (
@@ -2337,6 +3026,26 @@ function RecordCard({
         ))}
       </div>
     </article>
+  );
+}
+
+function EditButton({
+  label,
+  onEdit,
+}: {
+  label: string;
+  onEdit: () => void;
+}) {
+  return (
+    <button
+      onClick={onEdit}
+      className="rounded-xl p-2 text-heritage-text-secondary transition hover:bg-primary-50 hover:text-primary"
+      type="button"
+      aria-label={label}
+      title={label}
+    >
+      <Pencil size={17} />
+    </button>
   );
 }
 
@@ -2350,9 +3059,10 @@ function DeleteButton({
   return (
     <button
       onClick={onDelete}
-      className="rounded-xl p-2 text-heritage-text-secondary transition hover:bg-primary-50 hover:text-primary"
+      className="rounded-xl p-2 text-heritage-text-secondary transition hover:bg-red-50 hover:text-red-600"
       type="button"
       aria-label={label}
+      title={label}
     >
       <Trash2 size={17} />
     </button>
@@ -2459,55 +3169,161 @@ function SelectField({
   );
 }
 
+async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 function PhotoInput({
-  imageNames,
+  t,
+  images,
   onChange,
 }: {
-  imageNames: string[];
-  onChange: (imageNames: string[]) => void;
+  t: (key: string) => string;
+  images: ImageAsset[];
+  onChange: (images: ImageAsset[]) => void;
 }) {
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const additions: ImageAsset[] = [];
+    for (const file of Array.from(files)) {
+      const dataUrl = await fileToDataUrl(file);
+      additions.push({ name: file.name, dataUrl });
+    }
+    onChange([...images, ...additions]);
+  }
+
+  function removeAt(index: number) {
+    onChange(images.filter((_, i) => i !== index));
+  }
+
   return (
     <>
       <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-heritage-outline/30 bg-heritage-surface-variant px-4 py-8 text-center transition hover:border-primary hover:bg-primary-50">
         <ImagePlus className="text-primary" size={30} />
-        <span className="mt-3 text-sm font-semibold">Attach photos</span>
+        <span className="mt-3 text-sm font-semibold">{t("objects.attach")}</span>
         <span className="mt-1 text-xs text-heritage-text-secondary">
-          Camera and gallery equivalent for web upload.
+          {t("objects.attachHint")}
         </span>
         <input
           className="hidden"
           multiple
           type="file"
           accept="image/*"
-          onChange={(event) =>
-            onChange(
-              Array.from(event.target.files ?? []).map((file) => file.name),
-            )
-          }
+          onChange={(event) => {
+            void handleFiles(event.target.files);
+            event.target.value = "";
+          }}
         />
       </label>
-      <p className="text-xs text-heritage-text-secondary">
-        {imageNames.length} photo(s) attached
-      </p>
+      <p className="text-xs text-heritage-text-secondary">{t("objects.photosHint")}</p>
+      {images.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {images.map((image, index) => (
+            <div
+              key={`${image.name}-${index}`}
+              className="group relative aspect-square overflow-hidden rounded-2xl bg-white"
+            >
+              {image.dataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={image.dataUrl}
+                  alt={image.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-heritage-surface-variant text-center text-[10px] text-heritage-text-secondary">
+                  {image.name}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => removeAt(index)}
+                className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-heritage-text shadow-sm transition hover:bg-red-50 hover:text-red-600"
+                aria-label="Remove photo"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
 
+function ImageGrid({
+  t,
+  images,
+}: {
+  t: (key: string) => string;
+  images: ImageAsset[];
+}) {
+  if (images.length === 0) {
+    return (
+      <p className="mt-4 text-xs text-heritage-text-secondary">
+        {t("objects.noPhotos")}
+      </p>
+    );
+  }
+  return (
+    <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+      {images.map((image, index) => (
+        <div
+          key={`${image.name}-${index}`}
+          className="aspect-square overflow-hidden rounded-2xl bg-white"
+        >
+          {image.dataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={image.dataUrl}
+              alt={image.name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-heritage-surface-variant px-1 text-center text-[10px] text-heritage-text-secondary">
+              {image.name}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ObjectThumb({
-  objectType,
+  object,
   large = false,
 }: {
-  objectType: ObjectType;
+  object: ConservationObject;
   large?: boolean;
 }) {
+  const preview = object.images.find((image) => image.dataUrl)?.dataUrl;
+  const sizeClass = large ? "h-16 w-16" : "h-12 w-12";
+
+  if (preview) {
+    return (
+      <div className={`overflow-hidden rounded-2xl shadow-sm ${sizeClass}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={preview}
+          alt={object.title}
+          className="h-full w-full object-cover"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-sm ${
-        large ? "h-16 w-16" : "h-12 w-12"
-      }`}
+      className={`flex shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-sm ${sizeClass}`}
     >
       <Box size={large ? 26 : 20} />
-      <span className="sr-only">{objectType}</span>
+      <span className="sr-only">{object.objectType}</span>
     </div>
   );
 }
@@ -2541,10 +3357,6 @@ function StatusPill({ label }: { label: string }) {
   );
 }
 
-function labelForSection(section: WebSection) {
-  return navItems.find((item) => item.section === section)?.label ?? "Dashboard";
-}
-
 function labelMap(records: Array<{ id: string; title?: string; name?: string }>) {
   return records.reduce<Record<string, string>>((labels, record) => {
     labels[record.id] = record.title ?? record.name ?? record.id;
@@ -2552,31 +3364,51 @@ function labelMap(records: Array<{ id: string; title?: string; name?: string }>)
   }, {});
 }
 
-function clientName(clients: Client[], clientId: string) {
-  return clients.find((client) => client.id === clientId)?.name ?? "No client";
+function clientName(
+  t: (key: string) => string,
+  clients: Client[],
+  clientId: string,
+) {
+  return clients.find((client) => client.id === clientId)?.name ?? t("projects.noClient");
 }
 
-function objectName(objects: ConservationObject[], objectId: string) {
-  return objects.find((object) => object.id === objectId)?.title ?? "Missing object";
+function objectName(
+  t: (key: string) => string,
+  objects: ConservationObject[],
+  objectId: string,
+) {
+  return (
+    objects.find((object) => object.id === objectId)?.title ??
+    t("reports.missingObject")
+  );
 }
 
-function objectNames(objects: ConservationObject[], objectIds: string[]) {
+function objectNames(
+  t: (key: string) => string,
+  objects: ConservationObject[],
+  objectIds: string[],
+) {
   if (!objectIds.length) {
-    return "No objects linked";
+    return t("projects.noObjects");
   }
-
-  return objectIds.map((objectId) => objectName(objects, objectId)).join(", ");
+  return objectIds.map((objectId) => objectName(t, objects, objectId)).join(", ");
 }
 
-function formatDateRange(startDate: string, endDate: string) {
+function formatDateRange(
+  t: (key: string) => string,
+  startDate: string,
+  endDate: string,
+) {
   if (!startDate && !endDate) {
-    return "Not set";
+    return t("g.notSet");
   }
-
-  return [startDate || "No start", endDate || "No end"].join(" to ");
+  return [startDate || "—", endDate || "—"].join(" → ");
 }
 
-function formatDimensions(object: ConservationObject) {
+function formatDimensions(
+  t: (key: string) => string,
+  object: ConservationObject,
+) {
   const values = [
     object.dimensions.height,
     object.dimensions.width,
@@ -2584,7 +3416,7 @@ function formatDimensions(object: ConservationObject) {
   ].filter(Boolean);
 
   if (!values.length) {
-    return "Not set";
+    return t("g.notSet");
   }
 
   return `${values.join(" x ")} ${object.dimensions.unit}`;
@@ -2633,7 +3465,7 @@ function toApiObjectRequest(object: ConservationObject) {
     locationDescription: object.locationDescription || null,
     inventoryNumber: object.inventoryNumber || null,
     description: object.description || null,
-    imageIds: object.imageNames,
+    imageIds: object.images.map((image) => image.name),
   };
 }
 
@@ -2653,9 +3485,39 @@ function fromApiObject(object: ApiObject): ConservationObject {
       depth: object.depth?.toString() ?? "",
       unit: toWebUnit(object.measurementUnit),
     },
-    imageNames: object.imageIds ?? [],
+    images: (object.imageIds ?? []).map((name) => ({ name, dataUrl: "" })),
     createdAt: object.createdAt.slice(0, 10),
     updatedAt: object.updatedAt.slice(0, 10),
+  };
+}
+
+function mergeImagesIntoObject(
+  object: ConservationObject,
+  local: ImageAsset[] | undefined,
+): ConservationObject {
+  if (!local) return object;
+  const lookup = new Map(local.map((image) => [image.name, image.dataUrl]));
+  return {
+    ...object,
+    images: object.images.map((image) => ({
+      ...image,
+      dataUrl: image.dataUrl || lookup.get(image.name) || "",
+    })),
+  };
+}
+
+function mergeImagesIntoReport(
+  report: Report,
+  local: ImageAsset[] | undefined,
+): Report {
+  if (!local) return report;
+  const lookup = new Map(local.map((image) => [image.name, image.dataUrl]));
+  return {
+    ...report,
+    images: report.images.map((image) => ({
+      ...image,
+      dataUrl: image.dataUrl || lookup.get(image.name) || "",
+    })),
   };
 }
 
@@ -2732,7 +3594,7 @@ function toApiReportRequest(report: Report) {
     examinationDate: report.examinationDate,
     notes: report.notes || null,
     recommendations: report.recommendations || null,
-    imageIds: report.imageNames,
+    imageIds: report.images.map((image) => image.name),
   };
 }
 
@@ -2746,7 +3608,7 @@ function fromApiReport(report: ApiReport): Report {
     examinationDate: report.examinationDate.slice(0, 10),
     notes: report.notes ?? "",
     recommendations: report.recommendations ?? "",
-    imageNames: report.imageIds ?? [],
+    images: (report.imageIds ?? []).map((name) => ({ name, dataUrl: "" })),
     createdAt: report.createdAt.slice(0, 10),
     updatedAt: report.updatedAt.slice(0, 10),
   };

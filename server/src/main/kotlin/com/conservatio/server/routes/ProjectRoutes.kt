@@ -104,6 +104,46 @@ fun Route.projectRoutes() {
                 )
             }
 
+            put("/{id}") {
+                val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
+                val projectId = call.parameters["id"] ?: throw IllegalArgumentException("Missing id")
+                val request = call.receive<CreateProjectRequest>()
+                val now = Clock.System.now()
+
+                val updated = transaction {
+                    ProjectsTable.update({
+                        (ProjectsTable.id eq UUID.fromString(projectId)) and
+                            (ProjectsTable.userId eq UUID.fromString(userId))
+                    }) {
+                        it[title] = request.title
+                        it[clientId] = request.clientId
+                            ?.takeIf { value -> value.isNotBlank() }
+                            ?.let(UUID::fromString)
+                        it[objectIds] = request.objectIds.joinToString(",")
+                        it[status] = request.status
+                        it[startDate] = request.startDate?.let(::parseApiInstant)
+                        it[endDate] = request.endDate?.let(::parseApiInstant)
+                        it[description] = request.description
+                        it[totalBudget] = request.totalBudget
+                        it[currency] = request.currency
+                        it[updatedAt] = now
+                    }
+                }
+                if (updated == 0) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@put
+                }
+                val row = transaction {
+                    ProjectsTable.selectAll()
+                        .where {
+                            (ProjectsTable.id eq UUID.fromString(projectId)) and
+                                (ProjectsTable.userId eq UUID.fromString(userId))
+                        }
+                        .first().toProjectResponse()
+                }
+                call.respond(row)
+            }
+
             delete("/{id}") {
                 val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
                 val projectId = call.parameters["id"] ?: throw IllegalArgumentException("Missing id")

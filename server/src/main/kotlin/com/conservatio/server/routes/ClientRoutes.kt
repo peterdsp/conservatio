@@ -93,6 +93,42 @@ fun Route.clientRoutes() {
                 )
             }
 
+            put("/{id}") {
+                val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
+                val clientId = call.parameters["id"] ?: throw IllegalArgumentException("Missing id")
+                val request = call.receive<CreateClientRequest>()
+                val now = Clock.System.now()
+
+                val updated = transaction {
+                    ClientsTable.update({
+                        (ClientsTable.id eq UUID.fromString(clientId)) and
+                            (ClientsTable.userId eq UUID.fromString(userId))
+                    }) {
+                        it[name] = request.name
+                        it[type] = request.type
+                        it[contactPerson] = request.contactPerson
+                        it[email] = request.email
+                        it[phone] = request.phone
+                        it[address] = request.address
+                        it[notes] = request.notes
+                        it[updatedAt] = now
+                    }
+                }
+                if (updated == 0) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@put
+                }
+                val row = transaction {
+                    ClientsTable.selectAll()
+                        .where {
+                            (ClientsTable.id eq UUID.fromString(clientId)) and
+                                (ClientsTable.userId eq UUID.fromString(userId))
+                        }
+                        .first().toClientResponse()
+                }
+                call.respond(row)
+            }
+
             delete("/{id}") {
                 val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
                 val clientId = call.parameters["id"] ?: throw IllegalArgumentException("Missing id")

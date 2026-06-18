@@ -21,15 +21,15 @@ export type WebSection =
 
 const navItems: Array<{
   icon: typeof LayoutDashboard;
-  label: string;
+  labelKey: string;
   section: WebSection;
 }> = [
-  { icon: LayoutDashboard, label: "Dashboard", section: "dashboard" },
-  { icon: Box, label: "Objects", section: "objects" },
-  { icon: FolderKanban, label: "Projects", section: "projects" },
-  { icon: Users, label: "Clients", section: "clients" },
-  { icon: FileText, label: "Reports", section: "reports" },
-  { icon: Settings, label: "Settings", section: "settings" },
+  { icon: LayoutDashboard, labelKey: "nav.dashboard", section: "dashboard" },
+  { icon: Box, labelKey: "nav.objects", section: "objects" },
+  { icon: FolderKanban, labelKey: "nav.projects", section: "projects" },
+  { icon: Users, labelKey: "nav.clients", section: "clients" },
+  { icon: FileText, labelKey: "nav.reports", section: "reports" },
+  { icon: Settings, labelKey: "nav.settings", section: "settings" },
 ];
 
 type SidebarProps = {
@@ -37,6 +37,7 @@ type SidebarProps = {
   collapsed: boolean;
   onNavigate: (section: WebSection) => void;
   onToggleCollapsed: () => void;
+  t: (key: string) => string;
 };
 
 export function Sidebar({
@@ -44,6 +45,7 @@ export function Sidebar({
   collapsed,
   onNavigate,
   onToggleCollapsed,
+  t,
 }: SidebarProps) {
   return (
     <aside
@@ -83,7 +85,7 @@ export function Sidebar({
             type="button"
           >
             <item.icon size={20} />
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t(item.labelKey)}</span>}
           </button>
         ))}
       </nav>
