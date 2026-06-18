@@ -37,8 +37,8 @@ jobs:
       - run: npm run build
         env:
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
-          NEXT_PUBLIC_LINKEDIN_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_LINKEDIN_CLIENT_ID }}
           NEXT_PUBLIC_APPLE_SERVICES_ID: ${{ secrets.NEXT_PUBLIC_APPLE_SERVICES_ID }}
+          NEXT_PUBLIC_GITHUB_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GITHUB_CLIENT_ID }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
