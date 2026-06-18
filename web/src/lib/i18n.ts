@@ -35,8 +35,6 @@ const en: Dict = {
   "login.errExists": "An account with this email already exists.",
   "login.errAuth": "Authentication failed",
   "login.errNetwork": "Could not connect. Check your network or try again.",
-  "login.verifyNote":
-    "Account created. Email verification is rolling out — for now your account is active immediately.",
   // Dashboard
   "dash.welcome": "Welcome back",
   "dash.title": "Conservatio Web App",
@@ -173,6 +171,10 @@ const en: Dict = {
   "settings.displayName": "Display name",
   "settings.email": "Email",
   "settings.saveProfile": "Save profile",
+  "settings.savingProfile": "Saving…",
+  "settings.profileSaved": "Profile saved.",
+  "settings.profileSaveFailed":
+    "Saved locally but could not reach the server. Try Sync Now.",
   "settings.syncStorage": "Sync and Storage",
   "settings.reports": "Reports",
   "settings.templates": "Templates",
@@ -236,8 +238,6 @@ const el: Dict = {
   "login.errExists": "Υπάρχει ήδη λογαριασμός με αυτό το email.",
   "login.errAuth": "Αποτυχία ταυτοποίησης",
   "login.errNetwork": "Αδυναμία σύνδεσης. Ελέγξτε το δίκτυο και ξαναδοκιμάστε.",
-  "login.verifyNote":
-    "Ο λογαριασμός δημιουργήθηκε. Η επιβεβαίωση email υλοποιείται — προς το παρόν ο λογαριασμός είναι άμεσα ενεργός.",
   // Dashboard
   "dash.welcome": "Καλώς ήρθατε",
   "dash.title": "Conservatio Web App",
@@ -375,6 +375,10 @@ const el: Dict = {
   "settings.displayName": "Εμφανιζόμενο όνομα",
   "settings.email": "Email",
   "settings.saveProfile": "Αποθήκευση προφίλ",
+  "settings.savingProfile": "Αποθήκευση…",
+  "settings.profileSaved": "Το προφίλ αποθηκεύτηκε.",
+  "settings.profileSaveFailed":
+    "Αποθηκεύτηκε τοπικά, αλλά ο server δεν απάντησε. Δοκίμασε Sync Now.",
   "settings.syncStorage": "Συγχρονισμός και αποθήκευση",
   "settings.reports": "Αναφορές",
   "settings.templates": "Πρότυπα",

@@ -6,6 +6,8 @@ import com.conservatio.server.config.generateToken
 import com.conservatio.server.db.UsersTable
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -14,6 +16,7 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import java.util.*
 
 @Serializable
@@ -21,6 +24,9 @@ data class RegisterRequest(val email: String, val password: String, val displayN
 
 @Serializable
 data class LoginRequest(val email: String, val password: String)
+
+@Serializable
+data class UpdateProfileRequest(val displayName: String)
 
 @Serializable
 data class AuthResponse(
@@ -120,6 +126,26 @@ fun Route.authRoutes() {
                     storageLimitBytes = user[UsersTable.storageLimitBytes],
                 )
             )
+        }
+
+        authenticate("auth-jwt") {
+            put("/profile") {
+                val principal = call.principal<JWTPrincipal>()!!
+                val userId = UUID.fromString(principal.payload.getClaim("userId").asString())
+                val request = call.receive<UpdateProfileRequest>()
+                val now = Clock.System.now()
+                val updated = transaction {
+                    UsersTable.update({ UsersTable.id eq userId }) {
+                        it[displayName] = request.displayName
+                        it[updatedAt] = now
+                    }
+                }
+                if (updated == 0) {
+                    call.respond(HttpStatusCode.NotFound, ErrorResponse("User not found", 404))
+                    return@put
+                }
+                call.respond(mapOf("displayName" to request.displayName))
+            }
         }
     }
 }

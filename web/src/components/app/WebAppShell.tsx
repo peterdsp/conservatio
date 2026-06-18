@@ -465,12 +465,27 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function createId(prefix: string) {
+function createId(_prefix: string) {
+  // Plain UUIDs so the server (which requires UUID-format IDs for POST/PUT)
+  // accepts them as-is. The previous "obj-<uuid>" form was being rejected by
+  // UUID.fromString, which silently swallowed every sync push and made the
+  // post-sync pull look empty.
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
+    return crypto.randomUUID();
   }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
-  return `${prefix}-${Date.now()}`;
+const UUID_RE =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+// Defensive: existing localStorage may hold older "obj-<uuid>" IDs from before
+// the createId change. Extract the embedded UUID so the server accepts those
+// records on first sync after the upgrade. If there's no UUID at all (e.g.
+// the seed "obj-1"), pass the original through so callers can still skip it.
+function toServerId(id: string): string {
+  const match = id.match(UUID_RE);
+  return match ? match[0] : id;
 }
 
 function stripImageDataUrls(value: unknown): unknown {
@@ -713,6 +728,20 @@ export function WebAppShell() {
     return (await response.json()) as T;
   }
 
+  function readLocalSnapshot() {
+    // Read directly from localStorage so the push always sees the freshest
+    // persisted state, not a stale React closure (which on first mount can
+    // still be the initial empty array before hydration completes).
+    return {
+      objects: readLocalArray<ConservationObject>("conservatio.objects").map(
+        normalizeObject,
+      ),
+      clients: readLocalArray<Client>("conservatio.clients"),
+      projects: readLocalArray<Project>("conservatio.projects"),
+      reports: readLocalArray<Report>("conservatio.reports").map(normalizeReport),
+    };
+  }
+
   async function pushPendingItems(
     account: SyncAccount,
     remoteIds: {
@@ -721,18 +750,10 @@ export function WebAppShell() {
       projects: Set<string>;
       reports: Set<string>;
     },
+    snapshot: ReturnType<typeof readLocalSnapshot>,
   ) {
-    // Read directly from localStorage so the push always sees the freshest
-    // persisted state, not a stale React closure (which on first mount can
-    // still be the initial empty array before hydration completes).
-    const localObjects = readLocalArray<ConservationObject>(
-      "conservatio.objects",
-    ).map(normalizeObject);
-    const localClients = readLocalArray<Client>("conservatio.clients");
-    const localProjects = readLocalArray<Project>("conservatio.projects");
-    const localReports = readLocalArray<Report>("conservatio.reports").map(
-      normalizeReport,
-    );
+    const { objects: localObjects, clients: localClients, projects: localProjects, reports: localReports } =
+      snapshot;
 
     let pushed = 0;
     for (const item of localObjects) {
@@ -816,9 +837,11 @@ export function WebAppShell() {
   }
 
   // Full sync: pull what's on the server, push anything local that isn't there,
-  // then pull again so the merged set is reflected locally.
+  // then pull again so the merged set is reflected locally. Local-only items
+  // (push failed, network blip, etc.) are kept rather than overwritten.
   async function syncWithServer(account = syncAccount) {
     if (!account.token) return;
+    const snapshot = readLocalSnapshot();
     try {
       setSyncStatus(t("sync.syncing"));
       const [remoteObjects, remoteClients, remoteProjects, remoteReports] =
@@ -836,7 +859,7 @@ export function WebAppShell() {
         reports: new Set(remoteReports.map((entry) => entry.id)),
       };
 
-      const pushedCount = await pushPendingItems(account, remoteIds);
+      const pushedCount = await pushPendingItems(account, remoteIds, snapshot);
 
       const [finalObjects, finalClients, finalProjects, finalReports] =
         await Promise.all([
@@ -846,26 +869,53 @@ export function WebAppShell() {
           apiRequest<ApiReport[]>("/api/reports", {}, account),
         ]);
 
-      // Preserve any local-only image data URLs after refresh.
+      // Preserve local image data URLs across the refresh.
       const objectImagesById = new Map(
-        objects.map((entry) => [entry.id, entry.images] as const),
+        snapshot.objects.map(
+          (entry) => [toServerId(entry.id), entry.images] as const,
+        ),
       );
       const reportImagesById = new Map(
-        reports.map((entry) => [entry.id, entry.images] as const),
+        snapshot.reports.map(
+          (entry) => [toServerId(entry.id), entry.images] as const,
+        ),
       );
 
-      setObjects(
-        finalObjects.map((entry) =>
+      const finalObjectIds = new Set(finalObjects.map((entry) => entry.id));
+      const finalClientIds = new Set(finalClients.map((entry) => entry.id));
+      const finalProjectIds = new Set(finalProjects.map((entry) => entry.id));
+      const finalReportIds = new Set(finalReports.map((entry) => entry.id));
+
+      // Defensive: keep any record that the server doesn't (yet) know about,
+      // including the seed demo records the user may still be looking at.
+      const localOnlyObjects = snapshot.objects.filter(
+        (entry) => !finalObjectIds.has(toServerId(entry.id)),
+      );
+      const localOnlyClients = snapshot.clients.filter(
+        (entry) => !finalClientIds.has(toServerId(entry.id)),
+      );
+      const localOnlyProjects = snapshot.projects.filter(
+        (entry) => !finalProjectIds.has(toServerId(entry.id)),
+      );
+      const localOnlyReports = snapshot.reports.filter(
+        (entry) => !finalReportIds.has(toServerId(entry.id)),
+      );
+
+      setObjects([
+        ...finalObjects.map((entry) =>
           mergeImagesIntoObject(fromApiObject(entry), objectImagesById.get(entry.id)),
         ),
-      );
-      setClients(finalClients.map(fromApiClient));
-      setProjects(finalProjects.map(fromApiProject));
-      setReports(
-        finalReports.map((entry) =>
+        ...localOnlyObjects,
+      ]);
+      setClients([...finalClients.map(fromApiClient), ...localOnlyClients]);
+      setProjects([...finalProjects.map(fromApiProject), ...localOnlyProjects]);
+      setReports([
+        ...finalReports.map((entry) =>
           mergeImagesIntoReport(fromApiReport(entry), reportImagesById.get(entry.id)),
         ),
-      );
+        ...localOnlyReports,
+      ]);
+
       setSyncStatus(
         pushedCount > 0
           ? `${t("sync.pushed")} · ${new Date().toLocaleTimeString()}`
@@ -1014,7 +1064,7 @@ export function WebAppShell() {
     if (syncAccount.token) {
       try {
         const uploaded = await uploadObjectImages(updated, syncAccount);
-        await apiRequest(`/api/objects/${id}`, {
+        await apiRequest(`/api/objects/${toServerId(id)}`, {
           method: "PUT",
           body: JSON.stringify(toApiObjectRequest(uploaded)),
         });
@@ -1086,7 +1136,7 @@ export function WebAppShell() {
     );
     if (syncAccount.token) {
       try {
-        await apiRequest(`/api/clients/${id}`, {
+        await apiRequest(`/api/clients/${toServerId(id)}`, {
           method: "PUT",
           body: JSON.stringify(toApiClientRequest(updated)),
         });
@@ -1151,7 +1201,7 @@ export function WebAppShell() {
     );
     if (syncAccount.token) {
       try {
-        await apiRequest(`/api/projects/${id}`, {
+        await apiRequest(`/api/projects/${toServerId(id)}`, {
           method: "PUT",
           body: JSON.stringify(toApiProjectRequest(updated)),
         });
@@ -1216,7 +1266,7 @@ export function WebAppShell() {
     if (syncAccount.token) {
       try {
         const uploaded = await uploadReportImages(updated, syncAccount);
-        await apiRequest(`/api/reports/${id}`, {
+        await apiRequest(`/api/reports/${toServerId(id)}`, {
           method: "PUT",
           body: JSON.stringify(toApiReportRequest(uploaded)),
         });
@@ -1233,7 +1283,7 @@ export function WebAppShell() {
 
   async function deleteObject(id: string) {
     if (syncAccount.token) {
-      void apiRequest(`/api/objects/${id}`, { method: "DELETE" });
+      void apiRequest(`/api/objects/${toServerId(id)}`, { method: "DELETE" });
     }
     setObjects((current) => current.filter((object) => object.id !== id));
     setProjects((current) =>
@@ -1247,7 +1297,7 @@ export function WebAppShell() {
 
   function deleteClient(id: string) {
     if (syncAccount.token) {
-      void apiRequest(`/api/clients/${id}`, { method: "DELETE" });
+      void apiRequest(`/api/clients/${toServerId(id)}`, { method: "DELETE" });
     }
     setClients((current) => current.filter((client) => client.id !== id));
     setProjects((current) =>
@@ -1259,14 +1309,14 @@ export function WebAppShell() {
 
   function deleteProject(id: string) {
     if (syncAccount.token) {
-      void apiRequest(`/api/projects/${id}`, { method: "DELETE" });
+      void apiRequest(`/api/projects/${toServerId(id)}`, { method: "DELETE" });
     }
     setProjects((current) => current.filter((project) => project.id !== id));
   }
 
   function deleteReport(id: string) {
     if (syncAccount.token) {
-      void apiRequest(`/api/reports/${id}`, { method: "DELETE" });
+      void apiRequest(`/api/reports/${toServerId(id)}`, { method: "DELETE" });
     }
     setReports((current) => current.filter((report) => report.id !== id));
   }
@@ -1290,8 +1340,19 @@ export function WebAppShell() {
     setActiveSection("dashboard");
   }
 
-  function saveProfile(displayName: string) {
-    setSyncAccount({ ...syncAccount, displayName: displayName.trim() });
+  async function saveProfile(displayName: string): Promise<string | null> {
+    const trimmed = displayName.trim();
+    setSyncAccount({ ...syncAccount, displayName: trimmed });
+    if (!syncAccount.token) return null;
+    try {
+      await apiRequest("/api/auth/profile", {
+        method: "PUT",
+        body: JSON.stringify({ displayName: trimmed }),
+      });
+      return null;
+    } catch {
+      return t("settings.profileSaveFailed");
+    }
   }
 
   const showLogin = !passedLogin && !syncAccount.token;
@@ -1502,14 +1563,12 @@ function LoginScreen({
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.trim() || !password.trim()) return;
     setIsLoading(true);
     setError(null);
-    setNotice(null);
     const wasRegistering = isRegistering;
     const result = await onSignIn(
       email.trim(),
@@ -1518,7 +1577,6 @@ function LoginScreen({
       wasRegistering ? "register" : "login",
     );
     if (result) setError(result);
-    else if (wasRegistering) setNotice(t("login.verifyNote"));
     setIsLoading(false);
   }
 
@@ -1569,11 +1627,6 @@ function LoginScreen({
           {error && (
             <p className="text-center text-xs text-red-600">{error}</p>
           )}
-          {notice && (
-            <p className="rounded-2xl bg-primary-50 px-4 py-3 text-center text-xs text-primary">
-              {notice}
-            </p>
-          )}
 
           <button
             className="w-full rounded-2xl bg-primary px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
@@ -1592,7 +1645,6 @@ function LoginScreen({
               onClick={() => {
                 setIsRegistering((v) => !v);
                 setError(null);
-                setNotice(null);
               }}
               className="text-xs font-medium text-primary hover:underline"
               type="button"
@@ -2145,7 +2197,7 @@ function SettingsView({
   onLanguageChange: (language: Lang) => void;
   syncAccount: SyncAccount;
   syncStatus: string;
-  onSaveProfile: (displayName: string) => void;
+  onSaveProfile: (displayName: string) => Promise<string | null>;
   onClearAll: () => void;
   onLoadSample: () => void;
   onRefresh: () => void;
@@ -2153,10 +2205,27 @@ function SettingsView({
 }) {
   const isSignedIn = !!syncAccount.token;
   const [displayName, setDisplayName] = useState(syncAccount.displayName);
+  const [profileMessage, setProfileMessage] = useState<{
+    kind: "ok" | "error";
+    text: string;
+  } | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     setDisplayName(syncAccount.displayName);
   }, [syncAccount.displayName]);
+
+  async function handleSaveProfile() {
+    setSavingProfile(true);
+    setProfileMessage(null);
+    const error = await onSaveProfile(displayName);
+    setSavingProfile(false);
+    setProfileMessage(
+      error
+        ? { kind: "error", text: error }
+        : { kind: "ok", text: t("settings.profileSaved") },
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -2230,14 +2299,23 @@ function SettingsView({
             </label>
           </div>
           <button
-            onClick={() => onSaveProfile(displayName)}
-            disabled={!isSignedIn}
+            onClick={() => void handleSaveProfile()}
+            disabled={!isSignedIn || savingProfile}
             className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
           >
-            {t("settings.saveProfile")}
+            {savingProfile ? t("settings.savingProfile") : t("settings.saveProfile")}
           </button>
         </div>
+        {profileMessage && (
+          <p
+            className={`mt-3 text-xs ${
+              profileMessage.kind === "ok" ? "text-condition-good" : "text-red-600"
+            }`}
+          >
+            {profileMessage.text}
+          </p>
+        )}
       </section>
 
       <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
@@ -3769,7 +3847,7 @@ function fromApiCondition(condition: string): ConditionRating {
 
 function toApiObjectRequest(object: ConservationObject) {
   return {
-    id: object.id,
+    id: toServerId(object.id),
     title: object.title,
     objectType: toApiObjectType(object.objectType),
     materials: object.materials,
@@ -3839,7 +3917,7 @@ function mergeImagesIntoReport(
 
 function toApiClientRequest(client: Client) {
   return {
-    id: client.id,
+    id: toServerId(client.id),
     name: client.name,
     type: client.type,
     contactPerson: client.contactPerson || null,
@@ -3867,10 +3945,10 @@ function fromApiClient(client: ApiClient): Client {
 
 function toApiProjectRequest(project: Project) {
   return {
-    id: project.id,
+    id: toServerId(project.id),
     title: project.title,
-    clientId: project.clientId || null,
-    objectIds: project.objectIds,
+    clientId: project.clientId ? toServerId(project.clientId) : null,
+    objectIds: project.objectIds.map(toServerId),
     status: project.status,
     startDate: project.startDate || null,
     endDate: project.endDate || null,
@@ -3899,8 +3977,8 @@ function fromApiProject(project: ApiProject): Project {
 
 function toApiReportRequest(report: Report) {
   return {
-    id: report.id,
-    objectId: report.objectId,
+    id: toServerId(report.id),
+    objectId: toServerId(report.objectId),
     reportType: report.reportType
       .toUpperCase()
       .replaceAll(" ", "_")
