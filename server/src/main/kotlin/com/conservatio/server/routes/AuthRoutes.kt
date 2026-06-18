@@ -100,6 +100,17 @@ fun Route.authRoutes() {
             }
 
             val passwordHash = user[UsersTable.passwordHash]
+            if (passwordHash == null) {
+                // OAuth-only account — no local password to verify against.
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    ErrorResponse(
+                        "Use the social sign-in for this account",
+                        401,
+                    ),
+                )
+                return@post
+            }
             val verified = BCrypt.verifyer().verify(request.password.toCharArray(), passwordHash).verified
             if (!verified) {
                 call.respond(HttpStatusCode.Unauthorized, ErrorResponse("Invalid credentials", 401))

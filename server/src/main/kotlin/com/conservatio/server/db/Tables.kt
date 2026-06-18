@@ -6,8 +6,12 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 object UsersTable : UUIDTable("users") {
     val email = varchar("email", 255).uniqueIndex()
-    val passwordHash = varchar("password_hash", 255)
+    // Nullable so OAuth-only users (Google / LinkedIn / Apple) can exist
+    // without a password.
+    val passwordHash = varchar("password_hash", 255).nullable()
     val displayName = varchar("display_name", 255)
+    val oauthProvider = varchar("oauth_provider", 32).nullable()
+    val oauthSubject = varchar("oauth_subject", 255).nullable()
     val storageUsedBytes = long("storage_used_bytes").default(0)
     val storageLimitBytes = long("storage_limit_bytes").default(2L * 1024 * 1024 * 1024) // 2 GB
     val createdAt = timestamp("created_at")

@@ -455,6 +455,84 @@ const seedReports: Report[] = [
 
 const API_BASE_URL = "https://conservatio-api.peterdsp.dev";
 
+// OAuth client IDs are public (they're embedded in the redirect URL the user
+// hits anyway). Secrets stay only on the server. Set these as Next public env
+// vars when wiring each provider; the buttons stay disabled until they're set.
+const OAUTH_CONFIG = {
+  google: {
+    clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
+    authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+    scope: "openid email profile",
+  },
+  linkedin: {
+    clientId: process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID || "",
+    authUrl: "https://www.linkedin.com/oauth/v2/authorization",
+    scope: "openid email profile",
+  },
+  apple: {
+    clientId: process.env.NEXT_PUBLIC_APPLE_SERVICES_ID || "",
+    authUrl: "https://appleid.apple.com/auth/authorize",
+    scope: "name email",
+  },
+} as const;
+
+type OAuthProvider = keyof typeof OAUTH_CONFIG;
+
+function oauthRedirectUri() {
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function beginOAuthFlow(provider: OAuthProvider) {
+  if (typeof window === "undefined") return;
+  const config = OAUTH_CONFIG[provider];
+  if (!config.clientId) return;
+  const state = crypto.randomUUID();
+  window.sessionStorage.setItem("conservatio.oauthState", state);
+  window.sessionStorage.setItem("conservatio.oauthProvider", provider);
+  const params = new URLSearchParams({
+    client_id: config.clientId,
+    redirect_uri: oauthRedirectUri(),
+    response_type: "code",
+    scope: config.scope,
+    state,
+  });
+  if (provider === "apple") {
+    params.set("response_mode", "form_post");
+  }
+  window.location.href = `${config.authUrl}?${params.toString()}`;
+}
+
+async function completeOAuthFlow(
+  provider: OAuthProvider,
+  code: string,
+): Promise<{ token: string; email: string; displayName: string } | string> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/oauth/${provider}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        redirectUri: oauthRedirectUri(),
+      }),
+    });
+    if (!response.ok) {
+      const error = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      return error.error ?? `Sign-in failed (${response.status}).`;
+    }
+    const data = (await response.json()) as {
+      token: string;
+      email: string;
+      displayName: string;
+    };
+    return data;
+  } catch {
+    return "Sign-in failed (network).";
+  }
+}
+
 const defaultSyncAccount: SyncAccount = {
   token: "",
   email: "",
@@ -1366,6 +1444,11 @@ export function WebAppShell() {
           if (!error) setPassedLogin(true);
           return error;
         }}
+        onOAuthSession={(account) => {
+          setSyncAccount(account);
+          setPassedLogin(true);
+          void syncWithServer(account);
+        }}
         onContinueOffline={() => setPassedLogin(true)}
       />
     );
@@ -1546,6 +1629,7 @@ export function WebAppShell() {
 function LoginScreen({
   t,
   onSignIn,
+  onOAuthSession,
   onContinueOffline,
 }: {
   t: (key: string) => string;
@@ -1555,6 +1639,7 @@ function LoginScreen({
     displayName: string,
     mode: AuthMode,
   ) => Promise<string | null>;
+  onOAuthSession: (account: SyncAccount) => void;
   onContinueOffline: () => void;
 }) {
   const [email, setEmail] = useState("");
@@ -1563,6 +1648,44 @@ function LoginScreen({
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [oauthBusy, setOauthBusy] = useState(false);
+
+  // Pick up the provider redirect back to this page.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
+    if (!code) return;
+    const stored = window.sessionStorage.getItem("conservatio.oauthState");
+    const provider = window.sessionStorage.getItem(
+      "conservatio.oauthProvider",
+    ) as OAuthProvider | null;
+    if (!provider || !stored || stored !== state) {
+      // Clean up the URL even if we bail.
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+    setOauthBusy(true);
+    completeOAuthFlow(provider, code)
+      .then((result) => {
+        if (typeof result === "string") {
+          setError(result);
+        } else {
+          onOAuthSession({
+            token: result.token,
+            email: result.email,
+            displayName: result.displayName,
+          });
+        }
+      })
+      .finally(() => {
+        window.sessionStorage.removeItem("conservatio.oauthState");
+        window.sessionStorage.removeItem("conservatio.oauthProvider");
+        window.history.replaceState({}, "", window.location.pathname);
+        setOauthBusy(false);
+      });
+  }, [onOAuthSession]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1662,6 +1785,36 @@ function LoginScreen({
           <div className="h-px flex-1 bg-heritage-outline/20" />
         </div>
 
+        <div className="mt-5 space-y-2">
+          <OAuthButton
+            provider="google"
+            label={t("login.continueGoogle")}
+            disabledLabel={t("login.oauthUnavailable")}
+            onStart={beginOAuthFlow}
+            busy={oauthBusy}
+          />
+          <OAuthButton
+            provider="linkedin"
+            label={t("login.continueLinkedIn")}
+            disabledLabel={t("login.oauthUnavailable")}
+            onStart={beginOAuthFlow}
+            busy={oauthBusy}
+          />
+          <OAuthButton
+            provider="apple"
+            label={t("login.continueApple")}
+            disabledLabel={t("login.oauthUnavailable")}
+            onStart={beginOAuthFlow}
+            busy={oauthBusy}
+          />
+        </div>
+
+        {oauthBusy && (
+          <p className="mt-3 text-center text-xs text-heritage-text-secondary">
+            {t("login.finishingOauth")}
+          </p>
+        )}
+
         <div className="mt-6 text-center">
           <button
             onClick={onContinueOffline}
@@ -1681,6 +1834,60 @@ function LoginScreen({
       </div>
     </div>
   );
+}
+
+function OAuthButton({
+  provider,
+  label,
+  disabledLabel,
+  onStart,
+  busy,
+}: {
+  provider: OAuthProvider;
+  label: string;
+  disabledLabel: string;
+  onStart: (provider: OAuthProvider) => void;
+  busy: boolean;
+}) {
+  const configured = !!OAUTH_CONFIG[provider].clientId;
+  return (
+    <button
+      onClick={() => onStart(provider)}
+      disabled={!configured || busy}
+      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 text-sm font-semibold text-heritage-text transition hover:bg-heritage-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
+      type="button"
+      title={configured ? undefined : disabledLabel}
+    >
+      <ProviderGlyph provider={provider} />
+      {label}
+    </button>
+  );
+}
+
+function ProviderGlyph({ provider }: { provider: OAuthProvider }) {
+  switch (provider) {
+    case "google":
+      return (
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
+          <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 8 3l5.7-5.7C33.6 6 29 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.2-.1-2.3-.4-3.5z" />
+          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3 0 5.8 1.1 8 3l5.7-5.7C33.6 6 29 4 24 4 16.3 4 9.6 8.3 6.3 14.7z" />
+          <path fill="#4CAF50" d="M24 44c5 0 9.5-1.9 12.8-5l-5.9-5C28.9 35.6 26.5 36 24 36c-5.2 0-9.6-3.3-11.3-8L6 32.7C9.3 39.4 16.1 44 24 44z" />
+          <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.3 4.4-4.3 5.9l5.9 5C39.7 35.7 44 30.4 44 24c0-1.2-.1-2.3-.4-3.5z" />
+        </svg>
+      );
+    case "linkedin":
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="#0A66C2">
+          <path d="M20.5 2h-17C2.7 2 2 2.7 2 3.5v17c0 .8.7 1.5 1.5 1.5h17c.8 0 1.5-.7 1.5-1.5v-17c0-.8-.7-1.5-1.5-1.5zM8 19H5V9h3v10zM6.5 7.7C5.5 7.7 4.8 7 4.8 6s.7-1.7 1.7-1.7c1 0 1.7.7 1.7 1.7s-.7 1.7-1.7 1.7zM19 19h-3v-5.3c0-1.4-.5-2.3-1.7-2.3-.9 0-1.5.6-1.7 1.2-.1.2-.1.5-.1.8V19h-3V9h3v1.3c.4-.6 1.1-1.5 2.7-1.5 2 0 3.5 1.3 3.5 4V19z" />
+        </svg>
+      );
+    case "apple":
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="currentColor">
+          <path d="M16.4 12.4c0-2.7 2.2-4 2.3-4.1-1.3-1.8-3.2-2.1-3.9-2.1-1.6-.2-3.2.9-4 .9-.8 0-2.1-.9-3.5-.9-1.8 0-3.5 1-4.4 2.6-1.9 3.2-.5 8 1.3 10.6.9 1.3 1.9 2.7 3.3 2.7 1.3 0 1.8-.8 3.5-.8s2.1.8 3.5.8c1.4 0 2.4-1.3 3.3-2.6 1-1.5 1.5-3 1.5-3.1-.1 0-2.9-1.1-2.9-4.0zM13.7 4.7c.7-.9 1.3-2.2 1.1-3.4-1.1.1-2.4.7-3.2 1.6-.7.8-1.4 2.1-1.2 3.3 1.3.1 2.5-.6 3.3-1.5z" />
+        </svg>
+      );
+  }
 }
 
 function TopBar({

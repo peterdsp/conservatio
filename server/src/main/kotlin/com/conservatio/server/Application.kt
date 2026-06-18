@@ -7,6 +7,7 @@ import com.conservatio.server.config.configureSerialization
 import com.conservatio.server.config.configureStatusPages
 import com.conservatio.server.routes.authRoutes
 import com.conservatio.server.routes.objectRoutes
+import com.conservatio.server.routes.oauthRoutes
 import com.conservatio.server.routes.reportRoutes
 import com.conservatio.server.routes.projectRoutes
 import com.conservatio.server.routes.clientRoutes
@@ -29,6 +30,7 @@ fun Application.module() {
 
     routing {
         authRoutes()
+        oauthRoutes()
         objectRoutes()
         reportRoutes()
         projectRoutes()

@@ -35,6 +35,13 @@ const en: Dict = {
   "login.errExists": "An account with this email already exists.",
   "login.errAuth": "Authentication failed",
   "login.errNetwork": "Could not connect. Check your network or try again.",
+  "login.continueWith": "Continue with",
+  "login.continueGoogle": "Continue with Google",
+  "login.continueLinkedIn": "Continue with LinkedIn",
+  "login.continueApple": "Continue with Apple",
+  "login.oauthUnavailable":
+    "This sign-in method isn't configured on the server yet.",
+  "login.finishingOauth": "Finishing sign-in…",
   // Dashboard
   "dash.welcome": "Welcome back",
   "dash.title": "Conservatio Web App",
@@ -238,6 +245,13 @@ const el: Dict = {
   "login.errExists": "Υπάρχει ήδη λογαριασμός με αυτό το email.",
   "login.errAuth": "Αποτυχία ταυτοποίησης",
   "login.errNetwork": "Αδυναμία σύνδεσης. Ελέγξτε το δίκτυο και ξαναδοκιμάστε.",
+  "login.continueWith": "Συνέχεια με",
+  "login.continueGoogle": "Συνέχεια με Google",
+  "login.continueLinkedIn": "Συνέχεια με LinkedIn",
+  "login.continueApple": "Συνέχεια με Apple",
+  "login.oauthUnavailable":
+    "Αυτή η μέθοδος σύνδεσης δεν έχει ρυθμιστεί ακόμα στον server.",
+  "login.finishingOauth": "Ολοκλήρωση σύνδεσης…",
   // Dashboard
   "dash.welcome": "Καλώς ήρθατε",
   "dash.title": "Conservatio Web App",
