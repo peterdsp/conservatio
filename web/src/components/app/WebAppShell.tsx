@@ -473,6 +473,44 @@ function createId(prefix: string) {
   return `${prefix}-${Date.now()}`;
 }
 
+function stripImageDataUrls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripImageDataUrls);
+  if (value && typeof value === "object") {
+    const next: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (k === "images" && Array.isArray(v)) {
+        next[k] = v.map((entry) =>
+          entry && typeof entry === "object"
+            ? { ...(entry as Record<string, unknown>), dataUrl: "" }
+            : entry,
+        );
+      } else {
+        next[k] = stripImageDataUrls(v);
+      }
+    }
+    return next;
+  }
+  return value;
+}
+
+function safeSetItem(key: string, value: unknown) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    // Quota exceeded — try again without the heavy image data URLs.
+    try {
+      window.localStorage.setItem(
+        key,
+        JSON.stringify(stripImageDataUrls(value)),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
 function usePersistentState<T>(key: string, fallback: T) {
   const [value, setValue] = useState<T>(fallback);
 
@@ -490,7 +528,7 @@ function usePersistentState<T>(key: string, fallback: T) {
   }, [key]);
 
   useEffect(() => {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    safeSetItem(key, value);
   }, [key, value]);
 
   return [value, setValue] as const;
@@ -3178,6 +3216,42 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+async function compressImage(
+  file: File,
+  maxDim = 1280,
+  quality = 0.78,
+): Promise<string> {
+  const rawDataUrl = await fileToDataUrl(file);
+  if (!rawDataUrl.startsWith("data:image/")) return rawDataUrl;
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const longest = Math.max(image.width, image.height);
+      const scale = longest > maxDim ? maxDim / longest : 1;
+      const targetWidth = Math.round(image.width * scale);
+      const targetHeight = Math.round(image.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        resolve(rawDataUrl);
+        return;
+      }
+      context.drawImage(image, 0, 0, targetWidth, targetHeight);
+      try {
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } catch {
+        resolve(rawDataUrl);
+      }
+    };
+    image.onerror = () => resolve(rawDataUrl);
+    image.src = rawDataUrl;
+  });
+}
+
 function PhotoInput({
   t,
   images,
@@ -3191,10 +3265,14 @@ function PhotoInput({
     if (!files || files.length === 0) return;
     const additions: ImageAsset[] = [];
     for (const file of Array.from(files)) {
-      const dataUrl = await fileToDataUrl(file);
-      additions.push({ name: file.name, dataUrl });
+      try {
+        const dataUrl = await compressImage(file);
+        additions.push({ name: file.name, dataUrl });
+      } catch {
+        // Skip unreadable files instead of crashing the form.
+      }
     }
-    onChange([...images, ...additions]);
+    if (additions.length > 0) onChange([...images, ...additions]);
   }
 
   function removeAt(index: number) {
