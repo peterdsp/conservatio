@@ -47,6 +47,10 @@ const en: Dict = {
     "Objects, clients, projects, and reports persist with local browser storage. Sign in to back them up to the cloud.",
   "dash.localSave": "Local save",
   "dash.readyForSync": "Ready for sync",
+  "dash.signedInTip":
+    "You're signed in — every new record is uploaded to your account and survives across browsers and refreshes.",
+  "dash.offlineTip":
+    "Offline mode — records live in this browser only. Sign in to back them up.",
   "dash.quickActions": "Quick Actions",
   "dash.quickActionsSub": "Create real records that stay available after refresh.",
   "dash.recentObjects": "Recent Objects",
@@ -244,6 +248,10 @@ const el: Dict = {
     "Αντικείμενα, πελάτες, έργα και αναφορές αποθηκεύονται τοπικά. Συνδεθείτε για backup στο cloud.",
   "dash.localSave": "Τοπική αποθήκευση",
   "dash.readyForSync": "Έτοιμο για συγχρονισμό",
+  "dash.signedInTip":
+    "Συνδεδεμένος — κάθε νέα καταχώρηση ανεβαίνει στον λογαριασμό σου και διατηρείται μετά από refresh ή αλλαγή συσκευής.",
+  "dash.offlineTip":
+    "Εκτός σύνδεσης — οι καταχωρήσεις μένουν μόνο σε αυτόν τον περιηγητή. Συνδεθείτε για backup.",
   "dash.quickActions": "Γρήγορες ενέργειες",
   "dash.quickActionsSub":
     "Δημιουργήστε καταχωρήσεις που παραμένουν διαθέσιμες μετά από refresh.",

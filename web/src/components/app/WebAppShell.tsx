@@ -493,6 +493,31 @@ function stripImageDataUrls(value: unknown): unknown {
   return value;
 }
 
+// IDs of records baked into the in-app sample data. These should never be
+// auto-pushed to the server — they're demo content, not user records.
+const SEED_IDS = new Set<string>([
+  "obj-1",
+  "obj-2",
+  "client-1",
+  "client-2",
+  "project-1",
+  "project-2",
+  "report-1",
+  "report-2",
+]);
+
+function readLocalArray<T>(key: string): T[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(key);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function safeSetItem(key: string, value: unknown) {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
@@ -593,21 +618,24 @@ export function WebAppShell() {
     "en",
   );
   const t = useMemo(() => makeT(language), [language]);
+  // Default to empty arrays so a fresh install never pushes demo data up to
+  // the server on first sync. Demo records load only via the "Load sample
+  // data" button in Settings.
   const [rawObjects, setObjects] = usePersistentState<ConservationObject[]>(
     "conservatio.objects",
-    seedObjects,
+    [],
   );
-  const [clients, setClients] = usePersistentState(
+  const [clients, setClients] = usePersistentState<Client[]>(
     "conservatio.clients",
-    seedClients,
+    [],
   );
-  const [projects, setProjects] = usePersistentState(
+  const [projects, setProjects] = usePersistentState<Project[]>(
     "conservatio.projects",
-    seedProjects,
+    [],
   );
   const [rawReports, setReports] = usePersistentState<Report[]>(
     "conservatio.reports",
-    seedReports,
+    [],
   );
   const [syncAccount, setSyncAccount] = usePersistentState(
     "conservatio.syncAccount",
@@ -694,21 +722,34 @@ export function WebAppShell() {
       reports: Set<string>;
     },
   ) {
+    // Read directly from localStorage so the push always sees the freshest
+    // persisted state, not a stale React closure (which on first mount can
+    // still be the initial empty array before hydration completes).
+    const localObjects = readLocalArray<ConservationObject>(
+      "conservatio.objects",
+    ).map(normalizeObject);
+    const localClients = readLocalArray<Client>("conservatio.clients");
+    const localProjects = readLocalArray<Project>("conservatio.projects");
+    const localReports = readLocalArray<Report>("conservatio.reports").map(
+      normalizeReport,
+    );
+
     let pushed = 0;
-    for (const item of objects) {
-      if (remoteIds.objects.has(item.id)) continue;
+    for (const item of localObjects) {
+      if (remoteIds.objects.has(item.id) || SEED_IDS.has(item.id)) continue;
       try {
+        const uploaded = await uploadObjectImages(item, account);
         await apiRequest("/api/objects", {
           method: "POST",
-          body: JSON.stringify(toApiObjectRequest(item)),
+          body: JSON.stringify(toApiObjectRequest(uploaded)),
         }, account);
         pushed++;
       } catch {
         /* swallow — keep local copy */
       }
     }
-    for (const item of clients) {
-      if (remoteIds.clients.has(item.id)) continue;
+    for (const item of localClients) {
+      if (remoteIds.clients.has(item.id) || SEED_IDS.has(item.id)) continue;
       try {
         await apiRequest("/api/clients", {
           method: "POST",
@@ -717,8 +758,8 @@ export function WebAppShell() {
         pushed++;
       } catch { /* swallow */ }
     }
-    for (const item of projects) {
-      if (remoteIds.projects.has(item.id)) continue;
+    for (const item of localProjects) {
+      if (remoteIds.projects.has(item.id) || SEED_IDS.has(item.id)) continue;
       try {
         await apiRequest("/api/projects", {
           method: "POST",
@@ -727,17 +768,51 @@ export function WebAppShell() {
         pushed++;
       } catch { /* swallow */ }
     }
-    for (const item of reports) {
-      if (remoteIds.reports.has(item.id)) continue;
+    for (const item of localReports) {
+      if (remoteIds.reports.has(item.id) || SEED_IDS.has(item.id)) continue;
       try {
+        const uploaded = await uploadReportImages(item, account);
         await apiRequest("/api/reports", {
           method: "POST",
-          body: JSON.stringify(toApiReportRequest(item)),
+          body: JSON.stringify(toApiReportRequest(uploaded)),
         }, account);
         pushed++;
       } catch { /* swallow */ }
     }
     return pushed;
+  }
+
+  async function uploadOneImage(
+    image: ImageAsset,
+    account: SyncAccount,
+  ): Promise<ImageAsset> {
+    if (!image.dataUrl) return image;
+    if (looksLikeServerImageId(image.name)) return image;
+    const imageId = await uploadImageBlob(image, account);
+    if (!imageId) return image;
+    return { name: imageId, dataUrl: image.dataUrl };
+  }
+
+  async function uploadObjectImages(
+    object: ConservationObject,
+    account: SyncAccount,
+  ): Promise<ConservationObject> {
+    if (!account.token || object.images.length === 0) return object;
+    const uploaded = await Promise.all(
+      object.images.map((image) => uploadOneImage(image, account)),
+    );
+    return { ...object, images: uploaded };
+  }
+
+  async function uploadReportImages(
+    report: Report,
+    account: SyncAccount,
+  ): Promise<Report> {
+    if (!account.token || report.images.length === 0) return report;
+    const uploaded = await Promise.all(
+      report.images.map((image) => uploadOneImage(image, account)),
+    );
+    return { ...report, images: uploaded };
   }
 
   // Full sync: pull what's on the server, push anything local that isn't there,
@@ -880,11 +955,15 @@ export function WebAppShell() {
 
     if (syncAccount.token) {
       try {
+        const uploaded = await uploadObjectImages(object, syncAccount);
         const remote = await apiRequest<ApiObject>("/api/objects", {
           method: "POST",
-          body: JSON.stringify(toApiObjectRequest(object)),
+          body: JSON.stringify(toApiObjectRequest(uploaded)),
         });
-        const merged = mergeImagesIntoObject(fromApiObject(remote), object.images);
+        const merged = mergeImagesIntoObject(
+          fromApiObject(remote),
+          uploaded.images,
+        );
         setObjects((current) => [merged, ...current]);
         setSyncStatus(`${t("nav.objects")} ${t("sync.synced")}`);
       } catch {
@@ -934,10 +1013,14 @@ export function WebAppShell() {
 
     if (syncAccount.token) {
       try {
+        const uploaded = await uploadObjectImages(updated, syncAccount);
         await apiRequest(`/api/objects/${id}`, {
           method: "PUT",
-          body: JSON.stringify(toApiObjectRequest(updated)),
+          body: JSON.stringify(toApiObjectRequest(uploaded)),
         });
+        setObjects((current) =>
+          current.map((object) => (object.id === id ? uploaded : object)),
+        );
         setSyncStatus(`${t("nav.objects")} ${t("sync.synced")}`);
       } catch {
         setSyncStatus(`${t("nav.objects")} ${t("sync.savedLocal")}`);
@@ -1094,11 +1177,12 @@ export function WebAppShell() {
 
     if (syncAccount.token) {
       try {
+        const uploaded = await uploadReportImages(report, syncAccount);
         await apiRequest<{ id: string }>("/api/reports", {
           method: "POST",
-          body: JSON.stringify(toApiReportRequest(report)),
+          body: JSON.stringify(toApiReportRequest(uploaded)),
         });
-        setReports((current) => [report, ...current]);
+        setReports((current) => [uploaded, ...current]);
         setSyncStatus(`${t("nav.reports")} ${t("sync.synced")}`);
       } catch {
         setReports((current) => [report, ...current]);
@@ -1131,10 +1215,14 @@ export function WebAppShell() {
     );
     if (syncAccount.token) {
       try {
+        const uploaded = await uploadReportImages(updated, syncAccount);
         await apiRequest(`/api/reports/${id}`, {
           method: "PUT",
-          body: JSON.stringify(toApiReportRequest(updated)),
+          body: JSON.stringify(toApiReportRequest(uploaded)),
         });
+        setReports((current) =>
+          current.map((report) => (report.id === id ? uploaded : report)),
+        );
         setSyncStatus(`${t("nav.reports")} ${t("sync.synced")}`);
       } catch {
         setSyncStatus(`${t("nav.reports")} ${t("sync.savedLocal")}`);
@@ -1245,6 +1333,7 @@ export function WebAppShell() {
               <DashboardView
                 t={t}
                 lang={language}
+                token={syncAccount.token}
                 objects={objects}
                 clients={clients}
                 projects={projects}
@@ -1258,6 +1347,7 @@ export function WebAppShell() {
               <ObjectsView
                 t={t}
                 lang={language}
+                token={syncAccount.token}
                 objects={filteredObjects}
                 query={query}
                 onQueryChange={setQuery}
@@ -1299,6 +1389,7 @@ export function WebAppShell() {
               <ReportsView
                 t={t}
                 lang={language}
+                token={syncAccount.token}
                 reports={reports}
                 objects={objects}
                 onCreateReport={() => setModal({ kind: "report", mode: "create" })}
@@ -1330,6 +1421,7 @@ export function WebAppShell() {
         <ObjectModal
           t={t}
           lang={language}
+          token={syncAccount.token}
           mode={modal.mode}
           initial={modal.record}
           onClose={() => setModal(null)}
@@ -1374,6 +1466,7 @@ export function WebAppShell() {
         <ReportModal
           t={t}
           lang={language}
+          token={syncAccount.token}
           mode={modal.mode}
           initial={modal.record}
           objects={objects}
@@ -1619,6 +1712,7 @@ function navLabelKey(section: WebSection) {
 function DashboardView({
   t,
   lang,
+  token,
   objects,
   clients,
   projects,
@@ -1629,6 +1723,7 @@ function DashboardView({
 }: {
   t: (key: string) => string;
   lang: Lang;
+  token: string;
   objects: ConservationObject[];
   clients: Client[];
   projects: Project[];
@@ -1675,11 +1770,11 @@ function DashboardView({
             <Cloud className="text-secondary-200" size={28} />
           </div>
           <p className="mt-4 text-sm leading-6 text-secondary-100">
-            {t("dash.storageInfo")}
+            {token ? t("dash.signedInTip") : t("dash.offlineTip")}
           </p>
           <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
             <StatusPill label={t("dash.localSave")} />
-            <StatusPill label={t("dash.readyForSync")} />
+            <StatusPill label={token ? t("sync.signedIn") : t("dash.readyForSync")} />
           </div>
         </section>
       </div>
@@ -1746,7 +1841,7 @@ function DashboardView({
           </div>
           <div className="mt-5 space-y-3">
             {objects.slice(0, 5).map((object) => (
-              <ObjectRow key={object.id} object={object} lang={lang} />
+              <ObjectRow key={object.id} object={object} lang={lang} token={token} />
             ))}
           </div>
         </section>
@@ -1758,6 +1853,7 @@ function DashboardView({
 function ObjectsView({
   t,
   lang,
+  token,
   objects,
   query,
   onQueryChange,
@@ -1767,6 +1863,7 @@ function ObjectsView({
 }: {
   t: (key: string) => string;
   lang: Lang;
+  token: string;
   objects: ConservationObject[];
   query: string;
   onQueryChange: (query: string) => void;
@@ -1809,6 +1906,7 @@ function ObjectsView({
               key={object.id}
               t={t}
               lang={lang}
+              token={token}
               object={object}
               onEdit={() => onEditObject(object)}
               onDelete={() => onDeleteObject(object.id)}
@@ -1929,6 +2027,7 @@ function ClientsView({
 function ReportsView({
   t,
   lang,
+  token,
   reports,
   objects,
   onCreateReport,
@@ -1937,6 +2036,7 @@ function ReportsView({
 }: {
   t: (key: string) => string;
   lang: Lang;
+  token: string;
   reports: Report[];
   objects: ConservationObject[];
   onCreateReport: () => void;
@@ -1957,6 +2057,7 @@ function ReportsView({
             key={report.id}
             t={t}
             lang={lang}
+            token={token}
             report={report}
             objects={objects}
             onEdit={() => onEditReport(report)}
@@ -1973,6 +2074,7 @@ function ReportRecordCard({
   lang,
   report,
   objects,
+  token,
   onEdit,
   onDelete,
 }: {
@@ -1980,6 +2082,7 @@ function ReportRecordCard({
   lang: Lang;
   report: Report;
   objects: ConservationObject[];
+  token: string;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -2020,7 +2123,7 @@ function ReportRecordCard({
           value={report.recommendations || t("g.notSet")}
         />
       </div>
-      <ImageGrid t={t} images={report.images} />
+      <ImageGrid t={t} images={report.images} token={token} />
     </article>
   );
 }
@@ -2253,6 +2356,7 @@ function SettingsGroup({
 function ObjectModal({
   t,
   lang,
+  token,
   mode,
   initial,
   onClose,
@@ -2260,6 +2364,7 @@ function ObjectModal({
 }: {
   t: (key: string) => string;
   lang: Lang;
+  token: string;
   mode: "create" | "edit";
   initial?: ConservationObject;
   onClose: () => void;
@@ -2388,6 +2493,7 @@ function ObjectModal({
         <FormSection title={t("objects.photos")}>
           <PhotoInput
             t={t}
+            token={token}
             images={form.images}
             onChange={(images) => update("images", images)}
           />
@@ -2667,6 +2773,7 @@ function ProjectModal({
 function ReportModal({
   t,
   lang,
+  token,
   mode,
   initial,
   objects,
@@ -2675,6 +2782,7 @@ function ReportModal({
 }: {
   t: (key: string) => string;
   lang: Lang;
+  token: string;
   mode: "create" | "edit";
   initial?: Report;
   objects: ConservationObject[];
@@ -2772,6 +2880,7 @@ function ReportModal({
           />
           <PhotoInput
             t={t}
+            token={token}
             images={form.images}
             onChange={(images) => update("images", images)}
           />
@@ -2947,10 +3056,18 @@ function QuickActionCard({
   );
 }
 
-function ObjectRow({ object, lang }: { object: ConservationObject; lang: Lang }) {
+function ObjectRow({
+  object,
+  lang,
+  token,
+}: {
+  object: ConservationObject;
+  lang: Lang;
+  token: string;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-heritage-surface-variant p-3">
-      <ObjectThumb object={object} />
+      <ObjectThumb object={object} token={token} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{object.title}</p>
         <p className="truncate text-xs text-heritage-text-secondary">
@@ -2969,19 +3086,21 @@ function ObjectCard({
   t,
   lang,
   object,
+  token,
   onEdit,
   onDelete,
 }: {
   t: (key: string) => string;
   lang: Lang;
   object: ConservationObject;
+  token: string;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
     <article className="rounded-3xl border border-heritage-outline/10 bg-heritage-surface-variant p-4">
       <div className="flex gap-4">
-        <ObjectThumb object={object} large />
+        <ObjectThumb object={object} token={token} large />
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -3013,7 +3132,7 @@ function ObjectCard({
               value={object.description || t("g.notSet")}
             />
           </div>
-          <ImageGrid t={t} images={object.images} />
+          <ImageGrid t={t} images={object.images} token={token} />
         </div>
       </div>
     </article>
@@ -3216,10 +3335,41 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function looksLikeServerImageId(name: string) {
+  // Server returns "<uuid>.<ext>" — uuid format matches 8-4-4-4-12 hex chars.
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[A-Za-z0-9]+$/.test(
+    name,
+  );
+}
+
+async function uploadImageBlob(
+  image: ImageAsset,
+  account: SyncAccount,
+): Promise<string | null> {
+  if (!account.token || !image.dataUrl) return null;
+  try {
+    const fetched = await fetch(image.dataUrl);
+    const blob = await fetched.blob();
+    const filename = image.name || "photo.jpg";
+    const form = new FormData();
+    form.append("file", new File([blob], filename, { type: blob.type || "image/jpeg" }));
+    const response = await fetch(`${API_BASE_URL}/api/images`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${account.token}` },
+      body: form,
+    });
+    if (!response.ok) return null;
+    const json = (await response.json()) as { imageId?: string };
+    return json.imageId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function compressImage(
   file: File,
-  maxDim = 1280,
-  quality = 0.78,
+  maxDim = 2048,
+  quality = 0.88,
 ): Promise<string> {
   const rawDataUrl = await fileToDataUrl(file);
   if (!rawDataUrl.startsWith("data:image/")) return rawDataUrl;
@@ -3256,10 +3406,12 @@ function PhotoInput({
   t,
   images,
   onChange,
+  token,
 }: {
   t: (key: string) => string;
   images: ImageAsset[];
   onChange: (images: ImageAsset[]) => void;
+  token: string;
 }) {
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -3306,18 +3458,11 @@ function PhotoInput({
               key={`${image.name}-${index}`}
               className="group relative aspect-square overflow-hidden rounded-2xl bg-white"
             >
-              {image.dataUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={image.dataUrl}
-                  alt={image.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-heritage-surface-variant text-center text-[10px] text-heritage-text-secondary">
-                  {image.name}
-                </div>
-              )}
+              <ImageRenderer
+                image={image}
+                token={token}
+                className="h-full w-full object-cover"
+              />
               <button
                 type="button"
                 onClick={() => removeAt(index)}
@@ -3337,9 +3482,11 @@ function PhotoInput({
 function ImageGrid({
   t,
   images,
+  token,
 }: {
   t: (key: string) => string;
   images: ImageAsset[];
+  token: string;
 }) {
   if (images.length === 0) {
     return (
@@ -3355,18 +3502,11 @@ function ImageGrid({
           key={`${image.name}-${index}`}
           className="aspect-square overflow-hidden rounded-2xl bg-white"
         >
-          {image.dataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={image.dataUrl}
-              alt={image.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-heritage-surface-variant px-1 text-center text-[10px] text-heritage-text-secondary">
-              {image.name}
-            </div>
-          )}
+          <ImageRenderer
+            image={image}
+            token={token}
+            className="h-full w-full object-cover"
+          />
         </div>
       ))}
     </div>
@@ -3375,20 +3515,22 @@ function ImageGrid({
 
 function ObjectThumb({
   object,
+  token,
   large = false,
 }: {
   object: ConservationObject;
+  token: string;
   large?: boolean;
 }) {
-  const preview = object.images.find((image) => image.dataUrl)?.dataUrl;
+  const preview = object.images[0];
   const sizeClass = large ? "h-16 w-16" : "h-12 w-12";
 
-  if (preview) {
+  if (preview && (preview.dataUrl || (token && looksLikeServerImageId(preview.name)))) {
     return (
       <div className={`overflow-hidden rounded-2xl shadow-sm ${sizeClass}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={preview}
+        <ImageRenderer
+          image={preview}
+          token={token}
           alt={object.title}
           className="h-full w-full object-cover"
         />
@@ -3402,6 +3544,102 @@ function ObjectThumb({
     >
       <Box size={large ? 26 : 20} />
       <span className="sr-only">{object.objectType}</span>
+    </div>
+  );
+}
+
+function AuthedImage({
+  imageId,
+  token,
+  alt,
+  className,
+}: {
+  imageId: string;
+  token: string;
+  alt: string;
+  className: string;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!token || !imageId) {
+      setUrl(null);
+      return;
+    }
+    let cancelled = false;
+    let createdUrl: string | null = null;
+    setFailed(false);
+    fetch(`${API_BASE_URL}/api/images/${imageId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((response) => (response.ok ? response.blob() : null))
+      .then((blob) => {
+        if (cancelled || !blob) {
+          if (!cancelled) setFailed(true);
+          return;
+        }
+        createdUrl = URL.createObjectURL(blob);
+        setUrl(createdUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
+  }, [imageId, token]);
+
+  if (failed) {
+    return (
+      <div
+        className={`flex items-center justify-center bg-heritage-surface-variant px-1 text-center text-[10px] text-heritage-text-secondary ${className}`}
+      >
+        {alt}
+      </div>
+    );
+  }
+
+  if (!url) {
+    return <div className={`bg-heritage-surface-variant ${className}`} />;
+  }
+
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt={alt} className={className} />;
+}
+
+function ImageRenderer({
+  image,
+  token,
+  alt,
+  className,
+}: {
+  image: ImageAsset;
+  token: string;
+  alt?: string;
+  className: string;
+}) {
+  const label = alt ?? image.name;
+  if (image.dataUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={image.dataUrl} alt={label} className={className} />;
+  }
+  if (token && looksLikeServerImageId(image.name)) {
+    return (
+      <AuthedImage
+        imageId={image.name}
+        token={token}
+        alt={label}
+        className={className}
+      />
+    );
+  }
+  return (
+    <div
+      className={`flex items-center justify-center bg-heritage-surface-variant px-1 text-center text-[10px] text-heritage-text-secondary ${className}`}
+    >
+      {label}
     </div>
   );
 }
