@@ -1676,7 +1676,8 @@ function LoginScreen({
   return (
     <div className="relative flex min-h-screen items-center justify-center text-heritage-text">
       <div className="glass-room fixed inset-0 -z-50" />
-      <div className="w-full max-w-sm px-6">
+      <HeritageBackdrop />
+      <div className="relative w-full max-w-sm px-6">
         <div className="flex flex-col items-center">
           <div className="glass flex h-20 w-20 items-center justify-center rounded-[28px] p-0">
             <ShieldCheck className="text-primary" size={36} />
@@ -1720,6 +1721,271 @@ function LoginScreen({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Scattered ink-drawings of Greek heritage monuments behind the login glass.
+ * Hand-built SVGs (Parthenon, Nike of Samothrace, Doric column, Byzantine
+ * domed church, Theatre of Epidaurus, Temple of Poseidon) tinted with the
+ * primary terracotta and held at low opacity so they sit *behind* the glass
+ * material — visible through the blur, never competing with the controls.
+ */
+function HeritageBackdrop() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 -z-30 overflow-hidden"
+    >
+      {/* Parthenon — top left */}
+      <div className="absolute -left-6 top-[12%] hidden h-32 w-56 text-primary/30 sm:block md:left-[6%] md:top-[14%] md:h-40 md:w-72">
+        <ParthenonGlyph />
+      </div>
+      {/* Nike of Samothrace — right, vertical */}
+      <div className="absolute right-[4%] top-[8%] hidden h-56 w-32 text-primary/30 sm:block md:right-[8%] md:top-[6%] md:h-72 md:w-40">
+        <NikeGlyph />
+      </div>
+      {/* Doric column — left of card */}
+      <div className="absolute bottom-[8%] left-[5%] hidden h-64 w-16 text-primary/25 md:block md:h-80 md:w-20">
+        <DoricColumnGlyph />
+      </div>
+      {/* Byzantine church — bottom right */}
+      <div className="absolute -right-2 bottom-[10%] hidden h-36 w-52 text-primary/30 sm:block md:right-[6%] md:bottom-[14%] md:h-44 md:w-64">
+        <ByzantineChurchGlyph />
+      </div>
+      {/* Theatre of Epidaurus — top center, very subtle */}
+      <div className="absolute left-1/2 top-[3%] h-24 w-48 -translate-x-1/2 text-primary/20 md:h-32 md:w-64">
+        <EpidaurusTheatreGlyph />
+      </div>
+      {/* Temple of Poseidon — bottom center */}
+      <div className="absolute bottom-[4%] left-1/2 hidden h-24 w-56 -translate-x-1/2 text-primary/22 sm:block md:h-28 md:w-72">
+        <PoseidonTempleGlyph />
+      </div>
+    </div>
+  );
+}
+
+function ParthenonGlyph() {
+  return (
+    <svg
+      viewBox="0 0 240 120"
+      className="h-full w-full"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* steps */}
+      <line x1="6" y1="112" x2="234" y2="112" />
+      <line x1="14" y1="105" x2="226" y2="105" strokeWidth="1" />
+      <line x1="22" y1="98" x2="218" y2="98" strokeWidth="1" />
+      {/* base architrave */}
+      <line x1="22" y1="48" x2="218" y2="48" />
+      <line x1="22" y1="55" x2="218" y2="55" strokeWidth="0.9" />
+      {/* triglyphs */}
+      {[30, 60, 90, 120, 150, 180, 210].map((x) => (
+        <line key={x} x1={x} y1="48" x2={x} y2="55" strokeWidth="0.9" />
+      ))}
+      {/* pediment */}
+      <polyline points="22,48 120,12 218,48" />
+      <line x1="120" y1="12" x2="120" y2="48" strokeWidth="0.8" opacity="0.6" />
+      {/* columns — 8 with subtle entasis via narrow flutes */}
+      {[34, 60, 86, 112, 138, 164, 190, 216].map((x) => (
+        <g key={x}>
+          {/* capital echinus */}
+          <line x1={x - 6} y1="55" x2={x + 6} y2="55" strokeWidth="1" />
+          <line x1={x - 5} y1="58" x2={x + 5} y2="58" strokeWidth="0.9" />
+          {/* shaft outline */}
+          <line x1={x - 5} y1="60" x2={x - 5} y2="96" />
+          <line x1={x + 5} y1="60" x2={x + 5} y2="96" />
+          {/* flutes */}
+          <line x1={x - 2.5} y1="62" x2={x - 2.5} y2="95" strokeWidth="0.5" opacity="0.7" />
+          <line x1={x} y1="62" x2={x} y2="95" strokeWidth="0.5" opacity="0.7" />
+          <line x1={x + 2.5} y1="62" x2={x + 2.5} y2="95" strokeWidth="0.5" opacity="0.7" />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function NikeGlyph() {
+  return (
+    <svg
+      viewBox="0 0 120 200"
+      className="h-full w-full"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* ship prow base */}
+      <path d="M 22 175 Q 60 170 96 178 L 96 188 Q 60 184 22 188 Z" fill="currentColor" opacity="0.35" stroke="none" />
+      <path d="M 22 175 Q 60 170 96 178 L 96 188 Q 60 184 22 188 Z" />
+      <line x1="34" y1="178" x2="34" y2="186" strokeWidth="0.6" opacity="0.6" />
+      <line x1="58" y1="176" x2="58" y2="186" strokeWidth="0.6" opacity="0.6" />
+      <line x1="80" y1="178" x2="80" y2="186" strokeWidth="0.6" opacity="0.6" />
+      {/* drapery — body silhouette */}
+      <path d="M 55 36 Q 47 50 50 70 L 44 100 Q 40 130 46 170 L 78 170 Q 84 130 80 100 L 74 70 Q 78 50 70 36 Z" />
+      {/* drapery folds */}
+      <path d="M 49 80 Q 60 86 75 80" strokeWidth="0.7" opacity="0.7" />
+      <path d="M 47 100 Q 60 108 77 100" strokeWidth="0.7" opacity="0.7" />
+      <path d="M 46 120 Q 60 128 78 120" strokeWidth="0.7" opacity="0.7" />
+      <path d="M 46 140 Q 60 148 78 140" strokeWidth="0.7" opacity="0.7" />
+      <path d="M 47 158 Q 60 165 77 158" strokeWidth="0.7" opacity="0.7" />
+      {/* wing — upper */}
+      <path d="M 70 48 Q 100 30 108 14 Q 95 50 80 70" />
+      <path d="M 76 50 Q 92 40 100 28" strokeWidth="0.7" opacity="0.7" />
+      <path d="M 80 56 Q 90 50 96 42" strokeWidth="0.7" opacity="0.7" />
+      {/* wing — lower */}
+      <path d="M 68 70 Q 90 70 104 60" strokeWidth="0.7" opacity="0.7" />
+    </svg>
+  );
+}
+
+function DoricColumnGlyph() {
+  return (
+    <svg
+      viewBox="0 0 70 240"
+      className="h-full w-full"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* abacus */}
+      <rect x="6" y="14" width="58" height="6" />
+      {/* echinus */}
+      <path d="M 12 20 Q 35 32 58 20" />
+      {/* neck */}
+      <line x1="14" y1="24" x2="56" y2="24" strokeWidth="0.7" opacity="0.6" />
+      <line x1="14" y1="27" x2="56" y2="27" strokeWidth="0.7" opacity="0.6" />
+      {/* shaft outline */}
+      <line x1="16" y1="32" x2="16" y2="214" />
+      <line x1="54" y1="32" x2="54" y2="214" />
+      {/* flutes (5) */}
+      {[22, 28, 35, 42, 48].map((x) => (
+        <line key={x} x1={x} y1="34" x2={x} y2="212" strokeWidth="0.6" opacity="0.65" />
+      ))}
+      {/* base */}
+      <rect x="6" y="214" width="58" height="7" />
+      <rect x="2" y="221" width="66" height="6" />
+      <line x1="0" y1="232" x2="70" y2="232" strokeWidth="1" />
+    </svg>
+  );
+}
+
+function ByzantineChurchGlyph() {
+  return (
+    <svg
+      viewBox="0 0 220 140"
+      className="h-full w-full"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* main body */}
+      <rect x="34" y="74" width="152" height="56" />
+      {/* arched windows */}
+      <path d="M 52 130 L 52 100 Q 52 92 60 92 L 70 92 Q 78 92 78 100 L 78 130" />
+      <path d="M 92 130 L 92 100 Q 92 92 100 92 L 110 92 Q 118 92 118 100 L 118 130" />
+      <path d="M 132 130 L 132 100 Q 132 92 140 92 L 150 92 Q 158 92 158 100 L 158 130" />
+      <path d="M 172 130 L 172 110 Q 172 104 178 104 L 180 104" strokeWidth="0.9" opacity="0.7" />
+      {/* drum */}
+      <rect x="86" y="44" width="48" height="30" />
+      {/* drum arches */}
+      <path d="M 92 70 L 92 56 Q 92 51 97 51 L 100 51 Q 105 51 105 56 L 105 70" strokeWidth="0.8" opacity="0.7" />
+      <path d="M 115 70 L 115 56 Q 115 51 120 51 L 123 51 Q 128 51 128 56 L 128 70" strokeWidth="0.8" opacity="0.7" />
+      {/* dome */}
+      <path d="M 78 44 Q 110 -4 142 44" />
+      {/* finial + cross */}
+      <line x1="110" y1="6" x2="110" y2="26" />
+      <line x1="100" y1="14" x2="120" y2="14" />
+      {/* circle base of cross */}
+      <circle cx="110" cy="30" r="3.5" strokeWidth="0.9" />
+    </svg>
+  );
+}
+
+function EpidaurusTheatreGlyph() {
+  return (
+    <svg
+      viewBox="0 0 260 110"
+      className="h-full w-full"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+    >
+      {/* concentric tiers */}
+      {[88, 75, 62, 49, 36, 23].map((r, i) => (
+        <path
+          key={r}
+          d={`M ${130 - r} 100 A ${r} ${r} 0 0 1 ${130 + r} 100`}
+          strokeWidth={i === 0 ? 1.4 : 1}
+          opacity={0.55 + i * 0.05}
+        />
+      ))}
+      {/* orchestra circle */}
+      <circle cx="130" cy="100" r="11" strokeWidth="1.2" />
+      {/* radial divisions */}
+      {[-1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2].map((k) => (
+        <line
+          key={k}
+          x1="130"
+          y1="100"
+          x2={130 + Math.sin(k) * 88}
+          y2={100 - Math.cos(k) * 88}
+          strokeWidth="0.6"
+          opacity="0.45"
+        />
+      ))}
+      {/* skene (stage building) */}
+      <rect x="100" y="100" width="60" height="6" strokeWidth="1" />
+    </svg>
+  );
+}
+
+function PoseidonTempleGlyph() {
+  return (
+    <svg
+      viewBox="0 0 280 110"
+      className="h-full w-full"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* cliff/podium */}
+      <line x1="0" y1="102" x2="280" y2="102" strokeWidth="1.4" />
+      <line x1="14" y1="96" x2="266" y2="96" strokeWidth="1" />
+      <path d="M 0 102 L 12 108 L 30 105 L 50 109 L 80 106 L 120 110 L 160 106 L 200 109 L 230 105 L 250 108 L 280 102" strokeWidth="0.9" opacity="0.5" />
+      {/* entablature */}
+      <line x1="40" y1="42" x2="240" y2="42" />
+      <line x1="40" y1="48" x2="240" y2="48" strokeWidth="0.9" />
+      {/* triglyphs */}
+      {[55, 80, 105, 130, 155, 180, 205, 230].map((x) => (
+        <line key={x} x1={x} y1="42" x2={x} y2="48" strokeWidth="0.8" opacity="0.7" />
+      ))}
+      {/* columns — 6 (the surviving Doric facade) */}
+      {[60, 96, 132, 168, 204, 240].map((x) => (
+        <g key={x}>
+          <line x1={x - 5} y1="48" x2={x - 5} y2="92" />
+          <line x1={x + 5} y1="48" x2={x + 5} y2="92" />
+          <line x1={x - 2} y1="50" x2={x - 2} y2="91" strokeWidth="0.5" opacity="0.6" />
+          <line x1={x + 2} y1="50" x2={x + 2} y2="91" strokeWidth="0.5" opacity="0.6" />
+          <line x1={x - 6} y1="92" x2={x + 6} y2="92" strokeWidth="0.9" />
+        </g>
+      ))}
+      {/* pediment hint (broken) */}
+      <line x1="40" y1="42" x2="120" y2="16" strokeWidth="1.1" />
+      <line x1="240" y1="42" x2="200" y2="28" strokeWidth="1.1" opacity="0.7" />
+    </svg>
   );
 }
 
@@ -1881,11 +2147,17 @@ function DashboardView({
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <section className="glass p-6 lg:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+        <section className="glass relative p-6 lg:p-8">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -bottom-2 right-4 h-28 w-56 text-primary/15 sm:h-32 sm:w-72"
+          >
+            <ParthenonGlyph />
+          </div>
+          <p className="relative text-sm font-semibold uppercase tracking-[0.2em] text-primary">
             {t("dash.welcome")}
           </p>
-          <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="relative mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="font-serif text-3xl font-bold text-heritage-text sm:text-4xl">
                 {t("dash.title")}
