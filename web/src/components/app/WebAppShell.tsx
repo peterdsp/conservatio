@@ -1852,25 +1852,27 @@ function ArchaicInscription({
  * breakpoint so phone screens stay calm.
  */
 function ScatteredMottos({ t }: { t: (key: string) => string }) {
+  // Empty zones between the monuments at xl+ widths:
+  //  - mid-left vertical strip: below the Parthenon (top:14% h-40 ends ~32%)
+  //    and above the Doric column (~45% top on tall viewports).
+  //  - mid-right vertical strip: below the Nike (~38% bottom) and above the
+  //    Byzantine church (bottom:14%).
+  // Hidden below xl so phone/tablet/laptop screens stay calm.
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 -z-20 overflow-hidden"
     >
-      <div
-        className="absolute left-[8%] top-[18%] hidden -rotate-[3deg] md:block"
-      >
+      <div className="absolute left-[2%] top-[36%] hidden -rotate-[4deg] xl:block">
         <ArchaicMotto
           text="ΚΤΗΜΑ ΕΣ ΑΕΙ"
           aria="Ktema es aei"
           caption={t("login.mottoPossession")}
           cite={t("login.mottoPossessionCite")}
-          className="h-8 text-primary-dark/60"
+          className="h-8 text-primary-dark/55"
         />
       </div>
-      <div
-        className="absolute bottom-[16%] right-[6%] hidden rotate-[3deg] md:block"
-      >
+      <div className="absolute right-[2%] top-[44%] hidden rotate-[4deg] xl:block">
         <ArchaicMotto
           text="ΣΩΖΕΙΝ ΤΑ ΦΑΙΝΟΜΕΝΑ"
           aria="Sozein ta phainomena"
