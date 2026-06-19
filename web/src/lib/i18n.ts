@@ -44,7 +44,7 @@ const en: Dict = {
   "login.finishingOauth": "Finishing sign-in…",
   "login.signInOnly":
     "Sign in with one of the providers above. No email/password accounts.",
-  "login.heritageMotto": "A possession for all time.",
+  "login.heritageMotto": "From Greece, the light.",
   // Dashboard
   "dash.welcome": "Welcome back",
   "dash.title": "Conservatio Web App",
@@ -257,7 +257,7 @@ const el: Dict = {
   "login.finishingOauth": "Ολοκλήρωση σύνδεσης…",
   "login.signInOnly":
     "Συνδέσου με έναν από τους providers παραπάνω. Δεν υπάρχει email/password.",
-  "login.heritageMotto": "Κτῆμα για πάντα.",
+  "login.heritageMotto": "Από την Ελλάδα, το φως.",
   // Dashboard
   "dash.welcome": "Καλώς ήρθατε",
   "dash.title": "Conservatio Web App",

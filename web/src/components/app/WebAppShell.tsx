@@ -1686,13 +1686,18 @@ function LoginScreen({
             Conservatio
           </h1>
           <p
-            className="mt-3 font-serif text-lg italic tracking-wide text-primary-dark/85"
+            className="mt-4 font-classical text-base text-primary-dark/90"
+            style={{ letterSpacing: "0.45em" }}
             lang="grc"
+            // Lapidary capitals — accents were a Hellenistic invention
+            // (Aristophanes of Byzantium, ~200 BC); classical Athenian
+            // inscriptions are uppercase, unaccented, with wide spacing.
+            aria-label="Ek Hellados to phos"
           >
-            Κτῆμα ἐς ἀεί
+            ΕΞ ΕΛΛΑΔΟΣ ΤΟ ΦΩΣ
           </p>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-heritage-text-secondary">
-            {t("login.heritageMotto")} · Thucydides 1.22
+          <p className="mt-2 text-[11px] uppercase tracking-[0.22em] text-heritage-text-secondary">
+            {t("login.heritageMotto")}
           </p>
         </div>
 
