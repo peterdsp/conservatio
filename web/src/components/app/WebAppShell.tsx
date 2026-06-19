@@ -1685,6 +1685,15 @@ function LoginScreen({
           <h1 className="mt-6 text-3xl font-semibold tracking-tight text-primary">
             Conservatio
           </h1>
+          <p
+            className="mt-3 font-serif text-base italic tracking-wide text-primary-dark/85"
+            lang="grc"
+          >
+            Ἐξ Ἑλλάδος τὸ φῶς
+          </p>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-heritage-text-secondary">
+            {t("login.heritageMotto")}
+          </p>
         </div>
 
         <div className="mt-10 space-y-2">
