@@ -55,12 +55,47 @@ class ServerSyncClient(context: Context) {
         request("POST", "/api/objects", obj.toApiJson())
     }
 
+    suspend fun updateObject(obj: ConservationObject) = withContext(Dispatchers.IO) {
+        request("PUT", "/api/objects/${obj.id}", obj.toApiJson())
+    }
+
     suspend fun deleteObject(id: String) = withContext(Dispatchers.IO) {
         request("DELETE", "/api/objects/$id")
     }
 
+    /** Upload an image to the backend, return the server-side imageId. */
+    suspend fun uploadImage(bytes: ByteArray, filename: String = "photo.jpg", mimeType: String = "image/jpeg"): String = withContext(Dispatchers.IO) {
+        val boundary = "Boundary-${java.util.UUID.randomUUID()}"
+        val connection = URL("${baseUrl()}/api/images").openConnection() as HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+        connection.setRequestProperty("Authorization", "Bearer ${token()}")
+        connection.doOutput = true
+        connection.outputStream.use { out ->
+            val writer = out.bufferedWriter()
+            writer.write("--$boundary\r\n")
+            writer.write("Content-Disposition: form-data; name=\"file\"; filename=\"$filename\"\r\n")
+            writer.write("Content-Type: $mimeType\r\n\r\n")
+            writer.flush()
+            out.write(bytes)
+            out.flush()
+            writer.write("\r\n--$boundary--\r\n")
+            writer.flush()
+        }
+        val status = connection.responseCode
+        val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+        val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+        connection.disconnect()
+        if (status !in 200..299) throw IllegalStateException(text.ifBlank { "Upload failed: $status" })
+        JSONObject(text).getString("imageId")
+    }
+
     suspend fun createReport(report: ConditionReport) = withContext(Dispatchers.IO) {
         request("POST", "/api/reports", report.toApiJson())
+    }
+
+    suspend fun updateReport(report: ConditionReport) = withContext(Dispatchers.IO) {
+        request("PUT", "/api/reports/${report.id}", report.toApiJson())
     }
 
     suspend fun deleteReport(id: String) = withContext(Dispatchers.IO) {

@@ -11,6 +11,14 @@ struct ContentView: View {
     @State private var showCreateReport = false
 
     var body: some View {
+        ZStack {
+            ConservatioAmbientBackground()
+            tabContent
+        }
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
         TabView(selection: $selectedTab) {
             DashboardView(objectStore: objectStore, reportStore: reportStore)
                 .tabItem {
@@ -43,6 +51,10 @@ struct ContentView: View {
                 .tag(Tab.settings)
         }
         .tint(Color.conservatioPrimary)
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        .background(Color.clear)
+        .scrollContentBackground(.hidden)
         .onAppear {
             if let tab = initialTab {
                 selectedTab = tab

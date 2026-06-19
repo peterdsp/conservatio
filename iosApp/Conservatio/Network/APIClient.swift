@@ -72,8 +72,60 @@ class APIClient {
         try await post("/api/objects", body: object)
     }
 
+    func updateObject(id: String, _ object: CreateObjectRequest) async throws -> ServerObject {
+        try await put("/api/objects/\(id)", body: object)
+    }
+
     func deleteObject(id: String) async throws {
         try await delete("/api/objects/\(id)")
+    }
+
+    func updateClient(id: String, _ client: CreateClientRequest) async throws -> ServerClient {
+        try await put("/api/clients/\(id)", body: client)
+    }
+
+    func deleteClient(id: String) async throws {
+        try await delete("/api/clients/\(id)")
+    }
+
+    func updateProject(id: String, _ project: CreateProjectRequest) async throws -> ServerProject {
+        try await put("/api/projects/\(id)", body: project)
+    }
+
+    func deleteProject(id: String) async throws {
+        try await delete("/api/projects/\(id)")
+    }
+
+    func updateReport(id: String, _ report: CreateReportRequest) async throws {
+        let _: EmptyResponse = try await put("/api/reports/\(id)", body: report)
+    }
+
+    func deleteReport(id: String) async throws {
+        try await delete("/api/reports/\(id)")
+    }
+
+    /// Upload a single image. Returns the server-side imageId (e.g.
+    /// "<uuid>.jpg") which you then store on the related object / report.
+    func uploadImage(data: Data, filename: String = "photo.jpg", mimeType: String = "image/jpeg") async throws -> String {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var request = URLRequest(url: URL(string: baseURL + "/api/images")!)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (responseData, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(response)
+        struct ImageResponse: Decodable { let imageId: String }
+        return try JSONDecoder().decode(ImageResponse.self, from: responseData).imageId
     }
 
     func fetchClients() async throws -> [ServerClient] {
@@ -116,6 +168,19 @@ class APIClient {
     private func post<B: Encodable, T: Decodable>(_ path: String, body: B) async throws -> T {
         var request = URLRequest(url: URL(string: baseURL + path)!)
         request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.httpBody = try JSONEncoder().encode(body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(response)
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    private func put<B: Encodable, T: Decodable>(_ path: String, body: B) async throws -> T {
+        var request = URLRequest(url: URL(string: baseURL + path)!)
+        request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
