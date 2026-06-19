@@ -2898,6 +2898,12 @@ function SettingsView({
         />
       </div>
 
+      <CloudStorageSection
+        t={t}
+        token={syncAccount.token}
+        signedIn={isSignedIn}
+      />
+
       <section className="glass p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -2925,6 +2931,150 @@ function SettingsView({
         </div>
       </section>
     </div>
+  );
+}
+
+type StorageUsage = {
+  usedBytes: number;
+  limitBytes: number;
+  usedFormatted: string;
+  limitFormatted: string;
+  percentUsed: number;
+};
+
+function CloudStorageSection({
+  t,
+  token,
+  signedIn,
+}: {
+  t: (key: string) => string;
+  token: string;
+  signedIn: boolean;
+}) {
+  const [usage, setUsage] = useState<StorageUsage | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!signedIn) {
+      setUsage(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/storage/usage`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error(`${response.status}`);
+        const data = (await response.json()) as StorageUsage;
+        if (!cancelled) setUsage(data);
+      } catch {
+        if (!cancelled) setError("Could not fetch storage usage.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn, token]);
+
+  const percent = usage ? Math.min(100, Math.max(0, usage.percentUsed)) : 0;
+
+  return (
+    <section className="glass p-5 lg:p-6">
+      <div>
+        <h2 className="text-lg font-semibold">{t("cloud.title")}</h2>
+        <p className="mt-1 max-w-3xl text-sm text-heritage-text-secondary">
+          {t("cloud.subtitle")}
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        {/* Conservatio cloud -- own quota */}
+        <div className="glass-tonal p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-50 text-primary">
+                <Cloud size={20} />
+              </div>
+              <div>
+                <h3 className="font-semibold">{t("cloud.conservatio")}</h3>
+                <p className="mt-1 text-xs text-heritage-text-secondary">
+                  {t("cloud.conservatioFreeNote")}
+                </p>
+              </div>
+            </div>
+            <span
+              className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur-xl ${
+                signedIn
+                  ? "border-condition-good/30 bg-condition-good/10 text-condition-good"
+                  : "border-heritage-outline/30 bg-heritage-surface-variant/60 text-heritage-text-secondary"
+              }`}
+            >
+              {signedIn ? "Connected" : t("g.offline")}
+            </span>
+          </div>
+
+          <div className="mt-5">
+            <div className="flex items-center justify-between text-xs font-medium text-heritage-text-secondary">
+              <span>{t("cloud.usageLabel")}</span>
+              <span>
+                {usage
+                  ? `${usage.usedFormatted} / ${usage.limitFormatted} · ${usage.percentUsed.toFixed(1)}%`
+                  : signedIn
+                    ? "…"
+                    : t("cloud.signedOutUsage")}
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/55 ring-1 ring-inset ring-white/40">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark transition-all"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            {error && (
+              <p className="mt-2 text-xs text-red-600">{error}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Third-party providers */}
+        <div className="glass-tonal p-5">
+          <h3 className="font-semibold">{t("cloud.providers")}</h3>
+          <p className="mt-1 text-xs text-heritage-text-secondary">
+            {t("cloud.providersHint")}
+          </p>
+          <div className="mt-4 space-y-2">
+            {(
+              [
+                { name: t("cloud.connectGoogleDrive"), icon: "G" },
+                { name: t("cloud.connectICloud"), icon: "" },
+                { name: t("cloud.connectOneDrive"), icon: "1D" },
+                { name: t("cloud.connectMega"), icon: "M" },
+                { name: t("cloud.connectDropbox"), icon: "D" },
+              ] as Array<{ name: string; icon: string }>
+            ).map((provider) => (
+              <button
+                key={provider.name}
+                type="button"
+                disabled
+                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/40 bg-white/45 px-4 py-3 text-left backdrop-blur-xl transition disabled:cursor-not-allowed disabled:opacity-90"
+                title={t("cloud.comingSoon")}
+              >
+                <span className="flex items-center gap-3 text-sm font-medium">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/70 text-[10px] font-bold text-heritage-text">
+                    {provider.icon}
+                  </span>
+                  {provider.name}
+                </span>
+                <span className="rounded-full border border-heritage-outline/30 bg-white/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-heritage-text-secondary">
+                  {t("cloud.comingSoon")}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -209,6 +209,25 @@ const en: Dict = {
     "Clear everything you've added or load a fresh set of sample records.",
   "settings.clearAll": "Clear all data",
   "settings.loadSample": "Load sample data",
+  // Cloud storage
+  "cloud.title": "Cloud Storage",
+  "cloud.subtitle":
+    "Where your conservation records and photos live. Connect a provider to add capacity beyond the free Conservatio quota.",
+  "cloud.conservatio": "Conservatio Cloud",
+  "cloud.conservatioFreeNote":
+    "Included with every account. 2 GB free, then upgradeable.",
+  "cloud.signedOutUsage": "Sign in to see your cloud usage.",
+  "cloud.usageLabel": "Storage used",
+  "cloud.providers": "Other providers",
+  "cloud.comingSoon": "Coming soon",
+  "cloud.connect": "Connect",
+  "cloud.connectGoogleDrive": "Google Drive",
+  "cloud.connectICloud": "iCloud",
+  "cloud.connectOneDrive": "OneDrive",
+  "cloud.connectMega": "MEGA",
+  "cloud.connectDropbox": "Dropbox",
+  "cloud.providersHint":
+    "Connecting a third-party provider lets Conservatio mirror your records and photos there. None are wired yet; tap to express interest.",
   "settings.clearConfirm":
     "This will remove every object, client, project, and report from this browser. Are you sure?",
   // Sync status
@@ -426,6 +445,25 @@ const el: Dict = {
     "Διαγράψτε τα δεδομένα σας ή φορτώστε δείγμα καταχωρήσεων.",
   "settings.clearAll": "Διαγραφή όλων",
   "settings.loadSample": "Φόρτωση δείγματος",
+  // Cloud storage
+  "cloud.title": "Αποθήκευση στο cloud",
+  "cloud.subtitle":
+    "Πού ζουν οι καταχωρήσεις και οι φωτογραφίες σου. Σύνδεσε έναν πάροχο για περισσότερο χώρο πέρα από το δωρεάν quota του Conservatio.",
+  "cloud.conservatio": "Conservatio Cloud",
+  "cloud.conservatioFreeNote":
+    "Συμπεριλαμβάνεται με κάθε λογαριασμό. 2 GB δωρεάν, με δυνατότητα αναβάθμισης.",
+  "cloud.signedOutUsage": "Συνδέσου για να δεις τη χρήση του cloud.",
+  "cloud.usageLabel": "Χρήση αποθηκευτικού χώρου",
+  "cloud.providers": "Άλλοι πάροχοι",
+  "cloud.comingSoon": "Σύντομα",
+  "cloud.connect": "Σύνδεση",
+  "cloud.connectGoogleDrive": "Google Drive",
+  "cloud.connectICloud": "iCloud",
+  "cloud.connectOneDrive": "OneDrive",
+  "cloud.connectMega": "MEGA",
+  "cloud.connectDropbox": "Dropbox",
+  "cloud.providersHint":
+    "Η σύνδεση τρίτου παρόχου επιτρέπει στο Conservatio να καθρεφτίσει τις καταχωρήσεις και τις φωτογραφίες σου εκεί. Δεν είναι ακόμη ενεργές -- πάτησε για ένδειξη ενδιαφέροντος.",
   "settings.clearConfirm":
     "Θα διαγραφούν όλα τα αντικείμενα, πελάτες, έργα και αναφορές από τον περιηγητή. Σίγουρα;",
   // Sync
