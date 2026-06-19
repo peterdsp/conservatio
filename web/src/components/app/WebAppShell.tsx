@@ -1685,20 +1685,24 @@ function LoginScreen({
           <h1 className="mt-6 text-3xl font-semibold tracking-tight text-primary">
             Conservatio
           </h1>
-          <p
-            className="mt-4 font-classical text-base text-primary-dark/90"
-            style={{ letterSpacing: "0.45em" }}
-            lang="grc"
-            // Lapidary capitals — accents were a Hellenistic invention
-            // (Aristophanes of Byzantium, ~200 BC); classical Athenian
-            // inscriptions are uppercase, unaccented, with wide spacing.
-            aria-label="Ek Hellados to phos"
-          >
-            ΕΞ ΕΛΛΑΔΟΣ ΤΟ ΦΩΣ
-          </p>
-          <p className="mt-2 text-[11px] uppercase tracking-[0.22em] text-heritage-text-secondary">
-            {t("login.heritageMotto")}
-          </p>
+        </div>
+
+        <div className="mt-7 flex flex-col items-center gap-5">
+          <ArchaicMotto
+            text="ΚΤΗΜΑ ΕΣ ΑΕΙ"
+            aria="Ktema es aei"
+            caption={t("login.mottoPossession")}
+            cite={t("login.mottoPossessionCite")}
+            className="h-9 text-primary-dark/85"
+          />
+          <span className="text-primary/40">· · ·</span>
+          <ArchaicMotto
+            text="ΣΩΖΕΙΝ ΤΑ ΦΑΙΝΟΜΕΝΑ"
+            aria="Sozein ta phainomena"
+            caption={t("login.mottoSavePhenomena")}
+            cite={t("login.mottoSavePhenomenaCite")}
+            className="h-8 text-primary-dark/85"
+          />
         </div>
 
         <div className="mt-10 space-y-2">
@@ -1735,6 +1739,125 @@ function LoginScreen({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Hand-built archaic Greek inscription. Each character is a stroked SVG
+ * path drawn in the pre-classical letter forms you'd find on a 6th-century
+ * BC marble stele — alpha as a triangle with a mid-bar, epsilon as the
+ * three-pronged F-shape, sigma as the zigzag (the unmistakable archaic
+ * tell), omega as the inverted-U-with-feet, theta and phi as a circle
+ * pierced by a stroke. No accents, no breathings — those are Hellenistic
+ * inventions (~200 BC) that wouldn't appear in stone.
+ */
+function ArchaicMotto({
+  text,
+  aria,
+  caption,
+  cite,
+  className,
+}: {
+  text: string;
+  aria: string;
+  caption: string;
+  cite?: string;
+  className?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 text-center">
+      <ArchaicInscription text={text} aria={aria} className={className} />
+      <p className="text-[10.5px] uppercase tracking-[0.22em] text-heritage-text-secondary">
+        {caption}
+        {cite ? (
+          <span className="text-heritage-text-secondary/65"> · {cite}</span>
+        ) : null}
+      </p>
+    </div>
+  );
+}
+
+// Each glyph is drawn within a 40-wide × 60-tall cell, with 14 units of
+// breathing room after to space the inscription out the way stone-cutters
+// do.
+const ARCHAIC_GLYPHS: Record<string, { path: string; width: number }> = {
+  Α: { path: "M 4 60 L 20 0 L 36 60 M 12 36 L 28 36", width: 40 },
+  Ε: {
+    path: "M 5 0 L 5 60 M 5 0 L 32 0 M 5 30 L 24 30 M 5 60 L 32 60",
+    width: 36,
+  },
+  Η: { path: "M 5 0 L 5 60 M 35 0 L 35 60 M 5 30 L 35 30", width: 40 },
+  Ι: { path: "M 20 0 L 20 60", width: 22 },
+  Κ: { path: "M 5 0 L 5 60 M 5 30 L 33 0 M 5 30 L 33 60", width: 36 },
+  Μ: { path: "M 4 60 L 4 0 L 20 36 L 36 0 L 36 60", width: 40 },
+  Ν: { path: "M 5 60 L 5 0 L 35 60 L 35 0", width: 40 },
+  Ο: { path: "M 35 30 A 16 16 0 1 1 5 30 A 16 16 0 1 1 35 30 Z", width: 40 },
+  // Archaic sigma — the M-zigzag (top bar, diagonal down to the middle-
+  // left, diagonal back down to the right, bottom bar). This is the shape
+  // on Athenian inscriptions before the lunate sigma became common.
+  Σ: { path: "M 5 0 L 35 0 L 5 30 L 35 60 L 5 60", width: 40 },
+  Τ: { path: "M 3 0 L 37 0 M 20 0 L 20 60", width: 40 },
+  Ζ: { path: "M 5 0 L 35 0 L 5 60 L 35 60", width: 40 },
+  Φ: {
+    path:
+      "M 20 -7 L 20 67 M 33 30 A 13 13 0 1 1 7 30 A 13 13 0 1 1 33 30 Z",
+    width: 40,
+  },
+  // Omega — inverted U on two feet. The character didn't exist in early
+  // archaic (they wrote Ο for both) but by the 5th century BC Eastern
+  // Ionian inscriptions had this form, which is what the Athenian Decree
+  // alphabet would adopt after 403 BC.
+  Ω: {
+    path:
+      "M 5 60 L 5 38 Q 5 4 20 4 Q 35 4 35 38 L 35 60 M -1 60 L 13 60 M 27 60 L 41 60",
+    width: 42,
+  },
+  // Middle dot and space
+  "·": { path: "M 20 36 A 3 3 0 1 1 20 30 A 3 3 0 1 1 20 36 Z", width: 22 },
+  " ": { path: "", width: 22 },
+};
+
+function ArchaicInscription({
+  text,
+  aria,
+  className,
+}: {
+  text: string;
+  aria: string;
+  className?: string;
+}) {
+  const chars = Array.from(text);
+  const segments: { x: number; path: string }[] = [];
+  let x = 0;
+  for (const c of chars) {
+    const glyph = ARCHAIC_GLYPHS[c];
+    if (!glyph) {
+      // Unknown character — advance by a default amount so we don't crowd
+      // anything.
+      x += 24;
+      continue;
+    }
+    if (glyph.path) segments.push({ x, path: glyph.path });
+    x += glyph.width + 14;
+  }
+  const totalWidth = Math.max(x - 14, 1);
+  return (
+    <svg
+      role="img"
+      aria-label={aria}
+      viewBox={`-6 -12 ${totalWidth + 12} 80`}
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ width: "auto" }}
+    >
+      {segments.map((seg, i) => (
+        <path key={i} transform={`translate(${seg.x}, 0)`} d={seg.path} />
+      ))}
+    </svg>
   );
 }
 
