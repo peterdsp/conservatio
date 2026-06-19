@@ -498,7 +498,10 @@ function beginOAuthFlow(provider: OAuthProvider) {
     state,
   });
   if (provider === "apple") {
-    params.set("response_mode", "form_post");
+    // Apple requires response_mode form_post OR fragment when scope contains
+    // name/email. GitHub Pages can't handle POST, so use fragment — Apple puts
+    // the code in the URL hash which the LoginScreen reads on mount.
+    params.set("response_mode", "fragment");
   }
   window.location.href = `${config.authUrl}?${params.toString()}`;
 }
@@ -1630,12 +1633,16 @@ function LoginScreen({
   const [error, setError] = useState<string | null>(null);
   const [oauthBusy, setOauthBusy] = useState(false);
 
-  // Pick up the provider redirect back to this page.
+  // Pick up the provider redirect back to this page. Google + GitHub use the
+  // default query mode (?code=...). Apple uses fragment mode (#code=...).
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const state = params.get("state");
+    const search = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(
+      window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "",
+    );
+    const code = search.get("code") ?? hash.get("code");
+    const state = search.get("state") ?? hash.get("state");
     if (!code) return;
     const stored = window.sessionStorage.getItem("conservatio.oauthState");
     const provider = window.sessionStorage.getItem(
