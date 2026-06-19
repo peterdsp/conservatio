@@ -17,20 +17,19 @@ class ServerSyncClient(context: Context) {
     val isAuthenticated: Boolean
         get() = prefs.getString("auth_token", "").orEmpty().isNotBlank()
 
-    suspend fun login(email: String, password: String) = authenticate(
-        path = "/api/auth/login",
-        body = JSONObject()
-            .put("email", email)
-            .put("password", password)
-    )
-
-    suspend fun register(email: String, password: String, displayName: String) = authenticate(
-        path = "/api/auth/register",
-        body = JSONObject()
-            .put("email", email)
-            .put("password", password)
-            .put("displayName", displayName)
-    )
+    /**
+     * OAuth code exchange used by all three providers (Google, Apple, GitHub).
+     * After the Custom Tabs flow lands on conservatio://oauth-callback/<provider>
+     * with `?code=...`, we POST it here and let the server exchange with the
+     * provider for a Conservatio JWT.
+     */
+    suspend fun oauthExchange(provider: String, code: String, redirectUri: String) =
+        authenticate(
+            path = "/api/auth/oauth/$provider",
+            body = JSONObject()
+                .put("code", code)
+                .put("redirectUri", redirectUri),
+        )
 
     suspend fun fetchObjects(): List<ConservationObject> = withContext(Dispatchers.IO) {
         val response = request("GET", "/api/objects")

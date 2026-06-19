@@ -36,16 +36,25 @@ class APIClient {
         token = response.token
     }
 
-    func socialLogin(provider: String, providerUserId: String, email: String?, name: String?, idToken: String?) async throws {
-        let body: [String: String?] = [
-            "provider": provider,
-            "provider_user_id": providerUserId,
-            "email": email,
-            "name": name,
-            "id_token": idToken
+    /// Web-style OAuth flow (Google / GitHub / Apple via ASWebAuthenticationSession).
+    /// Sends the authorization code to the backend, which exchanges it with
+    /// the provider and returns a Conservatio JWT.
+    func oauthExchange(provider: String, code: String, redirectUri: String) async throws {
+        let body: [String: String] = [
+            "code": code,
+            "redirectUri": redirectUri,
         ]
-        let filtered = body.compactMapValues { $0 }
-        let response: AuthResponse = try await post("/api/auth/social", body: filtered)
+        let response: AuthResponse = try await post("/api/auth/oauth/\(provider)", body: body)
+        token = response.token
+    }
+
+    /// Native iOS Sign in with Apple. We bypass the code-exchange leg and
+    /// hand the backend the identityToken (a JWT signed by Apple) directly.
+    func oauthApple(identityToken: String, email: String?, fullName: String?) async throws {
+        var body: [String: String] = ["identityToken": identityToken]
+        if let email = email { body["email"] = email }
+        if let fullName = fullName { body["fullName"] = fullName }
+        let response: AuthResponse = try await post("/api/auth/oauth/apple/native", body: body)
         token = response.token
     }
 

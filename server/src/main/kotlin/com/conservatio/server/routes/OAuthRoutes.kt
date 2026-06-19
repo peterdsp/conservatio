@@ -101,13 +101,39 @@ private val httpClient by lazy {
     }
 }
 
+@Serializable
+data class AppleNativeRequest(
+    val identityToken: String,
+    val email: String? = null,
+    val fullName: String? = null,
+)
+
 fun Route.oauthRoutes() {
     route("/api/auth/oauth") {
         post("/google") { handleGoogle(call) }
         post("/linkedin") { handleLinkedIn(call) }
         post("/apple") { handleApple(call) }
         post("/github") { handleGitHub(call) }
+        // Native iOS Sign in with Apple — the iOS ASAuthorization flow gives
+        // us an identityToken (Apple-signed JWT) directly, no code exchange.
+        // We decode it the same way handleApple does for the web flow.
+        post("/apple/native") { handleAppleNative(call) }
     }
+}
+
+private suspend fun handleAppleNative(call: ApplicationCall) {
+    val request = call.receive<AppleNativeRequest>()
+    val claims = decodeIdToken(request.identityToken)
+        ?: return call.respond(HttpStatusCode.Unauthorized, ErrorResponse("Invalid Apple ID token", 401))
+    val sub = claims["sub"] as? String
+    val email = (claims["email"] as? String) ?: request.email
+    if (sub.isNullOrBlank() || email.isNullOrBlank()) {
+        call.respond(HttpStatusCode.Unauthorized, ErrorResponse("Apple did not return an email", 401))
+        return
+    }
+    val name = request.fullName?.takeIf { it.isNotBlank() }
+        ?: email.substringBefore('@')
+    respondWithJwt(call, provider = "apple", subject = sub, email = email, displayName = name)
 }
 
 private suspend fun handleGoogle(call: ApplicationCall) {

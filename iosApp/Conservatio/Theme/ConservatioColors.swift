@@ -18,6 +18,8 @@ extension Color {
     static let conservatioBackground = Color(red: 0.98, green: 0.97, blue: 0.96)
     static let conservatioSurface = Color.white
     static let conservatioSurfaceVariant = Color(red: 0.95, green: 0.93, blue: 0.92)
+    static let conservatioText = Color(red: 0.11, green: 0.11, blue: 0.12)
+    static let conservatioTextSecondary = Color(red: 0.29, green: 0.27, blue: 0.31)
 
     // Condition ratings
     static let conditionExcellent = Color(red: 0.18, green: 0.49, blue: 0.20)
