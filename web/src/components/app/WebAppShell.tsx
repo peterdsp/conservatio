@@ -1686,13 +1686,13 @@ function LoginScreen({
             Conservatio
           </h1>
           <p
-            className="mt-3 font-serif text-base italic tracking-wide text-primary-dark/85"
+            className="mt-3 font-serif text-lg italic tracking-wide text-primary-dark/85"
             lang="grc"
           >
-            Ἐξ Ἑλλάδος τὸ φῶς
+            Κτῆμα ἐς ἀεί
           </p>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-heritage-text-secondary">
-            {t("login.heritageMotto")}
+          <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-heritage-text-secondary">
+            {t("login.heritageMotto")} · Thucydides 1.22
           </p>
         </div>
 
