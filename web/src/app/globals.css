@@ -11,5 +11,48 @@
 
   body {
     @apply font-sans;
+    background-color: #f8f5f1;
   }
+}
+
+@layer components {
+  /* Liquid-glass primitive: translucent panel with backdrop blur, soft
+     specular highlight at the top edge, and an inset ring that keeps the
+     edges legible at any depth. Mirrors the iOS 26 / macOS Tahoe material. */
+  .glass {
+    @apply relative isolate overflow-hidden rounded-3xl border border-white/40 bg-white/55 shadow-[0_30px_60px_-30px_rgba(60,40,30,0.35),0_8px_24px_-12px_rgba(60,40,30,0.18)] ring-1 ring-inset ring-white/35 backdrop-blur-2xl backdrop-saturate-150;
+  }
+  .glass::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 rounded-t-3xl bg-gradient-to-b from-white/65 via-white/20 to-transparent;
+  }
+  .glass-tonal {
+    @apply relative isolate overflow-hidden rounded-3xl border border-white/40 bg-white/40 ring-1 ring-inset ring-white/30 backdrop-blur-xl backdrop-saturate-150;
+  }
+  .glass-dark {
+    @apply relative isolate overflow-hidden rounded-3xl border border-white/10 bg-secondary-900/75 shadow-[0_30px_60px_-30px_rgba(10,30,50,0.6)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150;
+  }
+  .glass-dark::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 rounded-t-3xl bg-gradient-to-b from-white/15 via-white/5 to-transparent;
+  }
+  .glass-input {
+    @apply rounded-2xl border border-white/40 bg-white/55 ring-1 ring-inset ring-white/30 backdrop-blur-xl placeholder:text-heritage-text-secondary/70 focus:border-primary/50 focus:bg-white/75 focus:outline-none focus:ring-primary/30;
+  }
+  .glass-button {
+    @apply rounded-2xl border border-white/40 bg-white/55 px-4 py-2.5 text-sm font-semibold text-heritage-text shadow-[0_10px_20px_-12px_rgba(60,40,30,0.4)] ring-1 ring-inset ring-white/40 backdrop-blur-xl transition hover:bg-white/75 active:scale-[0.98];
+  }
+  .glass-button-primary {
+    @apply rounded-2xl border border-white/30 bg-gradient-to-b from-primary to-primary-dark px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_32px_-12px_rgba(194,91,58,0.55),0_4px_10px_-4px_rgba(194,91,58,0.4)] ring-1 ring-inset ring-white/30 transition hover:brightness-[1.05] active:scale-[0.98];
+  }
+}
+
+/* Subtle conic + radial backdrop that picks up through every glass layer.
+   Stays under the content (-z-50) so it never traps clicks. */
+.glass-room {
+  background:
+    radial-gradient(1100px 800px at 8% -10%, rgba(255, 197, 165, 0.55), transparent 60%),
+    radial-gradient(900px 700px at 110% 0%, rgba(170, 197, 220, 0.55), transparent 60%),
+    radial-gradient(900px 900px at 50% 115%, rgba(255, 224, 197, 0.4), transparent 60%),
+    linear-gradient(180deg, #faf5f0 0%, #f5ede5 100%);
 }

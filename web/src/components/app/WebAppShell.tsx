@@ -1452,8 +1452,8 @@ export function WebAppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-heritage-bg text-heritage-text">
-      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,#fff0e8_0,#faf7f4_32%,#f2eeea_100%)]" />
+    <div className="min-h-screen text-heritage-text">
+      <div className="glass-room fixed inset-0 -z-50" />
       <div className="flex min-h-screen">
         <Sidebar
           activeSection={activeSection}
@@ -1674,17 +1674,16 @@ function LoginScreen({
   }, [onOAuthSession]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-heritage-bg text-heritage-text">
-      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,#fff0e8_0,#faf7f4_32%,#f2eeea_100%)]" />
-      <div className="w-full max-w-md px-6">
+    <div className="relative flex min-h-screen items-center justify-center text-heritage-text">
+      <div className="glass-room fixed inset-0 -z-50" />
+      <div className="w-full max-w-sm px-6">
         <div className="flex flex-col items-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-primary-50">
-            <ShieldCheck className="text-primary" size={44} />
+          <div className="glass flex h-20 w-20 items-center justify-center rounded-[28px] p-0">
+            <ShieldCheck className="text-primary" size={36} />
           </div>
-          <h1 className="mt-5 text-3xl font-bold text-primary">Conservatio</h1>
-          <p className="mt-2 text-sm text-heritage-text-secondary">
-            {t("login.tagline")}
-          </p>
+          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-primary">
+            Conservatio
+          </h1>
         </div>
 
         <div className="mt-10 space-y-2">
@@ -1712,21 +1711,13 @@ function LoginScreen({
         </div>
 
         {error && (
-          <p className="mt-3 text-center text-xs text-red-600">{error}</p>
+          <p className="mt-4 text-center text-xs text-red-600">{error}</p>
         )}
         {oauthBusy && (
-          <p className="mt-3 text-center text-xs text-heritage-text-secondary">
+          <p className="mt-4 text-center text-xs text-heritage-text-secondary">
             {t("login.finishingOauth")}
           </p>
         )}
-
-        <p className="mt-10 text-center text-xs text-heritage-text-secondary">
-          {t("login.signInOnly")}
-        </p>
-
-        <p className="mt-4 text-center text-xs text-heritage-text-secondary">
-          v0.1.0
-        </p>
       </div>
     </div>
   );
@@ -1750,12 +1741,12 @@ function OAuthButton({
     <button
       onClick={() => onStart(provider)}
       disabled={!configured || busy}
-      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 text-sm font-semibold text-heritage-text transition hover:bg-heritage-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
+      className="glass-button flex w-full items-center justify-center gap-3 py-3.5 disabled:cursor-not-allowed disabled:opacity-50"
       type="button"
       title={configured ? undefined : disabledLabel}
     >
       <ProviderGlyph provider={provider} />
-      {label}
+      <span>{label}</span>
     </button>
   );
 }
@@ -1798,12 +1789,12 @@ function TopBar({
   onNavigate: (section: WebSection) => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-heritage-outline/10 bg-heritage-bg/90 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-white/40 bg-white/40 backdrop-blur-2xl backdrop-saturate-150">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
         <div className="flex flex-1 items-center gap-3 lg:hidden">
           <Menu className="text-primary" size={22} />
           <div>
-            <p className="text-base font-bold text-primary">
+            <p className="text-base font-semibold text-primary">
               Conservatio {t("top.webApp")}
             </p>
             <p className="text-xs text-heritage-text-secondary">
@@ -1816,14 +1807,14 @@ function TopBar({
             <p className="text-sm font-medium text-heritage-text-secondary">
               {t(navLabelKey(activeSection))}
             </p>
-            <span className="rounded-full bg-primary-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
+            <span className="rounded-full border border-white/50 bg-white/60 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary backdrop-blur-xl">
               {t("top.webApp")}
             </span>
           </div>
         </div>
         <button
           onClick={onCreateObject}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+          className="glass-button-primary inline-flex items-center gap-2 px-4 py-2.5"
           type="button"
         >
           <Plus size={18} />
@@ -1844,10 +1835,10 @@ function TopBar({
           <button
             key={section}
             onClick={() => onNavigate(section)}
-            className={`flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium ${
+            className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium backdrop-blur-xl transition ${
               activeSection === section
-                ? "bg-primary-50 text-primary"
-                : "bg-white/80 text-heritage-text-secondary"
+                ? "border-white/60 bg-white/70 text-primary shadow-[0_8px_20px_-12px_rgba(194,91,58,0.4)]"
+                : "border-white/30 bg-white/40 text-heritage-text-secondary"
             }`}
             type="button"
           >
@@ -1890,7 +1881,7 @@ function DashboardView({
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm lg:p-8">
+        <section className="glass p-6 lg:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
             {t("dash.welcome")}
           </p>
@@ -1905,7 +1896,7 @@ function DashboardView({
             </div>
             <button
               onClick={() => onCreate("object")}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+              className="glass-button-primary inline-flex items-center justify-center gap-2 px-5 py-3"
               type="button"
             >
               <Plus size={18} />
@@ -1914,7 +1905,7 @@ function DashboardView({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-secondary/10 bg-secondary-900 p-6 text-white shadow-sm lg:p-8">
+        <section className="glass-dark p-6 text-white lg:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-secondary-100">
@@ -1946,7 +1937,7 @@ function DashboardView({
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.45fr]">
-        <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm lg:p-6">
+        <section className="glass p-5 lg:p-6">
           <SectionTitle
             title={t("dash.quickActions")}
             subtitle={t("dash.quickActionsSub")}
@@ -1979,7 +1970,7 @@ function DashboardView({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm lg:p-6">
+        <section className="glass p-5 lg:p-6">
           <div className="flex items-start justify-between gap-4">
             <SectionTitle
               title={t("dash.recentObjects")}
@@ -1987,7 +1978,7 @@ function DashboardView({
             />
             <button
               onClick={() => onNavigate("objects")}
-              className="hidden items-center gap-2 rounded-xl bg-heritage-surface-variant px-3 py-2 text-sm font-semibold text-heritage-text sm:inline-flex"
+              className="glass-button hidden items-center gap-2 px-3 py-2 sm:inline-flex"
               type="button"
             >
               {t("dash.viewAll")}
@@ -2035,7 +2026,7 @@ function ObjectsView({
         onAction={onCreateObject}
       />
 
-      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm lg:p-6">
+      <section className="glass p-5 lg:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="relative block flex-1">
             <Search
@@ -2045,7 +2036,7 @@ function ObjectsView({
             <input
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
-              className="w-full rounded-2xl border border-heritage-outline/20 bg-heritage-surface-variant py-3 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:bg-white"
+              className="glass-input w-full py-3 pl-10 pr-4 text-sm outline-none transition"
               placeholder={t("objects.searchPlaceholder")}
               type="search"
             />
@@ -2242,7 +2233,7 @@ function ReportRecordCard({
   onDelete: () => void;
 }) {
   return (
-    <article className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+    <article className="glass p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary">
@@ -2334,7 +2325,7 @@ function SettingsView({
     <div className="space-y-6">
       <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
 
-      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+      <section className="glass p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary">
@@ -2355,7 +2346,7 @@ function SettingsView({
             {isSignedIn && (
               <button
                 onClick={onRefresh}
-                className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
+                className="glass-button px-4 py-2.5 hover:text-primary"
                 type="button"
               >
                 {t("g.syncNow")}
@@ -2364,7 +2355,7 @@ function SettingsView({
             {isSignedIn && (
               <button
                 onClick={onSignOut}
-                className="rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-red-50 hover:text-red-600"
+                className="glass-button px-4 py-2.5 hover:text-red-600"
                 type="button"
               >
                 {t("g.signOut")}
@@ -2377,7 +2368,7 @@ function SettingsView({
         )}
       </section>
 
-      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+      <section className="glass p-5">
         <h2 className="text-base font-semibold">{t("settings.profile")}</h2>
         <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="space-y-3">
@@ -2387,7 +2378,7 @@ function SettingsView({
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 disabled={!isSignedIn}
-                className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary disabled:cursor-not-allowed disabled:bg-heritage-surface-variant"
+                className="w-full glass-input w-full px-4 py-3 text-sm text-heritage-text outline-none disabled:cursor-not-allowed disabled:bg-heritage-surface-variant"
                 type="text"
               />
             </label>
@@ -2396,7 +2387,7 @@ function SettingsView({
               <input
                 value={syncAccount.email}
                 disabled
-                className="w-full rounded-2xl border border-heritage-outline/20 bg-heritage-surface-variant px-4 py-3 text-heritage-text-secondary outline-none"
+                className="w-full rounded-2xl border border-white/30 bg-white/35 px-4 py-3 text-heritage-text-secondary outline-none backdrop-blur-xl"
                 type="email"
               />
             </label>
@@ -2404,7 +2395,7 @@ function SettingsView({
           <button
             onClick={() => void handleSaveProfile()}
             disabled={!isSignedIn || savingProfile}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="glass-button-primary px-4 py-2.5 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
           >
             {savingProfile ? t("settings.savingProfile") : t("settings.saveProfile")}
@@ -2421,7 +2412,7 @@ function SettingsView({
         )}
       </section>
 
-      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+      <section className="glass p-5">
         <h2 className="text-base font-semibold">{t("settings.language")}</h2>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:max-w-md">
           {supportedLanguages.map((option) => (
@@ -2474,7 +2465,7 @@ function SettingsView({
         />
       </div>
 
-      <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+      <section className="glass p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-semibold">{t("settings.dangerTitle")}</h2>
@@ -2485,14 +2476,14 @@ function SettingsView({
           <div className="flex gap-3">
             <button
               onClick={onLoadSample}
-              className="inline-flex items-center justify-center rounded-xl bg-heritage-surface-variant px-4 py-2.5 text-sm font-semibold text-heritage-text transition hover:bg-primary-50 hover:text-primary"
+              className="inline-flex items-center justify-center glass-button px-4 py-2.5 hover:text-primary"
               type="button"
             >
               {t("settings.loadSample")}
             </button>
             <button
               onClick={onClearAll}
-              className="inline-flex items-center justify-center rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+              className="inline-flex items-center justify-center rounded-2xl border border-red-200/70 bg-red-50/70 px-4 py-2.5 text-sm font-semibold text-red-600 backdrop-blur-xl transition hover:bg-red-100/85"
               type="button"
             >
               {t("settings.clearAll")}
@@ -2512,13 +2503,13 @@ function SettingsGroup({
   items: Array<{ label: string; icon: typeof Box; detail: string }>;
 }) {
   return (
-    <section className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+    <section className="glass p-5">
       <h2 className="text-base font-semibold">{title}</h2>
       <div className="mt-4 space-y-2">
         {items.map((item) => (
           <div
             key={item.label}
-            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-heritage-surface-variant px-4 py-3 text-left"
+            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/30 bg-white/35 px-4 py-3 text-left backdrop-blur-xl"
           >
             <span className="flex items-center gap-3 text-sm font-medium">
               <item.icon size={18} />
@@ -2640,7 +2631,7 @@ function ObjectModal({
             <TextField label="W" value={form.width} onChange={(value) => update("width", value)} />
             <TextField label="D" value={form.depth} onChange={(value) => update("depth", value)} />
           </div>
-          <div className="grid grid-cols-3 gap-2 rounded-2xl bg-heritage-surface-variant p-1">
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/30 bg-white/35 p-1 backdrop-blur-xl">
             {(["cm", "m", "in"] as const).map((unit) => (
               <button
                 key={unit}
@@ -3106,7 +3097,7 @@ function ModalFrame({
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-heritage-text/35 p-4 backdrop-blur-sm">
       <form
         onSubmit={onSubmit}
-        className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="glass max-h-[92vh] w-full max-w-5xl overflow-hidden"
       >
         <div className="flex items-start justify-between gap-4 border-b border-heritage-outline/10 p-5 lg:p-6">
           <div>
@@ -3117,7 +3108,7 @@ function ModalFrame({
           </div>
           <button
             onClick={onClose}
-            className="rounded-xl bg-heritage-surface-variant p-2 text-heritage-text-secondary hover:text-heritage-text"
+            className="rounded-xl border border-white/40 bg-white/55 p-2 text-heritage-text-secondary backdrop-blur-xl transition hover:text-heritage-text"
             type="button"
             aria-label="Close"
           >
@@ -3134,7 +3125,7 @@ function ModalFrame({
             {t("g.cancel")}
           </button>
           <button
-            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="glass-button-primary px-5 py-2.5 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={submitDisabled}
             type="submit"
           >
@@ -3158,7 +3149,7 @@ function PageHeader({
   onAction?: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-4 rounded-3xl border border-heritage-outline/10 bg-white p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between lg:p-8">
+    <div className="flex flex-col gap-4 glass p-6 lg:flex-row lg:items-end lg:justify-between lg:p-8">
       <div>
         <h1 className="font-serif text-3xl font-bold">{title}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-heritage-text-secondary">
@@ -3168,7 +3159,7 @@ function PageHeader({
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark"
+          className="glass-button-primary inline-flex items-center justify-center gap-2 px-5 py-3"
           type="button"
         >
           <Plus size={18} />
@@ -3198,7 +3189,7 @@ function StatCard({
   icon: typeof Box;
 }) {
   return (
-    <div className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+    <div className="glass p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-heritage-text-secondary">
           {label}
@@ -3224,7 +3215,7 @@ function QuickActionCard({
   return (
     <button
       onClick={onClick}
-      className="group rounded-2xl border border-heritage-outline/10 bg-heritage-surface-variant p-5 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
+      className="group glass-tonal p-5 text-left transition hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-[0_22px_40px_-20px_rgba(60,40,30,0.4)]"
       type="button"
     >
       <div
@@ -3247,7 +3238,7 @@ function ObjectRow({
   token: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-heritage-surface-variant p-3">
+    <div className="flex items-center gap-3 rounded-2xl border border-white/30 bg-white/35 p-3 backdrop-blur-xl">
       <ObjectThumb object={object} token={token} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{object.title}</p>
@@ -3279,7 +3270,7 @@ function ObjectCard({
   onDelete: () => void;
 }) {
   return (
-    <article className="rounded-3xl border border-heritage-outline/10 bg-heritage-surface-variant p-4">
+    <article className="glass-tonal p-4">
       <div className="flex gap-4">
         <ObjectThumb object={object} token={token} large />
         <div className="min-w-0 flex-1">
@@ -3340,7 +3331,7 @@ function RecordCard({
   onDelete: () => void;
 }) {
   return (
-    <article className="rounded-3xl border border-heritage-outline/10 bg-white p-5 shadow-sm">
+    <article className="glass p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary">
@@ -3415,7 +3406,7 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-3xl bg-heritage-surface-variant p-4">
+    <section className="space-y-4 glass-tonal p-4">
       <h3 className="text-sm font-bold">{title}</h3>
       {children}
     </section>
@@ -3443,7 +3434,7 @@ function TextField({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary"
+        className="w-full glass-input w-full px-4 py-3 text-sm text-heritage-text outline-none"
         placeholder={placeholder}
         required={required}
         type={type}
@@ -3469,7 +3460,7 @@ function TextAreaField({
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-32 w-full resize-y rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary"
+        className="min-h-32 w-full resize-y glass-input w-full px-4 py-3 text-sm text-heritage-text outline-none"
         placeholder={placeholder}
       />
     </label>
@@ -3495,7 +3486,7 @@ function SelectField({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-heritage-outline/20 bg-white px-4 py-3 outline-none focus:border-primary"
+        className="w-full glass-input w-full px-4 py-3 text-sm text-heritage-text outline-none"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -3614,7 +3605,7 @@ function PhotoInput({
 
   return (
     <>
-      <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-heritage-outline/30 bg-heritage-surface-variant px-4 py-8 text-center transition hover:border-primary hover:bg-primary-50">
+      <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/50 bg-white/35 px-4 py-8 text-center backdrop-blur-xl transition hover:border-primary/60 hover:bg-white/55">
         <ImagePlus className="text-primary" size={30} />
         <span className="mt-3 text-sm font-semibold">{t("objects.attach")}</span>
         <span className="mt-1 text-xs text-heritage-text-secondary">

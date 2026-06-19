@@ -49,7 +49,7 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside
-      className={`hidden shrink-0 flex-col border-r border-heritage-outline/15 bg-white/90 shadow-sm backdrop-blur transition-all duration-200 lg:flex ${
+      className={`hidden shrink-0 flex-col border-r border-white/40 bg-white/45 shadow-[0_0_60px_-20px_rgba(60,40,30,0.25)] backdrop-blur-2xl backdrop-saturate-150 transition-all duration-200 lg:flex ${
         collapsed ? "w-16" : "w-64"
       }`}
     >
@@ -77,10 +77,10 @@ export function Sidebar({
           <button
             key={item.section}
             onClick={() => onNavigate(item.section)}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+            className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-medium transition ${
               activeSection === item.section
-                ? "bg-primary-50 text-primary"
-                : "text-heritage-text-secondary hover:bg-heritage-surface-variant hover:text-heritage-text"
+                ? "border border-white/50 bg-white/60 text-primary shadow-[0_8px_20px_-12px_rgba(194,91,58,0.35)] ring-1 ring-inset ring-white/40 backdrop-blur-xl"
+                : "text-heritage-text-secondary hover:bg-white/35 hover:text-heritage-text"
             }`}
             type="button"
           >
