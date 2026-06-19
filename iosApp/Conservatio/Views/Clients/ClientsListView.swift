@@ -3,6 +3,7 @@ import SwiftUI
 struct ClientsListView: View {
     var clientStore: ClientStore
     @State private var showCreate = false
+    @State private var editingClient: Client?
 
     var body: some View {
         NavigationStack {
@@ -18,6 +19,11 @@ struct ClientsListView: View {
                         ForEach(clientStore.clients.sorted(by: { $0.createdAt > $1.createdAt })) { client in
                             NavigationLink {
                                 ClientDetailView(client: client, clientStore: clientStore)
+                                    .toolbar {
+                                        ToolbarItem(placement: .primaryAction) {
+                                            Button(t("g.edit")) { editingClient = client }
+                                        }
+                                    }
                             } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: client.type.icon)
@@ -62,6 +68,9 @@ struct ClientsListView: View {
             }
             .sheet(isPresented: $showCreate) {
                 CreateClientView(clientStore: clientStore)
+            }
+            .sheet(item: $editingClient) { client in
+                CreateClientView(clientStore: clientStore, existing: client)
             }
         }
     }

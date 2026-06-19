@@ -42,4 +42,5 @@ struct Client: Identifiable, Codable {
     var address: String = ""
     var notes: String = ""
     var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 }

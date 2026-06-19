@@ -182,7 +182,26 @@ struct CreateObjectView: View {
     }
 
     private func saveObject() {
-        let imageIds = capturedImages.compactMap { ImageStore.shared.save($0) }
+        Task { await saveObjectAsync() }
+    }
+
+    private func saveObjectAsync() async {
+        // 1) Save each photo locally for offline-first persistence.
+        // 2) If signed in, upload each photo to /api/images and replace the
+        //    local id with the server-side imageId so other devices can see
+        //    the same picture. Local copies stay on disk as cache.
+        var imageIds: [String] = capturedImages.compactMap { ImageStore.shared.save($0) }
+        if APIClient.shared.isLoggedIn {
+            var uploaded: [String] = []
+            for image in capturedImages {
+                guard let data = image.jpegData(compressionQuality: 0.85) else { continue }
+                if let serverId = try? await APIClient.shared.uploadImage(data: data) {
+                    uploaded.append(serverId)
+                }
+            }
+            if !uploaded.isEmpty { imageIds = uploaded }
+        }
+
         let materials = materialsText
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -208,9 +227,11 @@ struct CreateObjectView: View {
             imageIds: imageIds
         )
 
-        objectStore.add(object)
-        onSave?(object)
-        dismiss()
+        await MainActor.run {
+            objectStore.add(object)
+            onSave?(object)
+            dismiss()
+        }
     }
 
     private func loadPhotos(from items: [PhotosPickerItem]) {

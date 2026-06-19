@@ -1,16 +1,35 @@
 import SwiftUI
 
+/// Dual-purpose create + edit form for a Client. Pass `existing` to switch
+/// the view into edit mode; the navigation title and the Save action both
+/// adjust automatically.
 struct CreateClientView: View {
     var clientStore: ClientStore
+    var existing: Client?
+
     @Environment(\.dismiss) private var dismiss
 
-    @State private var name = ""
-    @State private var type: ClientType = .other
-    @State private var contactPerson = ""
-    @State private var email = ""
-    @State private var phone = ""
-    @State private var address = ""
-    @State private var notes = ""
+    @State private var name: String
+    @State private var type: ClientType
+    @State private var contactPerson: String
+    @State private var email: String
+    @State private var phone: String
+    @State private var address: String
+    @State private var notes: String
+
+    init(clientStore: ClientStore, existing: Client? = nil) {
+        self.clientStore = clientStore
+        self.existing = existing
+        _name = State(initialValue: existing?.name ?? "")
+        _type = State(initialValue: existing?.type ?? .other)
+        _contactPerson = State(initialValue: existing?.contactPerson ?? "")
+        _email = State(initialValue: existing?.email ?? "")
+        _phone = State(initialValue: existing?.phone ?? "")
+        _address = State(initialValue: existing?.address ?? "")
+        _notes = State(initialValue: existing?.notes ?? "")
+    }
+
+    private var isEditing: Bool { existing != nil }
 
     var body: some View {
         NavigationStack {
@@ -48,24 +67,33 @@ struct CreateClientView: View {
                         .frame(minHeight: 80)
                 }
             }
-            .navigationTitle("New Client")
+            .scrollContentBackground(.hidden)
+            .background(ConservatioAmbientBackground())
+            .navigationTitle(isEditing ? "Edit Client" : "New Client")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(t("g.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let client = Client(
+                    Button(t("g.save")) {
+                        let updated = Client(
+                            id: existing?.id ?? UUID().uuidString,
                             name: name,
                             type: type,
                             contactPerson: contactPerson,
                             email: email,
                             phone: phone,
                             address: address,
-                            notes: notes
+                            notes: notes,
+                            createdAt: existing?.createdAt ?? Date(),
+                            updatedAt: Date()
                         )
-                        clientStore.add(client)
+                        if isEditing {
+                            clientStore.update(updated)
+                        } else {
+                            clientStore.add(updated)
+                        }
                         dismiss()
                     }
                     .disabled(name.isEmpty)
