@@ -11,7 +11,7 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            // Ambient peach/blue/cream backdrop — same language as web.
+            // Ambient peach/blue/cream backdrop  --  same language as web.
             LinearGradient(
                 colors: [
                     Color(red: 0.98, green: 0.96, blue: 0.94),
@@ -127,7 +127,7 @@ struct LoginView: View {
             )
             await MainActor.run { onSuccess() }
         } catch OAuthError.cancelled {
-            // Silent — user closed the sheet
+            // Silent  --  user closed the sheet
         } catch let error as APIError {
             await MainActor.run { errorMessage = error.errorDescription }
         } catch {

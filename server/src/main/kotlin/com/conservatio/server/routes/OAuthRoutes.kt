@@ -114,7 +114,7 @@ fun Route.oauthRoutes() {
         post("/linkedin") { handleLinkedIn(call) }
         post("/apple") { handleApple(call) }
         post("/github") { handleGitHub(call) }
-        // Native iOS Sign in with Apple — the iOS ASAuthorization flow gives
+        // Native iOS Sign in with Apple  --  the iOS ASAuthorization flow gives
         // us an identityToken (Apple-signed JWT) directly, no code exchange.
         // We decode it the same way handleApple does for the web flow.
         post("/apple/native") { handleAppleNative(call) }

@@ -59,7 +59,7 @@ const config: Config = {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         serif: ["Merriweather", "Georgia", "serif"],
-        // Greek Font Society's classical Greek typeface — proper polytonic
+        // Greek Font Society's classical Greek typeface  --  proper polytonic
         // glyph shapes that mirror Oxford Classical Texts and stone-cut
         // inscriptions when set in uppercase.
         classical: ["GFS Didot", "Merriweather", "Georgia", "serif"],

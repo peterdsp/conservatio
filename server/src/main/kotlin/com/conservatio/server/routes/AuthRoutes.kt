@@ -101,7 +101,7 @@ fun Route.authRoutes() {
 
             val passwordHash = user[UsersTable.passwordHash]
             if (passwordHash == null) {
-                // OAuth-only account — no local password to verify against.
+                // OAuth-only account  --  no local password to verify against.
                 call.respond(
                     HttpStatusCode.Unauthorized,
                     ErrorResponse(

@@ -499,7 +499,7 @@ function beginOAuthFlow(provider: OAuthProvider) {
   });
   if (provider === "apple") {
     // Apple requires response_mode form_post OR fragment when scope contains
-    // name/email. GitHub Pages can't handle POST, so use fragment — Apple puts
+    // name/email. GitHub Pages can't handle POST, so use fragment  --  Apple puts
     // the code in the URL hash which the LoginScreen reads on mount.
     params.set("response_mode", "fragment");
   }
@@ -590,7 +590,7 @@ function stripImageDataUrls(value: unknown): unknown {
 }
 
 // IDs of records baked into the in-app sample data. These should never be
-// auto-pushed to the server — they're demo content, not user records.
+// auto-pushed to the server  --  they're demo content, not user records.
 const SEED_IDS = new Set<string>([
   "obj-1",
   "obj-2",
@@ -619,7 +619,7 @@ function safeSetItem(key: string, value: unknown) {
     window.localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch {
-    // Quota exceeded — try again without the heavy image data URLs.
+    // Quota exceeded  --  try again without the heavy image data URLs.
     try {
       window.localStorage.setItem(
         key,
@@ -847,7 +847,7 @@ export function WebAppShell() {
         }, account);
         pushed++;
       } catch {
-        /* swallow — keep local copy */
+        /* swallow  --  keep local copy */
       }
     }
     for (const item of localClients) {
@@ -1728,10 +1728,10 @@ function LoginScreen({
 /**
  * Hand-built archaic Greek inscription. Each character is a stroked SVG
  * path drawn in the pre-classical letter forms you'd find on a 6th-century
- * BC marble stele — alpha as a triangle with a mid-bar, epsilon as the
+ * BC marble stele  --  alpha as a triangle with a mid-bar, epsilon as the
  * three-pronged F-shape, sigma as the zigzag (the unmistakable archaic
  * tell), omega as the inverted-U-with-feet, theta and phi as a circle
- * pierced by a stroke. No accents, no breathings — those are Hellenistic
+ * pierced by a stroke. No accents, no breathings  --  those are Hellenistic
  * inventions (~200 BC) that wouldn't appear in stone.
  */
 function ArchaicMotto({
@@ -1775,7 +1775,7 @@ const ARCHAIC_GLYPHS: Record<string, { path: string; width: number }> = {
   Μ: { path: "M 4 60 L 4 0 L 20 36 L 36 0 L 36 60", width: 40 },
   Ν: { path: "M 5 60 L 5 0 L 35 60 L 35 0", width: 40 },
   Ο: { path: "M 35 30 A 16 16 0 1 1 5 30 A 16 16 0 1 1 35 30 Z", width: 40 },
-  // Archaic sigma — the M-zigzag (top bar, diagonal down to the middle-
+  // Archaic sigma  --  the M-zigzag (top bar, diagonal down to the middle-
   // left, diagonal back down to the right, bottom bar). This is the shape
   // on Athenian inscriptions before the lunate sigma became common.
   Σ: { path: "M 5 0 L 35 0 L 5 30 L 35 60 L 5 60", width: 40 },
@@ -1786,7 +1786,7 @@ const ARCHAIC_GLYPHS: Record<string, { path: string; width: number }> = {
       "M 20 -7 L 20 67 M 33 30 A 13 13 0 1 1 7 30 A 13 13 0 1 1 33 30 Z",
     width: 40,
   },
-  // Omega — inverted U on two feet. The character didn't exist in early
+  // Omega  --  inverted U on two feet. The character didn't exist in early
   // archaic (they wrote Ο for both) but by the 5th century BC Eastern
   // Ionian inscriptions had this form, which is what the Athenian Decree
   // alphabet would adopt after 403 BC.
@@ -1815,7 +1815,7 @@ function ArchaicInscription({
   for (const c of chars) {
     const glyph = ARCHAIC_GLYPHS[c];
     if (!glyph) {
-      // Unknown character — advance by a default amount so we don't crowd
+      // Unknown character  --  advance by a default amount so we don't crowd
       // anything.
       x += 24;
       continue;
@@ -1890,7 +1890,7 @@ function ScatteredMottos({ t }: { t: (key: string) => string }) {
  * Hand-built SVGs (Parthenon, Nike of Samothrace, Doric column, Byzantine
  * domed church, Theatre of Epidaurus, Temple of Poseidon) tinted with the
  * primary terracotta and held at low opacity so they sit *behind* the glass
- * material — visible through the blur, never competing with the controls.
+ * material  --  visible through the blur, never competing with the controls.
  */
 function HeritageBackdrop() {
   return (
@@ -1898,27 +1898,27 @@ function HeritageBackdrop() {
       aria-hidden
       className="pointer-events-none absolute inset-0 -z-30 overflow-hidden"
     >
-      {/* Parthenon — top left */}
+      {/* Parthenon  --  top left */}
       <div className="absolute -left-6 top-[12%] hidden h-32 w-56 text-primary/30 sm:block md:left-[6%] md:top-[14%] md:h-40 md:w-72">
         <ParthenonGlyph />
       </div>
-      {/* Nike of Samothrace — right, vertical */}
+      {/* Nike of Samothrace  --  right, vertical */}
       <div className="absolute right-[4%] top-[8%] hidden h-56 w-32 text-primary/30 sm:block md:right-[8%] md:top-[6%] md:h-72 md:w-40">
         <NikeGlyph />
       </div>
-      {/* Doric column — left of card */}
+      {/* Doric column  --  left of card */}
       <div className="absolute bottom-[8%] left-[5%] hidden h-64 w-16 text-primary/25 md:block md:h-80 md:w-20">
         <DoricColumnGlyph />
       </div>
-      {/* Byzantine church — bottom right */}
+      {/* Byzantine church  --  bottom right */}
       <div className="absolute -right-2 bottom-[10%] hidden h-36 w-52 text-primary/30 sm:block md:right-[6%] md:bottom-[14%] md:h-44 md:w-64">
         <ByzantineChurchGlyph />
       </div>
-      {/* Theatre of Epidaurus — top center, very subtle */}
+      {/* Theatre of Epidaurus  --  top center, very subtle */}
       <div className="absolute left-1/2 top-[3%] h-24 w-48 -translate-x-1/2 text-primary/20 md:h-32 md:w-64">
         <EpidaurusTheatreGlyph />
       </div>
-      {/* Temple of Poseidon — bottom center */}
+      {/* Temple of Poseidon  --  bottom center */}
       <div className="absolute bottom-[4%] left-1/2 hidden h-24 w-56 -translate-x-1/2 text-primary/22 sm:block md:h-28 md:w-72">
         <PoseidonTempleGlyph />
       </div>
@@ -1951,7 +1951,7 @@ function ParthenonGlyph() {
       {/* pediment */}
       <polyline points="22,48 120,12 218,48" />
       <line x1="120" y1="12" x2="120" y2="48" strokeWidth="0.8" opacity="0.6" />
-      {/* columns — 8 with subtle entasis via narrow flutes */}
+      {/* columns  --  8 with subtle entasis via narrow flutes */}
       {[34, 60, 86, 112, 138, 164, 190, 216].map((x) => (
         <g key={x}>
           {/* capital echinus */}
@@ -1987,7 +1987,7 @@ function NikeGlyph() {
       <line x1="34" y1="178" x2="34" y2="186" strokeWidth="0.6" opacity="0.6" />
       <line x1="58" y1="176" x2="58" y2="186" strokeWidth="0.6" opacity="0.6" />
       <line x1="80" y1="178" x2="80" y2="186" strokeWidth="0.6" opacity="0.6" />
-      {/* drapery — body silhouette */}
+      {/* drapery  --  body silhouette */}
       <path d="M 55 36 Q 47 50 50 70 L 44 100 Q 40 130 46 170 L 78 170 Q 84 130 80 100 L 74 70 Q 78 50 70 36 Z" />
       {/* drapery folds */}
       <path d="M 49 80 Q 60 86 75 80" strokeWidth="0.7" opacity="0.7" />
@@ -1995,11 +1995,11 @@ function NikeGlyph() {
       <path d="M 46 120 Q 60 128 78 120" strokeWidth="0.7" opacity="0.7" />
       <path d="M 46 140 Q 60 148 78 140" strokeWidth="0.7" opacity="0.7" />
       <path d="M 47 158 Q 60 165 77 158" strokeWidth="0.7" opacity="0.7" />
-      {/* wing — upper */}
+      {/* wing  --  upper */}
       <path d="M 70 48 Q 100 30 108 14 Q 95 50 80 70" />
       <path d="M 76 50 Q 92 40 100 28" strokeWidth="0.7" opacity="0.7" />
       <path d="M 80 56 Q 90 50 96 42" strokeWidth="0.7" opacity="0.7" />
-      {/* wing — lower */}
+      {/* wing  --  lower */}
       <path d="M 68 70 Q 90 70 104 60" strokeWidth="0.7" opacity="0.7" />
     </svg>
   );
@@ -2133,7 +2133,7 @@ function PoseidonTempleGlyph() {
       {[55, 80, 105, 130, 155, 180, 205, 230].map((x) => (
         <line key={x} x1={x} y1="42" x2={x} y2="48" strokeWidth="0.8" opacity="0.7" />
       ))}
-      {/* columns — 6 (the surviving Doric facade) */}
+      {/* columns  --  6 (the surviving Doric facade) */}
       {[60, 96, 132, 168, 204, 240].map((x) => (
         <g key={x}>
           <line x1={x - 5} y1="48" x2={x - 5} y2="92" />
@@ -3941,7 +3941,7 @@ async function fileToDataUrl(file: File): Promise<string> {
 }
 
 function looksLikeServerImageId(name: string) {
-  // Server returns "<uuid>.<ext>" — uuid format matches 8-4-4-4-12 hex chars.
+  // Server returns "<uuid>.<ext>"  --  uuid format matches 8-4-4-4-12 hex chars.
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[A-Za-z0-9]+$/.test(
     name,
   );
@@ -4323,7 +4323,7 @@ function formatDateRange(
   if (!startDate && !endDate) {
     return t("g.notSet");
   }
-  return [startDate || "—", endDate || "—"].join(" → ");
+  return [startDate || " -- ", endDate || " -- "].join(" → ");
 }
 
 function formatDimensions(

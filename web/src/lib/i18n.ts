@@ -59,9 +59,9 @@ const en: Dict = {
   "dash.localSave": "Local save",
   "dash.readyForSync": "Ready for sync",
   "dash.signedInTip":
-    "You're signed in — every new record is uploaded to your account and survives across browsers and refreshes.",
+    "You're signed in  --  every new record is uploaded to your account and survives across browsers and refreshes.",
   "dash.offlineTip":
-    "Offline mode — records live in this browser only. Sign in to back them up.",
+    "Offline mode  --  records live in this browser only. Sign in to back them up.",
   "dash.quickActions": "Quick Actions",
   "dash.quickActionsSub": "Create real records that stay available after refresh.",
   "dash.recentObjects": "Recent Objects",
@@ -110,7 +110,7 @@ const en: Dict = {
   "objects.locationDescription": "Location description",
   "objects.photos": "Photos",
   "objects.photosHint":
-    "Attach at least two photos — before and after conservation.",
+    "Attach at least two photos  --  before and after conservation.",
   "objects.description": "Description",
   "objects.descPlaceholder":
     "Condition context, handling notes, or acquisition details",
@@ -275,9 +275,9 @@ const el: Dict = {
   "dash.localSave": "Τοπική αποθήκευση",
   "dash.readyForSync": "Έτοιμο για συγχρονισμό",
   "dash.signedInTip":
-    "Συνδεδεμένος — κάθε νέα καταχώρηση ανεβαίνει στον λογαριασμό σου και διατηρείται μετά από refresh ή αλλαγή συσκευής.",
+    "Συνδεδεμένος  --  κάθε νέα καταχώρηση ανεβαίνει στον λογαριασμό σου και διατηρείται μετά από refresh ή αλλαγή συσκευής.",
   "dash.offlineTip":
-    "Εκτός σύνδεσης — οι καταχωρήσεις μένουν μόνο σε αυτόν τον περιηγητή. Συνδεθείτε για backup.",
+    "Εκτός σύνδεσης  --  οι καταχωρήσεις μένουν μόνο σε αυτόν τον περιηγητή. Συνδεθείτε για backup.",
   "dash.quickActions": "Γρήγορες ενέργειες",
   "dash.quickActionsSub":
     "Δημιουργήστε καταχωρήσεις που παραμένουν διαθέσιμες μετά από refresh.",
@@ -327,7 +327,7 @@ const el: Dict = {
   "objects.locationDescription": "Περιγραφή τοποθεσίας",
   "objects.photos": "Φωτογραφίες",
   "objects.photosHint":
-    "Επισυνάψτε τουλάχιστον δύο φωτογραφίες — πριν και μετά τη συντήρηση.",
+    "Επισυνάψτε τουλάχιστον δύο φωτογραφίες  --  πριν και μετά τη συντήρηση.",
   "objects.description": "Περιγραφή",
   "objects.descPlaceholder":
     "Πλαίσιο κατάστασης, σημειώσεις χειρισμού ή στοιχεία απόκτησης",

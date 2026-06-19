@@ -1,5 +1,5 @@
 Conservatio Proprietary License
-Copyright (c) 2024-2026 Petros Dhespollari. All rights reserved.
+Copyright (c) 2026 Petros Dhespollari and Amalia Boura. All rights reserved.
 
 1. DEFINITIONS
 
@@ -7,13 +7,22 @@ Copyright (c) 2024-2026 Petros Dhespollari. All rights reserved.
 branding materials, database schemas, API specifications, and all associated
 files in this repository.
 
-"Author" means Petros Dhespollari (peterdsp).
+"Authors" means, jointly and severally:
+  - Petros Dhespollari (peterdsp), software engineer and lead developer.
+  - Amalia Boura, art conservator and domain expert, who contributed the
+    conservation methodology, terminology, workflow design, condition-report
+    structure, and field requirements that the Software implements.
+
+Both Authors are recognised as co-creators of the Software in their
+respective disciplines and hold joint moral rights over the work.
+References to "the Author" in earlier drafts of this license should be
+read as "the Authors".
 
 "You" means any individual or entity accessing or using the Software.
 
 2. GRANT OF RIGHTS
 
-The Author grants You a limited, non-exclusive, non-transferable,
+The Authors grant You a limited, non-exclusive, non-transferable,
 non-sublicensable, revocable license to:
 
   (a) View and study the source code for personal educational purposes only.
@@ -22,7 +31,7 @@ non-sublicensable, revocable license to:
 
 3. RESTRICTIONS
 
-You may NOT, without prior written permission from the Author:
+You may NOT, without prior written permission from the Authors:
 
   (a) Copy, reproduce, distribute, publish, or share any part of the Software.
   (b) Modify, adapt, translate, or create derivative works based on the Software.
@@ -40,22 +49,38 @@ You may NOT, without prior written permission from the Author:
   (k) Host, deploy, or offer the Software as a service to third parties.
   (l) Fork this repository for any purpose other than submitting pull
       requests back to the original repository.
+  (m) Use the conservation methodology, terminology, condition-report
+      structure, or domain models contributed by Amalia Boura in any other
+      conservation software, publication, or service without her prior
+      written permission.
 
 4. INTELLECTUAL PROPERTY
 
 All intellectual property rights in the Software, including but not limited
 to copyrights, trademarks, trade secrets, patents, design rights, and
-database rights, are and remain the exclusive property of the Author.
+database rights, are and remain the exclusive joint property of the Authors.
+
+  (a) Software engineering, code, architecture, infrastructure, visual
+      identity and brand assets: primarily attributable to Petros Dhespollari.
+  (b) Conservation methodology, taxonomy of object types, condition rating
+      scale, report templates, treatment proposal structure, terminology in
+      both English and Greek, and the field workflows the Software models:
+      primarily attributable to Amalia Boura.
+
+Both bodies of contribution are protected under this license without
+distinction; neither Author may grant rights to the Software without the
+written consent of the other.
 
 The Conservatio name, logo (coat of arms), visual identity, and all
-associated branding are trademarks of Petros Dhespollari.
+associated branding are jointly held trademarks of Petros Dhespollari and
+Amalia Boura.
 
 5. CONTRIBUTIONS
 
 Any contributions submitted to this repository (via pull requests or
-otherwise) are subject to the following terms:
+otherwise) by third parties are subject to the following terms:
 
-  (a) You grant the Author a perpetual, irrevocable, worldwide, royalty-free,
+  (a) You grant the Authors a perpetual, irrevocable, worldwide, royalty-free,
       exclusive license to use, modify, and incorporate your contribution.
   (b) You represent that you have the right to grant this license.
   (c) Contributions do not grant you any ownership rights in the Software.
@@ -63,12 +88,12 @@ otherwise) are subject to the following terms:
 6. NO WARRANTY
 
 THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED. THE AUTHOR DISCLAIMS ALL WARRANTIES INCLUDING MERCHANTABILITY,
+IMPLIED. THE AUTHORS DISCLAIM ALL WARRANTIES INCLUDING MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
 
 7. LIMITATION OF LIABILITY
 
-IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
 LIABILITY ARISING FROM THE USE OF OR INABILITY TO USE THE SOFTWARE.
 
 8. TERMINATION
@@ -85,10 +110,15 @@ Any disputes shall be resolved in the courts of Thessaloniki, Greece.
 10. COMMERCIAL LICENSING
 
 For commercial use, SaaS deployment, enterprise licensing, OEM licensing,
-or any use not covered by this license, contact:
+or any use not covered by this license, contact either Author. Commercial
+agreements require the written consent of both Authors.
 
   Petros Dhespollari
   Email: contact via https://peterdsp.dev
   Website: https://conservatio.peterdsp.dev
 
-All rights not expressly granted herein are reserved by the Author.
+  Amalia Boura
+  Domain co-author, art conservator. Contact requests routed through
+  https://conservatio.peterdsp.dev.
+
+All rights not expressly granted herein are reserved by the Authors.

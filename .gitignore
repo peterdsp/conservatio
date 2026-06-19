@@ -23,7 +23,7 @@ xcuserdata/
 */build/
 .gradle/
 
-# Android signing — never commit
+# Android signing  --  never commit
 *.jks
 *.keystore
 keystore.properties
