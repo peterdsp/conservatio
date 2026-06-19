@@ -4,11 +4,11 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Account") {
+                Section(t("settings.account")) {
                     NavigationLink {
                         ProfileSettingsView()
                     } label: {
-                        Label("Profile", systemImage: "person.circle")
+                        Label(t("settings.profile"), systemImage: "person.circle")
                     }
 
                     NavigationLink {
@@ -34,7 +34,7 @@ struct SettingsView: View {
                     NavigationLink {
                         LanguageSettingsView()
                     } label: {
-                        Label("Language", systemImage: "globe")
+                        Label(t("settings.language"), systemImage: "globe")
                     }
                 }
 
@@ -58,7 +58,9 @@ struct SettingsView: View {
                     }
                 }
             }
-            .navigationTitle("Settings")
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
+            .navigationTitle(t("settings.title"))
         }
     }
 }
