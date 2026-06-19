@@ -1677,6 +1677,7 @@ function LoginScreen({
     <div className="relative flex min-h-screen items-center justify-center text-heritage-text">
       <div className="glass-room fixed inset-0 -z-50" />
       <HeritageBackdrop />
+      <ScatteredMottos t={t} />
       <div className="relative w-full max-w-sm px-6">
         <div className="flex flex-col items-center">
           <div className="glass flex h-20 w-20 items-center justify-center rounded-[28px] p-0">
@@ -1685,24 +1686,6 @@ function LoginScreen({
           <h1 className="mt-6 text-3xl font-semibold tracking-tight text-primary">
             Conservatio
           </h1>
-        </div>
-
-        <div className="mt-7 flex flex-col items-center gap-5">
-          <ArchaicMotto
-            text="ΚΤΗΜΑ ΕΣ ΑΕΙ"
-            aria="Ktema es aei"
-            caption={t("login.mottoPossession")}
-            cite={t("login.mottoPossessionCite")}
-            className="h-9 text-primary-dark/85"
-          />
-          <span className="text-primary/40">· · ·</span>
-          <ArchaicMotto
-            text="ΣΩΖΕΙΝ ΤΑ ΦΑΙΝΟΜΕΝΑ"
-            aria="Sozein ta phainomena"
-            caption={t("login.mottoSavePhenomena")}
-            cite={t("login.mottoSavePhenomenaCite")}
-            className="h-8 text-primary-dark/85"
-          />
         </div>
 
         <div className="mt-10 space-y-2">
@@ -1858,6 +1841,45 @@ function ArchaicInscription({
         <path key={i} transform={`translate(${seg.x}, 0)`} d={seg.path} />
       ))}
     </svg>
+  );
+}
+
+/**
+ * The two archaic-Greek mottos placed as background inscriptions around
+ * the login glass rather than stacked over the buttons. One pinned high
+ * on the left (slightly rotated, like it's chiseled into a tilted slab),
+ * the other low-right with the opposite tilt. Hidden below the medium
+ * breakpoint so phone screens stay calm.
+ */
+function ScatteredMottos({ t }: { t: (key: string) => string }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 -z-20 overflow-hidden"
+    >
+      <div
+        className="absolute left-[8%] top-[18%] hidden -rotate-[3deg] md:block"
+      >
+        <ArchaicMotto
+          text="ΚΤΗΜΑ ΕΣ ΑΕΙ"
+          aria="Ktema es aei"
+          caption={t("login.mottoPossession")}
+          cite={t("login.mottoPossessionCite")}
+          className="h-8 text-primary-dark/60"
+        />
+      </div>
+      <div
+        className="absolute bottom-[16%] right-[6%] hidden rotate-[3deg] md:block"
+      >
+        <ArchaicMotto
+          text="ΣΩΖΕΙΝ ΤΑ ΦΑΙΝΟΜΕΝΑ"
+          aria="Sozein ta phainomena"
+          caption={t("login.mottoSavePhenomena")}
+          cite={t("login.mottoSavePhenomenaCite")}
+          className="h-7 text-primary-dark/55"
+        />
+      </div>
+    </div>
   );
 }
 
