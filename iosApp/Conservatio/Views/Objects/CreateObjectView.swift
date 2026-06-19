@@ -4,26 +4,54 @@ import PhotosUI
 struct CreateObjectView: View {
     @Environment(\.dismiss) private var dismiss
     var objectStore: ObjectStore
+    var existing: ConservationObject?
     var onSave: ((ConservationObject) -> Void)?
 
-    @State private var title = ""
-    @State private var objectType: ObjectType = .painting
-    @State private var materialsText = ""
-    @State private var ownerName = ""
-    @State private var locationDescription = ""
-    @State private var inventoryNumber = ""
-    @State private var descriptionText = ""
-    @State private var acquisitionDate = Date()
-    @State private var hasAcquisitionDate = false
+    @State private var title: String
+    @State private var objectType: ObjectType
+    @State private var materialsText: String
+    @State private var ownerName: String
+    @State private var locationDescription: String
+    @State private var inventoryNumber: String
+    @State private var descriptionText: String
+    @State private var acquisitionDate: Date
+    @State private var hasAcquisitionDate: Bool
 
-    @State private var height = ""
-    @State private var width = ""
-    @State private var depth = ""
-    @State private var measurementUnit: MeasurementUnit = .cm
+    @State private var height: String
+    @State private var width: String
+    @State private var depth: String
+    @State private var measurementUnit: MeasurementUnit
 
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var capturedImages: [UIImage] = []
+    @State private var existingImageIds: [String]
     @State private var showCamera = false
+
+    init(
+        objectStore: ObjectStore,
+        existing: ConservationObject? = nil,
+        onSave: ((ConservationObject) -> Void)? = nil
+    ) {
+        self.objectStore = objectStore
+        self.existing = existing
+        self.onSave = onSave
+        _title = State(initialValue: existing?.title ?? "")
+        _objectType = State(initialValue: existing?.objectType ?? .painting)
+        _materialsText = State(initialValue: existing?.materials.joined(separator: ", ") ?? "")
+        _ownerName = State(initialValue: existing?.ownerName ?? "")
+        _locationDescription = State(initialValue: existing?.locationDescription ?? "")
+        _inventoryNumber = State(initialValue: existing?.inventoryNumber ?? "")
+        _descriptionText = State(initialValue: existing?.description ?? "")
+        _acquisitionDate = State(initialValue: existing?.acquisitionDate ?? Date())
+        _hasAcquisitionDate = State(initialValue: existing?.acquisitionDate != nil)
+        _height = State(initialValue: existing?.dimensions.height.map(String.init) ?? "")
+        _width = State(initialValue: existing?.dimensions.width.map(String.init) ?? "")
+        _depth = State(initialValue: existing?.dimensions.depth.map(String.init) ?? "")
+        _measurementUnit = State(initialValue: existing?.dimensions.unit ?? .cm)
+        _existingImageIds = State(initialValue: existing?.imageIds ?? [])
+    }
+
+    private var isEditing: Bool { existing != nil }
 
     var body: some View {
         NavigationStack {
@@ -35,14 +63,16 @@ struct CreateObjectView: View {
                 photosSection
                 notesSection
             }
-            .navigationTitle("New Object")
+            .scrollContentBackground(.hidden)
+            .background(ConservatioAmbientBackground())
+            .navigationTitle(isEditing ? "Edit Object" : "New Object")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(t("g.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { saveObject() }
+                    Button(t("g.save")) { saveObject() }
                         .disabled(title.isEmpty)
                         .bold()
                 }
@@ -186,11 +216,9 @@ struct CreateObjectView: View {
     }
 
     private func saveObjectAsync() async {
-        // 1) Save each photo locally for offline-first persistence.
-        // 2) If signed in, upload each photo to /api/images and replace the
-        //    local id with the server-side imageId so other devices can see
-        //    the same picture. Local copies stay on disk as cache.
-        var imageIds: [String] = capturedImages.compactMap { ImageStore.shared.save($0) }
+        // Newly attached photos. In edit mode we keep the existing imageIds
+        // (so old photos don't disappear) and append the newly captured ones.
+        var newIds: [String] = capturedImages.compactMap { ImageStore.shared.save($0) }
         if APIClient.shared.isLoggedIn {
             var uploaded: [String] = []
             for image in capturedImages {
@@ -199,8 +227,9 @@ struct CreateObjectView: View {
                     uploaded.append(serverId)
                 }
             }
-            if !uploaded.isEmpty { imageIds = uploaded }
+            if !uploaded.isEmpty { newIds = uploaded }
         }
+        let imageIds = existingImageIds + newIds
 
         let materials = materialsText
             .split(separator: ",")
@@ -215,6 +244,7 @@ struct CreateObjectView: View {
         )
 
         let object = ConservationObject(
+            id: existing?.id ?? UUID(),
             title: title,
             objectType: objectType,
             materials: materials,
@@ -224,11 +254,17 @@ struct CreateObjectView: View {
             acquisitionDate: hasAcquisitionDate ? acquisitionDate : nil,
             inventoryNumber: inventoryNumber.isEmpty ? nil : inventoryNumber,
             description: descriptionText.isEmpty ? nil : descriptionText,
-            imageIds: imageIds
+            imageIds: imageIds,
+            createdAt: existing?.createdAt ?? Date(),
+            updatedAt: Date()
         )
 
         await MainActor.run {
-            objectStore.add(object)
+            if isEditing {
+                objectStore.update(object)
+            } else {
+                objectStore.add(object)
+            }
             onSave?(object)
             dismiss()
         }

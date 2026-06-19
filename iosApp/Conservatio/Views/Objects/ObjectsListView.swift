@@ -4,6 +4,7 @@ struct ObjectsListView: View {
     var objectStore: ObjectStore
     var reportStore: ReportStore
     @State private var showCreateObject = false
+    @State private var editingObject: ConservationObject?
     @State private var searchText = ""
 
     private var filteredObjects: [ConservationObject] {
@@ -29,8 +30,18 @@ struct ObjectsListView: View {
                 } else {
                     List {
                         ForEach(filteredObjects) { object in
-                            NavigationLink(destination: ObjectDetailView(object: object, reportStore: reportStore)) {
+                            NavigationLink(destination: ObjectDetailView(object: object, reportStore: reportStore)
+                                .toolbar {
+                                    ToolbarItem(placement: .primaryAction) {
+                                        Button(t("g.edit")) { editingObject = object }
+                                    }
+                                }
+                            ) {
                                 ObjectRow(object: object)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(t("g.edit")) { editingObject = object }
+                                    .tint(.conservatioPrimary)
                             }
                         }
                         .onDelete { indexSet in
@@ -54,6 +65,9 @@ struct ObjectsListView: View {
             }
             .sheet(isPresented: $showCreateObject) {
                 CreateObjectView(objectStore: objectStore)
+            }
+            .sheet(item: $editingObject) { object in
+                CreateObjectView(objectStore: objectStore, existing: object)
             }
         }
     }

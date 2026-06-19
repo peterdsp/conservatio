@@ -6,17 +6,21 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.conservatio.android.data.ObjectStore
+import com.conservatio.android.data.ServerSyncClient
 import com.conservatio.android.ui.screens.CreateObjectScreen
 import com.conservatio.android.ui.screens.DashboardScreen
+import com.conservatio.android.ui.screens.LoginScreen
 import com.conservatio.android.ui.screens.ObjectsScreen
 import com.conservatio.android.ui.screens.SettingsScreen
 import com.conservatio.android.ui.screens.SplashScreen
+import androidx.compose.ui.platform.LocalContext
 import com.conservatio.android.ui.screens.settings.AboutScreen
 import com.conservatio.android.ui.screens.settings.ProfileScreen
 import com.conservatio.android.ui.screens.settings.SyncScreen
 
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
+    data object Login : Screen("login")
     data object Dashboard : Screen("dashboard")
     data object Objects : Screen("objects")
     data object NewObject : Screen("objects/new")
@@ -40,9 +44,20 @@ fun ConservatioNavHost(
         modifier = modifier
     ) {
         composable(Screen.Splash.route) {
+            val ctx = LocalContext.current
             SplashScreen {
-                navController.navigate(Screen.Dashboard.route) {
+                val signedIn = ServerSyncClient(ctx.applicationContext).isAuthenticated
+                val next = if (signedIn) Screen.Dashboard.route else Screen.Login.route
+                navController.navigate(next) {
                     popUpTo(Screen.Splash.route) { inclusive = true }
+                }
+            }
+        }
+
+        composable(Screen.Login.route) {
+            LoginScreen {
+                navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
                 }
             }
         }

@@ -4,15 +4,31 @@ struct CreateReportView: View {
     @Environment(\.dismiss) private var dismiss
     let objectId: UUID
     var reportStore: ReportStore
+    var existing: ConditionReport?
 
-    @State private var reportType: ReportType = .initialAssessment
-    @State private var overallCondition: ConditionRating = .fair
-    @State private var examiner = ""
-    @State private var examinationDate = Date()
-    @State private var notes = ""
-    @State private var recommendations = ""
-    @State private var damageAnnotations: [DamageAnnotation] = []
+    @State private var reportType: ReportType
+    @State private var overallCondition: ConditionRating
+    @State private var examiner: String
+    @State private var examinationDate: Date
+    @State private var notes: String
+    @State private var recommendations: String
+    @State private var damageAnnotations: [DamageAnnotation]
     @State private var showAddDamage = false
+
+    init(objectId: UUID, reportStore: ReportStore, existing: ConditionReport? = nil) {
+        self.objectId = objectId
+        self.reportStore = reportStore
+        self.existing = existing
+        _reportType = State(initialValue: existing?.reportType ?? .initialAssessment)
+        _overallCondition = State(initialValue: existing?.overallCondition ?? .fair)
+        _examiner = State(initialValue: existing?.examiner ?? "")
+        _examinationDate = State(initialValue: existing?.examinationDate ?? Date())
+        _notes = State(initialValue: existing?.notes ?? "")
+        _recommendations = State(initialValue: existing?.recommendations ?? "")
+        _damageAnnotations = State(initialValue: existing?.damageAnnotations ?? [])
+    }
+
+    private var isEditing: Bool { existing != nil }
 
     var body: some View {
         NavigationStack {
@@ -80,14 +96,16 @@ struct CreateReportView: View {
                         .frame(minHeight: 60)
                 }
             }
-            .navigationTitle("New Report")
+            .scrollContentBackground(.hidden)
+            .background(ConservatioAmbientBackground())
+            .navigationTitle(isEditing ? "Edit Report" : "New Report")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(t("g.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { saveReport() }
+                    Button(t("g.save")) { saveReport() }
                         .disabled(examiner.isEmpty)
                         .bold()
                 }
@@ -102,6 +120,7 @@ struct CreateReportView: View {
 
     private func saveReport() {
         let report = ConditionReport(
+            id: existing?.id ?? UUID(),
             objectId: objectId,
             reportType: reportType,
             overallCondition: overallCondition,
@@ -109,9 +128,15 @@ struct CreateReportView: View {
             examinationDate: examinationDate,
             damageAnnotations: damageAnnotations,
             notes: notes.isEmpty ? nil : notes,
-            recommendations: recommendations.isEmpty ? nil : recommendations
+            recommendations: recommendations.isEmpty ? nil : recommendations,
+            createdAt: existing?.createdAt ?? Date(),
+            updatedAt: Date()
         )
-        reportStore.add(report)
+        if isEditing {
+            reportStore.update(report)
+        } else {
+            reportStore.add(report)
+        }
         dismiss()
     }
 }

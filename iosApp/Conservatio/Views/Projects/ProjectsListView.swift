@@ -3,6 +3,7 @@ import SwiftUI
 struct ProjectsListView: View {
     var projectStore: ProjectStore
     @State private var showCreate = false
+    @State private var editingProject: Project?
 
     var body: some View {
         NavigationStack {
@@ -45,6 +46,10 @@ struct ProjectsListView: View {
                                         .clipShape(Capsule())
                                 }
                             }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(t("g.edit")) { editingProject = project }
+                                    .tint(.conservatioPrimary)
+                            }
                         }
                         .onDelete { indexSet in
                             let sorted = projectStore.projects.sorted(by: { $0.createdAt > $1.createdAt })
@@ -65,6 +70,9 @@ struct ProjectsListView: View {
             }
             .sheet(isPresented: $showCreate) {
                 CreateProjectView(projectStore: projectStore)
+            }
+            .sheet(item: $editingProject) { project in
+                CreateProjectView(projectStore: projectStore, existing: project)
             }
         }
     }

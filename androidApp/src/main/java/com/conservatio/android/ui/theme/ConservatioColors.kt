@@ -12,6 +12,8 @@ object ConservatioColors {
     val background = Color(0xFFFAF7F4)
     val surface = Color.White
     val surfaceVariant = Color(0xFFF2EEEA)
+    val text = Color(0xFF1C1B1F)
+    val textSecondary = Color(0xFF49454F)
 
     val conditionExcellent = Color(0xFF2E7D32)
     val conditionGood = Color(0xFF558B2F)

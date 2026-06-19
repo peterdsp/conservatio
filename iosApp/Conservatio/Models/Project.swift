@@ -34,4 +34,5 @@ struct Project: Identifiable, Codable {
     var currency: String = "EUR"
     var description: String = ""
     var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 }
