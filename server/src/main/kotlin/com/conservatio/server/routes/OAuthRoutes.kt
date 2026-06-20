@@ -114,10 +114,34 @@ fun Route.oauthRoutes() {
         post("/linkedin") { handleLinkedIn(call) }
         post("/apple") { handleApple(call) }
         post("/github") { handleGitHub(call) }
-        // Native iOS Sign in with Apple  --  the iOS ASAuthorization flow gives
-        // us an identityToken (Apple-signed JWT) directly, no code exchange.
-        // We decode it the same way handleApple does for the web flow.
         post("/apple/native") { handleAppleNative(call) }
+
+        // OAuth callback: providers redirect here. The state param is formatted as
+        // "provider:uuid" so we know which provider to route to.
+        // ?platform=web → redirect back to the web app with code+state as query params.
+        // Otherwise → redirect to the mobile app's deep link.
+        get("/mobile-callback") {
+            val code = call.request.queryParameters["code"]
+            val state = call.request.queryParameters["state"].orEmpty()
+            val platform = call.request.queryParameters["platform"]
+            if (code.isNullOrBlank()) {
+                call.respondText("Missing code parameter", status = HttpStatusCode.BadRequest)
+                return@get
+            }
+            val provider = if (state.contains(":")) state.substringBefore(":") else "unknown"
+            val originalState = if (state.contains(":")) state.substringAfter(":") else state
+            val encodedCode = java.net.URLEncoder.encode(code, "UTF-8")
+            val encodedState = java.net.URLEncoder.encode(originalState, "UTF-8")
+            if (platform == "web") {
+                val webBaseUrl = call.application.environment.config
+                    .propertyOrNull("app.webBaseUrl")?.getString()
+                    ?: "https://conservatio.peterdsp.dev"
+                call.respondRedirect("$webBaseUrl?code=$encodedCode&state=$encodedState")
+            } else {
+                val deepLink = "conservatio://oauth-callback/$provider?code=$encodedCode&state=$encodedState"
+                call.respondRedirect(deepLink)
+            }
+        }
     }
 }
 

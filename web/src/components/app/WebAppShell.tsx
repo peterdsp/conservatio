@@ -478,8 +478,11 @@ const OAUTH_CONFIG = {
 
 type OAuthProvider = keyof typeof OAUTH_CONFIG;
 
-function oauthRedirectUri() {
+function oauthRedirectUri(provider?: OAuthProvider) {
   if (typeof window === "undefined") return "";
+  if (provider === "github") {
+    return `${API_BASE_URL}/api/auth/oauth/mobile-callback?platform=web`;
+  }
   return `${window.location.origin}${window.location.pathname}`;
 }
 
@@ -490,12 +493,13 @@ function beginOAuthFlow(provider: OAuthProvider) {
   const state = crypto.randomUUID();
   window.sessionStorage.setItem("conservatio.oauthState", state);
   window.sessionStorage.setItem("conservatio.oauthProvider", provider);
+  const oauthState = provider === "github" ? `${provider}:${state}` : state;
   const params = new URLSearchParams({
     client_id: config.clientId,
-    redirect_uri: oauthRedirectUri(),
+    redirect_uri: oauthRedirectUri(provider),
     response_type: "code",
     scope: config.scope,
-    state,
+    state: oauthState,
   });
   if (provider === "apple") {
     // Apple requires response_mode form_post OR fragment when scope contains
@@ -516,7 +520,7 @@ async function completeOAuthFlow(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         code,
-        redirectUri: oauthRedirectUri(),
+        redirectUri: oauthRedirectUri(provider),
       }),
     });
     if (!response.ok) {

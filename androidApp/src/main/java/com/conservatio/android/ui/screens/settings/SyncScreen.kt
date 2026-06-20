@@ -88,15 +88,16 @@ private enum class OAuthProvider(
     ),
     ;
 
-    fun callbackUri(): String = "conservatio://oauth-callback/$id"
+    fun mobileCallbackUri(serverUrl: String): String =
+        "${serverUrl}/api/auth/oauth/mobile-callback"
 
-    fun authorizeUri(state: String): Uri {
+    fun authorizeUri(state: String, serverUrl: String): Uri {
         val builder = Uri.parse(authorizeUrl).buildUpon()
             .appendQueryParameter("client_id", clientId)
-            .appendQueryParameter("redirect_uri", callbackUri())
+            .appendQueryParameter("redirect_uri", mobileCallbackUri(serverUrl))
             .appendQueryParameter("response_type", "code")
             .appendQueryParameter("scope", scope)
-            .appendQueryParameter("state", state)
+            .appendQueryParameter("state", "$id:$state")
         if (this == APPLE) {
             builder.appendQueryParameter("response_mode", "fragment")
         }
@@ -144,6 +145,8 @@ fun SyncScreen(objectStore: ObjectStore, onBack: () -> Unit) {
             .apply()
     }
 
+    val effectiveServerUrl = serverUrl.trim().trimEnd('/').ifBlank { "https://conservatio-api.peterdsp.dev" }
+
     fun launchOAuth(provider: OAuthProvider) {
         save()
         val state = UUID.randomUUID().toString()
@@ -151,7 +154,7 @@ fun SyncScreen(objectStore: ObjectStore, onBack: () -> Unit) {
         pendingProvider = provider
         status = "Opening ${provider.label}..."
         val intent = CustomTabsIntent.Builder().build()
-        intent.launchUrl(context, provider.authorizeUri(state))
+        intent.launchUrl(context, provider.authorizeUri(state, effectiveServerUrl))
     }
 
     // Wait for MainActivity to forward the OAuth deep link, then exchange the
@@ -172,7 +175,7 @@ fun SyncScreen(objectStore: ObjectStore, onBack: () -> Unit) {
                     syncClient.oauthExchange(
                         provider = provider.id,
                         code = code,
-                        redirectUri = provider.callbackUri(),
+                        redirectUri = provider.mobileCallbackUri(effectiveServerUrl),
                     )
                     objectStore.syncFromServer()
                 }.onSuccess {

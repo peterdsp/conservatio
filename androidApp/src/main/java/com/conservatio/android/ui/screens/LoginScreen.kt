@@ -85,15 +85,16 @@ private enum class OAuthProvider(
     ),
     ;
 
-    fun callbackUri(): String = "conservatio://oauth-callback/$id"
+    fun mobileCallbackUri(serverUrl: String): String =
+        "${serverUrl}/api/auth/oauth/mobile-callback"
 
-    fun authorizeUri(state: String): Uri {
+    fun authorizeUri(state: String, serverUrl: String): Uri {
         val builder = Uri.parse(authorizeUrl).buildUpon()
             .appendQueryParameter("client_id", clientId)
-            .appendQueryParameter("redirect_uri", callbackUri())
+            .appendQueryParameter("redirect_uri", mobileCallbackUri(serverUrl))
             .appendQueryParameter("response_type", "code")
             .appendQueryParameter("scope", scope)
-            .appendQueryParameter("state", state)
+            .appendQueryParameter("state", "$id:$state")
         if (this == APPLE) builder.appendQueryParameter("response_mode", "fragment")
         return builder.build()
     }
@@ -110,6 +111,10 @@ fun LoginScreen(onSignedIn: () -> Unit) {
     var errorText by remember { mutableStateOf<String?>(null) }
 
     val langCode = LocalLanguageCode.current
+    val prefs = context.getSharedPreferences("conservatio", android.content.Context.MODE_PRIVATE)
+    val serverUrl = prefs.getString("server_url", "").orEmpty().trim().trimEnd('/')
+        .ifBlank { "https://conservatio-api.peterdsp.dev" }
+
     fun launch(provider: OAuthProvider) {
         val state = UUID.randomUUID().toString()
         pendingProvider = provider
@@ -117,7 +122,7 @@ fun LoginScreen(onSignedIn: () -> Unit) {
         status = Strings.t(langCode, "login.finishingOauth")
         errorText = null
         val intent = CustomTabsIntent.Builder().build()
-        intent.launchUrl(context, provider.authorizeUri(state))
+        intent.launchUrl(context, provider.authorizeUri(state, serverUrl))
     }
 
     DisposableEffect(Unit) {
@@ -130,7 +135,7 @@ fun LoginScreen(onSignedIn: () -> Unit) {
             pendingProvider = null
             scope.launch {
                 runCatching {
-                    syncClient.oauthExchange(provider.id, code, provider.callbackUri())
+                    syncClient.oauthExchange(provider.id, code, provider.mobileCallbackUri(serverUrl))
                 }.onSuccess { onSignedIn() }
                     .onFailure { errorText = Strings.t(langCode, "login.errSignIn") }
                 status = null
