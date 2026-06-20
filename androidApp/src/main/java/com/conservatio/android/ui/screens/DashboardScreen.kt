@@ -47,6 +47,7 @@ fun DashboardScreen(
     objectStore: ObjectStore,
     onNavigateToNewObject: () -> Unit,
     onNavigateToObjects: () -> Unit,
+    onNavigateToEditObject: (String) -> Unit = {},
 ) {
     val objects by objectStore.objects.collectAsState()
     val reports by objectStore.reports.collectAsState()
@@ -124,7 +125,7 @@ fun DashboardScreen(
                     }
                 } else {
                     objects.sortedByDescending { it.createdAt }.take(5).forEach { obj ->
-                        item { ObjectListItem(obj) { onNavigateToObjects() } }
+                        item { ObjectListItem(obj) { onNavigateToEditObject(obj.id) } }
                     }
                 }
             }

@@ -36,9 +36,13 @@
     <string msgid="59049573811482460" name="call_notification_screening_text">"ઇનકમિંગ કૉલનું સ્ક્રીનિંગ થાય છે"</string>
     <string msgid="406453423630273620" name="close_drawer">"નૅવિગેશન મેનૂ બંધ કરો"</string>
     <string msgid="7573152094250666567" name="close_sheet">"શીટ બંધ કરો"</string>
+    <string msgid="3260749812566568062" name="copy_toast_msg">"ક્લિપબોર્ડ પર લિંક કૉપિ કરી"</string>
     <string msgid="8038256446254964252" name="default_error_message">"અમાન્ય ઇનપુટ"</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"પૉપ-અપ વિન્ડો"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"ડ્રૉપડાઉન મેનૂ"</string>
+    <string msgid="4566929209979330987" name="fallback_menu_item_copy_link">"લિંક કૉપિ કરો"</string>
+    <string msgid="3413186855122069269" name="fallback_menu_item_open_in_browser">"બ્રાઉઝરમાં ખોલો"</string>
+    <string msgid="7145444925855055364" name="fallback_menu_item_share_link">"લિંક શેર કરો"</string>
     <string msgid="6827826412747255547" name="in_progress">"પ્રક્રિયામાં છે"</string>
     <string msgid="7933458017204019916" name="indeterminate">"આંશિક રીતે ચેક કરેલા વિકલ્પો"</string>
     <string msgid="2988463736136100848" name="m3c_bottom_sheet_collapse_description">"બોટમ શીટ નાની કરો"</string>

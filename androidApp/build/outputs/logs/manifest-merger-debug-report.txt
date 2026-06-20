@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:2:1-29:12
-INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:2:1-29:12
-INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:2:1-29:12
-INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:2:1-29:12
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:2:1-38:12
+INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:2:1-38:12
+INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:2:1-38:12
+INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:2:1-38:12
 MERGED from [:shared] /Users/p.dhespollari/git/personal/conservatio/shared/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.navigation:navigation-common:2.8.4] /Users/p.dhespollari/.gradle/caches/transforms-4/7fe52458ac5d247c17f3f258d236325d/transformed/navigation-common-2.8.4/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-runtime:2.8.4] /Users/p.dhespollari/.gradle/caches/transforms-4/4ce5df2b425dc6947a67cd57323dfc6a/transformed/navigation-runtime-2.8.4/AndroidManifest.xml:17:1-22:12
@@ -41,6 +41,7 @@ MERGED from [androidx.emoji2:emoji2:1.3.0] /Users/p.dhespollari/.gradle/caches/t
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/039ea9be5c3726611789486e6eb79a27/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
 MERGED from [org.jetbrains.androidx.core:core-bundle-android-debug:1.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/a2806fd024aead83bce9dc890eb0df03/transformed/core-bundle-debug/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.core:core-ktx:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/eed1fae93de97038c370f65cefe404ba/transformed/core-ktx-1.15.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.browser:browser:1.8.0] /Users/p.dhespollari/.gradle/caches/transforms-4/df618be97e0071b50a5b6d99713722b9/transformed/browser-1.8.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/0d139d9b454a2e1cd335551ad4c2b4c9/transformed/drawerlayout-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.autofill:autofill:1.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/4cd5fc9d4e005272fa96e5fb6616fc74/transformed/autofill-1.0.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/p.dhespollari/.gradle/caches/transforms-4/d536d136d4d967f419debfe3980a8942/transformed/graphics-path-1.0.1/AndroidManifest.xml:2:1-7:12
@@ -115,8 +116,8 @@ ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/And
 	android:name
 		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:9:19-57
 application
-ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:11:5-28:19
-INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:11:5-28:19
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:11:5-37:19
+INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:11:5-37:19
 MERGED from [io.insert-koin:koin-android:4.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/8b11b29a71f4a021d683802586a04f01/transformed/koin-android-4.0.0/AndroidManifest.xml:7:5-20
 MERGED from [io.insert-koin:koin-android:4.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/8b11b29a71f4a021d683802586a04f01/transformed/koin-android-4.0.0/AndroidManifest.xml:7:5-20
 MERGED from [androidx.compose.ui:ui-tooling-android:1.7.5] /Users/p.dhespollari/.gradle/caches/transforms-4/b0f3ca6b6acc7bcb8151779f1084494b/transformed/ui-tooling-release/AndroidManifest.xml:22:5-26:19
@@ -152,23 +153,47 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/p.dh
 	android:name
 		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:12:9-39
 activity#com.conservatio.android.MainActivity
-ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:19:9-27:20
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:19:9-36:20
+	android:launchMode
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:22:13-44
 	android:windowSoftInputMode
-		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:22:13-55
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:23:13-55
 	android:exported
 		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:21:13-36
 	android:name
 		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:20:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:23:13-26:29
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:24:13-27:29
 action#android.intent.action.MAIN
-ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:24:17-69
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:25:17-69
 	android:name
-		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:24:25-66
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:25:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:25:17-77
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:26:17-77
 	android:name
-		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:25:27-74
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:26:27-74
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:oauth-callback+data:scheme:conservatio
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:30:13-35:29
+	android:autoVerify
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:30:28-54
+action#android.intent.action.VIEW
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:31:17-69
+	android:name
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:31:25-66
+category#android.intent.category.DEFAULT
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:32:17-76
+	android:name
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:32:27-73
+category#android.intent.category.BROWSABLE
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:33:17-78
+	android:name
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:33:27-75
+data
+ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:34:17-84
+	android:host
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:34:52-81
+	android:scheme
+		ADDED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml:34:23-51
 uses-sdk
 INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/p.dhespollari/git/personal/conservatio/androidApp/src/main/AndroidManifest.xml
@@ -247,6 +272,8 @@ MERGED from [org.jetbrains.androidx.core:core-bundle-android-debug:1.0.0] /Users
 MERGED from [org.jetbrains.androidx.core:core-bundle-android-debug:1.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/a2806fd024aead83bce9dc890eb0df03/transformed/core-bundle-debug/AndroidManifest.xml:5:5-44
 MERGED from [androidx.core:core-ktx:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/eed1fae93de97038c370f65cefe404ba/transformed/core-ktx-1.15.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.core:core-ktx:1.15.0] /Users/p.dhespollari/.gradle/caches/transforms-4/eed1fae93de97038c370f65cefe404ba/transformed/core-ktx-1.15.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.browser:browser:1.8.0] /Users/p.dhespollari/.gradle/caches/transforms-4/df618be97e0071b50a5b6d99713722b9/transformed/browser-1.8.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.browser:browser:1.8.0] /Users/p.dhespollari/.gradle/caches/transforms-4/df618be97e0071b50a5b6d99713722b9/transformed/browser-1.8.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/0d139d9b454a2e1cd335551ad4c2b4c9/transformed/drawerlayout-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/0d139d9b454a2e1cd335551ad4c2b4c9/transformed/drawerlayout-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.autofill:autofill:1.0.0] /Users/p.dhespollari/.gradle/caches/transforms-4/4cd5fc9d4e005272fa96e5fb6616fc74/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41

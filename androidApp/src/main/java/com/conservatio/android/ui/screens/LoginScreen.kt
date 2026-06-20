@@ -38,6 +38,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.conservatio.android.data.OAuthCallback
 import com.conservatio.android.data.ServerSyncClient
+import com.conservatio.android.ui.LocalLanguageCode
+import com.conservatio.android.ui.Strings
 import com.conservatio.android.ui.str
 import com.conservatio.android.ui.theme.ConservatioAmbientBackground
 import com.conservatio.android.ui.theme.ConservatioColors
@@ -107,11 +109,12 @@ fun LoginScreen(onSignedIn: () -> Unit) {
     var status by remember { mutableStateOf<String?>(null) }
     var errorText by remember { mutableStateOf<String?>(null) }
 
+    val langCode = LocalLanguageCode.current
     fun launch(provider: OAuthProvider) {
         val state = UUID.randomUUID().toString()
         pendingProvider = provider
         pendingState = state
-        status = str("login.finishingOauth")
+        status = Strings.t(langCode, "login.finishingOauth")
         errorText = null
         val intent = CustomTabsIntent.Builder().build()
         intent.launchUrl(context, provider.authorizeUri(state))
@@ -129,7 +132,7 @@ fun LoginScreen(onSignedIn: () -> Unit) {
                 runCatching {
                     syncClient.oauthExchange(provider.id, code, provider.callbackUri())
                 }.onSuccess { onSignedIn() }
-                    .onFailure { errorText = str("login.errSignIn") }
+                    .onFailure { errorText = Strings.t(langCode, "login.errSignIn") }
                 status = null
             }
             true

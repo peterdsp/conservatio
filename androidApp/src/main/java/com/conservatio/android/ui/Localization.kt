@@ -33,11 +33,6 @@ object Strings {
     fun t(code: String, key: String): String =
         table[code]?.get(key) ?: table["en"]?.get(key) ?: key
 
-    private val table: Map<String, Map<String, String>> = mapOf(
-        "en" to en,
-        "el" to el,
-    )
-
     private val en = mapOf(
         // Tabs
         "nav.dashboard" to "Home",
@@ -144,6 +139,11 @@ object Strings {
         "settings.dangerTitle" to "Τοπικά δεδομένα",
         "settings.clearAll" to "Διαγραφή όλων",
         "settings.loadSample" to "Φόρτωση δείγματος",
+    )
+
+    private val table: Map<String, Map<String, String>> = mapOf(
+        "en" to en,
+        "el" to el,
     )
 }
 

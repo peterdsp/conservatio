@@ -24,6 +24,7 @@ final class LanguagePreference {
     }
 }
 
+@MainActor
 func t(_ key: String) -> String {
     let lang = LanguagePreference.shared.code
     return (Strings.table[lang]?[key]) ?? (Strings.table["en"]?[key]) ?? key
@@ -87,6 +88,25 @@ private enum Strings {
         "settings.dangerTitle": "Local data",
         "settings.clearAll": "Clear all data",
         "settings.loadSample": "Load sample data",
+        "settings.clearConfirm": "This will remove every object, client, project, and report. Are you sure?",
+        // Cloud
+        "cloud.title": "Cloud Storage",
+        "cloud.subtitle": "Where your conservation records and photos live. Connect a provider to add capacity beyond the free Conservatio quota.",
+        "cloud.conservatio": "Conservatio Cloud",
+        "cloud.conservatioFreeNote": "Included with every account. 2 GB free, then upgradeable.",
+        "cloud.signedOutUsage": "Sign in to see your cloud usage.",
+        "cloud.usageLabel": "Storage used",
+        "cloud.providers": "Other providers",
+        "cloud.comingSoon": "Coming soon",
+        "cloud.providersHint": "Connecting a third-party provider lets Conservatio mirror your records and photos there. None are wired yet; tap to express interest.",
+        "cloud.connectGoogleDrive": "Google Drive",
+        "cloud.connectICloud": "iCloud",
+        "cloud.connectOneDrive": "OneDrive",
+        "cloud.connectMega": "MEGA",
+        "cloud.connectDropbox": "Dropbox",
+        "cloud.interestNoted": "Noted",
+        "cloud.connected": "Connected",
+        "g.offline": "Offline",
     ]
 
     static let el: [String: String] = [
@@ -141,5 +161,24 @@ private enum Strings {
         "settings.dangerTitle": "Τοπικά δεδομένα",
         "settings.clearAll": "Διαγραφή όλων",
         "settings.loadSample": "Φόρτωση δείγματος",
+        "settings.clearConfirm": "Θα αφαιρεθούν όλα τα αντικείμενα, πελάτες, έργα και αναφορές. Είστε σίγουροι;",
+        // Cloud
+        "cloud.title": "Αποθήκευση στο cloud",
+        "cloud.subtitle": "Εδώ ζουν οι καταχωρήσεις και οι φωτογραφίες σας. Συνδέστε πάροχο για χώρο πέρα από τη δωρεάν ποσόστωση.",
+        "cloud.conservatio": "Conservatio Cloud",
+        "cloud.conservatioFreeNote": "Περιλαμβάνεται σε κάθε λογαριασμό. 2 GB δωρεάν, μετά αναβαθμίσιμο.",
+        "cloud.signedOutUsage": "Συνδέσου για να δεις τη χρήση του cloud.",
+        "cloud.usageLabel": "Χρήση αποθηκευτικού χώρου",
+        "cloud.providers": "Άλλοι πάροχοι",
+        "cloud.comingSoon": "Σύντομα",
+        "cloud.providersHint": "Η σύνδεση τρίτου παρόχου επιτρέπει στο Conservatio να αντικατοπτρίζει τα αρχεία σας εκεί. Πατήστε για να εκδηλώσετε ενδιαφέρον.",
+        "cloud.connectGoogleDrive": "Google Drive",
+        "cloud.connectICloud": "iCloud",
+        "cloud.connectOneDrive": "OneDrive",
+        "cloud.connectMega": "MEGA",
+        "cloud.connectDropbox": "Dropbox",
+        "cloud.interestNoted": "Σημειώθηκε",
+        "cloud.connected": "Συνδεδεμένο",
+        "g.offline": "Εκτός σύνδεσης",
     ]
 }

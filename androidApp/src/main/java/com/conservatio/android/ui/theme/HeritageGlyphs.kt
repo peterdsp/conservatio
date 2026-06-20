@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.unit.dp
@@ -57,7 +59,6 @@ fun ParthenonGlyph(modifier: Modifier = Modifier, stroke: Color = defaultStroke.
                 moveTo(xf + 2.5f, 62f); lineTo(xf + 2.5f, 95f)
             }
         }
-        scale(k, k, pivot = androidx.compose.ui.geometry.Offset(offX, offY)) {}
         translate(offX, offY) {
             scale(k, k) {
                 drawPath(path, stroke, style = Stroke(width = 1.2f, cap = StrokeCap.Round, join = StrokeJoin.Round))

@@ -33,7 +33,7 @@ import com.conservatio.android.data.ObjectStore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ObjectsScreen(objectStore: ObjectStore, onAddObject: () -> Unit) {
+fun ObjectsScreen(objectStore: ObjectStore, onAddObject: () -> Unit, onEditObject: (String) -> Unit = {}) {
     val objects by objectStore.objects.collectAsState()
 
     Scaffold(
@@ -59,7 +59,7 @@ fun ObjectsScreen(objectStore: ObjectStore, onAddObject: () -> Unit) {
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
                 items(objects.sortedByDescending { it.createdAt }) { obj ->
-                    Card(onClick = {}) {
+                    Card(onClick = { onEditObject(obj.id) }) {
                         Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(obj.title, fontWeight = FontWeight.SemiBold)

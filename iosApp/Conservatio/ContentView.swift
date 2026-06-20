@@ -44,7 +44,7 @@ struct ContentView: View {
                 }
                 .tag(Tab.clients)
 
-            SettingsView()
+            SettingsView(objectStore: objectStore)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
                 }

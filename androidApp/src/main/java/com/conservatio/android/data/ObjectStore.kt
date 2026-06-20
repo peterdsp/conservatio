@@ -38,6 +38,18 @@ class ObjectStore(private val context: Context) {
         }
     }
 
+    fun updateObject(obj: ConservationObject) {
+        _objects.value = _objects.value.map { if (it.id == obj.id) obj else it }
+        save()
+        syncScope.launch {
+            if (syncClient.isAuthenticated) {
+                runCatching { syncClient.updateObject(obj) }
+            }
+        }
+    }
+
+    fun getObject(id: String): ConservationObject? = _objects.value.find { it.id == id }
+
     fun deleteObject(id: String) {
         _objects.value = _objects.value.filter { it.id != id }
         _reports.value = _reports.value.filter { it.objectId != id }
@@ -61,6 +73,39 @@ class ObjectStore(private val context: Context) {
 
     fun reportsForObject(objectId: String): List<ConditionReport> {
         return _reports.value.filter { it.objectId == objectId }
+    }
+
+    fun clearAll() {
+        _objects.value = emptyList()
+        _reports.value = emptyList()
+        save()
+    }
+
+    fun loadSampleData() {
+        _objects.value = listOf(
+            ConservationObject(
+                id = java.util.UUID.randomUUID().toString(),
+                title = "Saint Nicholas panel icon",
+                objectType = ObjectType.ICON,
+                materials = listOf("tempera", "wood panel", "gold leaf"),
+                ownerName = "Agios Nikolaos Church",
+                locationDescription = "North nave storage cabinet",
+                inventoryNumber = "CN-1842-07",
+                description = "Panel icon with edge abrasions, localized flaking, and surface grime requiring initial assessment.",
+            ),
+            ConservationObject(
+                id = java.util.UUID.randomUUID().toString(),
+                title = "Bronze votive lamp",
+                objectType = ObjectType.METAL,
+                materials = listOf("bronze", "mineral deposits"),
+                ownerName = "Municipal Collection",
+                locationDescription = "Case B, gallery 2",
+                inventoryNumber = "MC-09-118",
+                description = "Historic lamp with active corrosion checks pending before storage recommendation.",
+            ),
+        )
+        _reports.value = emptyList()
+        save()
     }
 
     suspend fun syncFromServer() {

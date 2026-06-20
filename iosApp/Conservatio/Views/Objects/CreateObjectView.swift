@@ -44,10 +44,10 @@ struct CreateObjectView: View {
         _descriptionText = State(initialValue: existing?.description ?? "")
         _acquisitionDate = State(initialValue: existing?.acquisitionDate ?? Date())
         _hasAcquisitionDate = State(initialValue: existing?.acquisitionDate != nil)
-        _height = State(initialValue: existing?.dimensions.height.map(String.init) ?? "")
-        _width = State(initialValue: existing?.dimensions.width.map(String.init) ?? "")
-        _depth = State(initialValue: existing?.dimensions.depth.map(String.init) ?? "")
-        _measurementUnit = State(initialValue: existing?.dimensions.unit ?? .cm)
+        _height = State(initialValue: existing?.dimensions?.height.map { v in String(format: "%g", v) } ?? "")
+        _width = State(initialValue: existing?.dimensions?.width.map { v in String(format: "%g", v) } ?? "")
+        _depth = State(initialValue: existing?.dimensions?.depth.map { v in String(format: "%g", v) } ?? "")
+        _measurementUnit = State(initialValue: existing?.dimensions?.unit ?? .cm)
         _existingImageIds = State(initialValue: existing?.imageIds ?? [])
     }
 

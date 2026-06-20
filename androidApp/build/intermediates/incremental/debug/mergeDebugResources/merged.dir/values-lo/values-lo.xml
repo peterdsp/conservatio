@@ -36,9 +36,13 @@
     <string msgid="59049573811482460" name="call_notification_screening_text">"ກຳລັງກວດສອບສາຍໂທເຂົ້າ"</string>
     <string msgid="406453423630273620" name="close_drawer">"ປິດ​ເມ​ນູການ​ນຳ​ທາງ"</string>
     <string msgid="7573152094250666567" name="close_sheet">"ປິດຊີດ"</string>
+    <string msgid="3260749812566568062" name="copy_toast_msg">"ສຳເນົາລິ້ງໃສ່ຄລິບບອດແລ້ວ"</string>
     <string msgid="8038256446254964252" name="default_error_message">"ຂໍ້ມູນທີ່ປ້ອນເຂົ້າບໍ່ຖືກຕ້ອງ"</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"ໜ້າຈໍປັອບອັບ"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"ເມນູແບບເລື່ອນລົງ"</string>
+    <string msgid="4566929209979330987" name="fallback_menu_item_copy_link">"ສຳເນົາລິ້ງ"</string>
+    <string msgid="3413186855122069269" name="fallback_menu_item_open_in_browser">"ເປີດໃນໂປຣແກຣມທ່ອງເວັບ"</string>
+    <string msgid="7145444925855055364" name="fallback_menu_item_share_link">"ແບ່ງປັນລິ້ງ"</string>
     <string msgid="6827826412747255547" name="in_progress">"ກຳ​ລັງ​ດຳ​ເນີນ​ການ"</string>
     <string msgid="7933458017204019916" name="indeterminate">"ກວດສອບບາງສ່ວນແລ້ວ"</string>
     <string msgid="2988463736136100848" name="m3c_bottom_sheet_collapse_description">"ຫຍໍ້ຊີດລຸ່ມສຸດລົງ"</string>

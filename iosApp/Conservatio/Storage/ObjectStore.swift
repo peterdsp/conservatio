@@ -48,6 +48,35 @@ class ObjectStore {
         objects.first { $0.id == id }
     }
 
+    func clearAllData() {
+        objects = []
+        save()
+    }
+
+    func loadSampleData() {
+        objects = [
+            ConservationObject(
+                title: "Saint Nicholas panel icon",
+                objectType: .icon,
+                materials: ["tempera", "wood panel", "gold leaf"],
+                ownerName: "Agios Nikolaos Church",
+                locationDescription: "North nave storage cabinet",
+                inventoryNumber: "CN-1842-07",
+                description: "Panel icon with edge abrasions, localized flaking, and surface grime requiring initial assessment."
+            ),
+            ConservationObject(
+                title: "Bronze votive lamp",
+                objectType: .metal,
+                materials: ["bronze", "mineral deposits"],
+                ownerName: "Municipal Collection",
+                locationDescription: "Case B, gallery 2",
+                inventoryNumber: "MC-09-118",
+                description: "Historic lamp with active corrosion checks pending before storage recommendation."
+            ),
+        ]
+        save()
+    }
+
     private func save() {
         do {
             let data = try JSONEncoder().encode(objects)

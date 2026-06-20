@@ -10,10 +10,20 @@ enum StorageMode: String, CaseIterable, Codable {
     var icon: String {
         switch self {
         case .local: return "iphone"
-        case .googleDrive: return "externaldrive.badge.icloud"
-        case .oneDrive: return "cloud"
-        case .iCloud: return "icloud"
+        case .googleDrive: return "g.circle.fill"
+        case .oneDrive: return "square.grid.2x2.fill"
+        case .iCloud: return "icloud.fill"
         case .selfHosted: return "server.rack"
+        }
+    }
+
+    var iconColor: Color {
+        switch self {
+        case .local: return .secondary
+        case .googleDrive: return Color(red: 0.26, green: 0.52, blue: 0.96)
+        case .oneDrive: return Color(red: 0.0, green: 0.64, blue: 0.94)
+        case .iCloud: return Color(red: 0.08, green: 0.49, blue: 0.98)
+        case .selfHosted: return .secondary
         }
     }
 
@@ -48,8 +58,13 @@ struct SyncSettingsView: View {
                         }
                     } label: {
                         HStack {
-                            Label(mode.rawValue, systemImage: mode.icon)
-                                .foregroundStyle(Color.primary)
+                            Label {
+                                Text(mode.rawValue)
+                                    .foregroundStyle(Color.primary)
+                            } icon: {
+                                Image(systemName: mode.icon)
+                                    .foregroundStyle(mode.iconColor)
+                            }
 
                             Spacer()
 

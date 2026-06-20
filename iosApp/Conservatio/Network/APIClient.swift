@@ -152,6 +152,12 @@ class APIClient {
         let _: EmptyResponse = try await post("/api/reports", body: report)
     }
 
+    // MARK: - Storage
+
+    func fetchStorageUsage() async throws -> StorageUsage {
+        try await get("/api/storage/usage")
+    }
+
     // MARK: - HTTP
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
@@ -232,6 +238,14 @@ struct AuthResponse: Codable {
 }
 
 struct EmptyResponse: Codable {}
+
+struct StorageUsage: Codable {
+    let usedBytes: Int64
+    let limitBytes: Int64
+    let usedFormatted: String
+    let limitFormatted: String
+    let percentUsed: Double
+}
 
 struct ServerObject: Codable, Identifiable {
     let id: String
