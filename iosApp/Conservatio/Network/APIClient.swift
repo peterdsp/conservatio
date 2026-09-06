@@ -357,4 +357,8 @@ struct CreateReportRequest: Codable {
     let notes: String?
     let recommendations: String?
     let imageIds: [String]
+    /// Damage annotations serialized as a JSON string. The server stores this
+    /// verbatim as text; sending it keeps annotations from being lost on sync.
+    /// Defaults to an empty array for encoders that omit it.
+    let damageAnnotations: String
 }

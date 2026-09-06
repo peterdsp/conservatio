@@ -1,11 +1,19 @@
 import UIKit
 
-struct PDFReportGenerator {
+/// A photo that belongs to a report, paired with the stable image id the
+/// annotations reference. The id is what links a `DamageAnnotation.imageId`
+/// to the picture it was placed on, so markers land on the correct photo.
+struct ReportPhoto {
+    let id: String
+    let image: UIImage
+}
+
+final class PDFReportGenerator {
 
     // MARK: - Configuration
 
-    private let pageWidth: CGFloat = 595.0  // A4
-    private let pageHeight: CGFloat = 842.0 // A4
+    private var pageWidth: CGFloat = 595.0  // A4 default, overridden per export
+    private var pageHeight: CGFloat = 842.0
     private let margin: CGFloat = 40.0
     private let primaryColor = UIColor(red: 0.76, green: 0.36, blue: 0.23, alpha: 1.0) // Terracotta
     private let textColor = UIColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)
@@ -14,20 +22,43 @@ struct PDFReportGenerator {
 
     private var contentWidth: CGFloat { pageWidth - margin * 2 }
 
+    /// Set for the duration of a single `generateReport` call.
+    private var l = ReportL10n(.english)
+    private var options = PDFExportOptions.default
+    private var pageNumber = 0
+    /// X position where OBJECT info values start, sized per report to the
+    /// widest label (matters most for long bilingual labels).
+    private var infoValueX: CGFloat = 130
+
     // MARK: - Public
 
+    /// Generates the report PDF.
+    ///
+    /// - Parameters:
+    ///   - photos: The report's photos, in order, each paired with the id its
+    ///     annotations reference. Markers are drawn on the matching photo.
+    ///   - options: Export options (language, paper size, content toggles),
+    ///     normally taken from Settings via `PDFExportOptions.fromUserDefaults()`.
     func generateReport(
         object: ConservationObject,
         report: ConditionReport,
-        objectImages: [UIImage],
-        conservatorName: String
+        photos: [ReportPhoto],
+        conservatorName: String,
+        options: PDFExportOptions = .fromUserDefaults()
     ) -> Data {
+        self.options = options
+        self.l = ReportL10n(options.language)
+        self.pageNumber = 0
+        let size = options.paperSize.pointSize
+        self.pageWidth = size.width
+        self.pageHeight = size.height
+
         let renderer = UIGraphicsPDFRenderer(
             bounds: CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
         )
 
         return renderer.pdfData { context in
-            context.beginPage()
+            beginPage(context)
             var y = margin
 
             let reportIdShort = report.id.uuidString.prefix(8).uppercased()
@@ -43,76 +74,83 @@ struct PDFReportGenerator {
             // Title
             y = drawTitle(y: y)
 
-            // Object photo
-            if let firstImage = objectImages.first {
-                y = drawObjectPhoto(y: y, image: firstImage)
+            // Cover photo (identification). Never annotated; the annotated
+            // copies live in the photo documentation section below.
+            if options.includePhotos, let cover = photos.first {
+                y = drawObjectPhoto(y: y, image: cover.image)
             }
 
             // Object info
-            y = drawSectionHeader(y: y, title: "OBJECT")
-            y = drawInfoRow(y: y, label: "Title:", value: object.title)
-            y = drawInfoRow(y: y, label: "Type:", value: object.objectType.displayName)
-            y = drawInfoRow(y: y, label: "Materials:", value: object.materials.joined(separator: ", "))
+            y = drawSectionHeader(y: y, title: l.objectSection)
+            // Size the value column to the widest label so bilingual labels do
+            // not overlap their values.
+            let infoLabels = [
+                l.titleLabel, l.typeLabel, l.materialsLabel, l.dimensionsLabel,
+                l.locationLabel, l.ownerLabel, l.inventoryLabel,
+            ]
+            let labelAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
+            ]
+            let widest = infoLabels.reduce(CGFloat(0)) { max($0, ($1 as NSString).size(withAttributes: labelAttrs).width) }
+            infoValueX = margin + 4 + min(widest + 12, contentWidth * 0.55)
+            y = drawInfoRow(y: y, label: l.titleLabel, value: object.title)
+            y = drawInfoRow(y: y, label: l.typeLabel, value: l.objectType(object.objectType))
+            if !object.materials.isEmpty {
+                y = drawInfoRow(y: y, label: l.materialsLabel, value: object.materials.joined(separator: ", "))
+            }
             if let dims = object.dimensions {
-                y = drawInfoRow(y: y, label: "Dimensions:", value: formatDimensions(dims))
+                let formatted = formatDimensions(dims)
+                if !formatted.isEmpty {
+                    y = drawInfoRow(y: y, label: l.dimensionsLabel, value: formatted)
+                }
             }
             if let location = object.locationDescription, !location.isEmpty {
-                y = drawInfoRow(y: y, label: "Location:", value: location)
+                y = drawInfoRow(y: y, label: l.locationLabel, value: location)
             }
             if let owner = object.ownerName, !owner.isEmpty {
-                y = drawInfoRow(y: y, label: "Owner:", value: owner)
+                y = drawInfoRow(y: y, label: l.ownerLabel, value: owner)
             }
             if let inventory = object.inventoryNumber, !inventory.isEmpty {
-                y = drawInfoRow(y: y, label: "Inventory:", value: inventory)
+                y = drawInfoRow(y: y, label: l.inventoryLabel, value: inventory)
             }
             y += 12
 
-            // Check if we need a new page
-            if y > pageHeight - 250 {
-                context.beginPage()
-                y = margin
-            }
+            y = ensureSpace(context, y: y, needed: 120)
 
             // Condition summary
-            y = drawSectionHeader(y: y, title: "CONDITION SUMMARY")
-            y = drawBulletPoint(y: y, text: "Overall condition: \(report.overallCondition.displayName)")
-            y = drawBulletPoint(y: y, text: "Report type: \(report.reportType.displayName)")
+            y = drawSectionHeader(y: y, title: l.conditionSummarySection)
+            y = drawBulletPoint(y: y, text: "\(l.overallConditionLabel): \(l.conditionRating(report.overallCondition))")
+            y = drawBulletPoint(y: y, text: "\(l.reportTypeLabel): \(l.reportType(report.reportType))")
             for damage in report.damageAnnotations {
                 y = drawBulletPoint(
                     y: y,
-                    text: "\(damage.damageType.displayName) - \(damage.severity.displayName)"
+                    text: "\(l.damageType(damage.damageType)) - \(l.severity(damage.severity))"
                 )
                 if let desc = damage.description, !desc.isEmpty {
                     y = drawIndentedText(y: y, text: desc)
                 }
-                // Check page mid-loop
-                if y > pageHeight - 100 {
-                    context.beginPage()
-                    y = margin
-                }
+                y = ensureSpace(context, y: y, needed: 60)
             }
             if report.damageAnnotations.isEmpty {
-                y = drawBulletPoint(y: y, text: "No specific damage recorded.")
+                y = drawBulletPoint(y: y, text: l.noDamageRecorded)
             }
             y += 12
 
-            // Check page
-            if y > pageHeight - 200 {
-                context.beginPage()
-                y = margin
+            // Photo documentation with damage markers and per-photo legend.
+            if options.includePhotos, options.includeAnnotations {
+                y = drawPhotoDocumentation(context, y: y, photos: photos, report: report)
             }
 
-            // Recommended treatment
+            y = ensureSpace(context, y: y, needed: 120)
+
+            // Recommended treatment (user text, printed verbatim).
             if let recommendations = report.recommendations, !recommendations.isEmpty {
-                y = drawSectionHeader(y: y, title: "RECOMMENDED TREATMENT")
+                y = drawSectionHeader(y: y, title: l.recommendedTreatmentSection)
                 let steps = recommendations.components(separatedBy: "\n").filter { !$0.isEmpty }
                 if steps.count > 1 {
                     for (index, step) in steps.enumerated() {
                         y = drawNumberedItem(y: y, number: index + 1, text: step)
-                        if y > pageHeight - 100 {
-                            context.beginPage()
-                            y = margin
-                        }
+                        y = ensureSpace(context, y: y, needed: 60)
                     }
                 } else {
                     y = drawBodyText(y: y, text: recommendations)
@@ -120,29 +158,268 @@ struct PDFReportGenerator {
                 y += 12
             }
 
-            // Check page
-            if y > pageHeight - 200 {
-                context.beginPage()
-                y = margin
-            }
+            y = ensureSpace(context, y: y, needed: 120)
 
-            // Notes
+            // Notes (user text, printed verbatim).
             if let notes = report.notes, !notes.isEmpty {
-                y = drawSectionHeader(y: y, title: "NOTES")
+                y = drawSectionHeader(y: y, title: l.notesSection)
                 y = drawBodyText(y: y, text: notes)
                 y += 12
             }
 
-            // Condition rating bar
-            if y > pageHeight - 150 {
-                context.beginPage()
-                y = margin
+            // Condition rating gauge
+            if options.includeConditionGauge {
+                y = ensureSpace(context, y: y, needed: 80)
+                y = drawConditionRating(y: y, rating: report.overallCondition)
             }
-            y = drawConditionRating(y: y, rating: report.overallCondition)
-
-            // Footer
-            drawFooter(conservator: conservatorName)
         }
+    }
+
+    // MARK: - Page management
+
+    private func beginPage(_ context: UIGraphicsPDFRendererContext) {
+        context.beginPage()
+        pageNumber += 1
+        drawFooterChrome()
+    }
+
+    /// Ensures at least `needed` points remain before the footer; starts a new
+    /// page otherwise. Returns the y to keep drawing at.
+    private func ensureSpace(_ context: UIGraphicsPDFRendererContext, y: CGFloat, needed: CGFloat) -> CGFloat {
+        if y > pageHeight - margin - 40 - needed {
+            beginPage(context)
+            return margin
+        }
+        return y
+    }
+
+    // MARK: - Photo documentation
+
+    private func drawPhotoDocumentation(
+        _ context: UIGraphicsPDFRendererContext,
+        y: CGFloat,
+        photos: [ReportPhoto],
+        report: ConditionReport
+    ) -> CGFloat {
+        // Only photos that actually carry positioned markers are documented,
+        // so the section stays focused on damage evidence.
+        let documented = photos.filter { photo in
+            report.damageAnnotations.contains { positioned($0, imageId: photo.id) }
+        }
+        guard !documented.isEmpty else { return y }
+
+        var currentY = ensureSpace(context, y: y, needed: 260)
+        currentY = drawSectionHeader(y: currentY, title: l.photoDocumentationSection)
+
+        for (photoIndex, photo) in documented.enumerated() {
+            let markers = report.damageAnnotations
+                .filter { positioned($0, imageId: photo.id) }
+
+            // Keep a photo and at least its first legend row together.
+            currentY = ensureSpace(context, y: currentY, needed: 300)
+
+            // Photo caption
+            let caption = "\(l.photoLabel) \(photoIndex + 1)"
+            (caption as NSString).draw(
+                at: CGPoint(x: margin + 4, y: currentY),
+                withAttributes: [
+                    .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
+                    .foregroundColor: textColor,
+                ]
+            )
+            currentY += 16
+
+            currentY = drawAnnotatedPhoto(y: currentY, photo: photo, markers: markers)
+
+            // Legend for this photo
+            currentY += 4
+            (l.legendHeading as NSString).draw(
+                at: CGPoint(x: margin + 4, y: currentY),
+                withAttributes: [
+                    .font: UIFont.systemFont(ofSize: 8, weight: .semibold),
+                    .foregroundColor: secondaryTextColor,
+                ]
+            )
+            currentY += 14
+
+            for (index, marker) in markers.enumerated() {
+                currentY = ensureSpace(context, y: currentY, needed: 40)
+                currentY = drawLegendRow(y: currentY, number: index + 1, annotation: marker)
+            }
+            currentY += 12
+        }
+
+        return currentY
+    }
+
+    /// Draws a photo aspect-fitted into the content area and overlays a
+    /// numbered marker for each annotation. Markers are positioned from the
+    /// annotation's stored percentages, so they track the same spot regardless
+    /// of the photo's pixel size, and the image is normalised to `.up` first so
+    /// EXIF orientation cannot shift them.
+    private func drawAnnotatedPhoto(y: CGFloat, photo: ReportPhoto, markers: [DamageAnnotation]) -> CGFloat {
+        let image = Self.normalizedUp(photo.image)
+        let maxPhotoHeight: CGFloat = 300
+        let maxPhotoWidth = contentWidth
+        let aspect = image.size.width / max(image.size.height, 1)
+        var photoWidth = maxPhotoWidth
+        var photoHeight = photoWidth / aspect
+        if photoHeight > maxPhotoHeight {
+            photoHeight = maxPhotoHeight
+            photoWidth = photoHeight * aspect
+        }
+
+        let photoRect = CGRect(x: margin, y: y, width: photoWidth, height: photoHeight)
+
+        UIColor(red: 0.9, green: 0.88, blue: 0.86, alpha: 1.0).setStroke()
+        let border = UIBezierPath(rect: photoRect.insetBy(dx: -1, dy: -1))
+        border.lineWidth = 0.5
+        border.stroke()
+
+        image.draw(in: photoRect)
+
+        for (index, marker) in markers.enumerated() {
+            guard let xPct = marker.xPercent, let yPct = marker.yPercent else { continue }
+
+            // Optional bounding box for area annotations.
+            if let wPct = marker.widthPercent, let hPct = marker.heightPercent, wPct > 0, hPct > 0 {
+                let boxRect = Self.markerRect(
+                    in: photoRect,
+                    xPercent: xPct, yPercent: yPct,
+                    widthPercent: wPct, heightPercent: hPct
+                )
+                colorForSeverity(marker.severity).setStroke()
+                let box = UIBezierPath(rect: boxRect)
+                box.lineWidth = 1.5
+                box.stroke()
+            }
+
+            let center = Self.markerPoint(in: photoRect, xPercent: xPct, yPercent: yPct)
+            drawMarker(number: index + 1, at: center, color: colorForSeverity(marker.severity))
+        }
+
+        return y + photoHeight + 8
+    }
+
+    private func drawMarker(number: Int, at center: CGPoint, color: UIColor) {
+        let diameter: CGFloat = 20
+        let rect = CGRect(
+            x: center.x - diameter / 2,
+            y: center.y - diameter / 2,
+            width: diameter,
+            height: diameter
+        )
+
+        // White halo so the marker stays legible on any photo.
+        UIColor.white.setStroke()
+        let halo = UIBezierPath(ovalIn: rect.insetBy(dx: -1.5, dy: -1.5))
+        halo.lineWidth = 2
+        halo.stroke()
+
+        color.setFill()
+        UIBezierPath(ovalIn: rect).fill()
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 11, weight: .bold),
+            .foregroundColor: UIColor.white,
+        ]
+        let text = "\(number)" as NSString
+        let textSize = text.size(withAttributes: attrs)
+        text.draw(
+            at: CGPoint(x: center.x - textSize.width / 2, y: center.y - textSize.height / 2),
+            withAttributes: attrs
+        )
+    }
+
+    private func drawLegendRow(y: CGFloat, number: Int, annotation: DamageAnnotation) -> CGFloat {
+        let color = colorForSeverity(annotation.severity)
+
+        // Number swatch
+        let diameter: CGFloat = 14
+        let swatch = CGRect(x: margin + 6, y: y, width: diameter, height: diameter)
+        color.setFill()
+        UIBezierPath(ovalIn: swatch).fill()
+        let numAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 8, weight: .bold),
+            .foregroundColor: UIColor.white,
+        ]
+        let numText = "\(number)" as NSString
+        let numSize = numText.size(withAttributes: numAttrs)
+        numText.draw(
+            at: CGPoint(x: swatch.midX - numSize.width / 2, y: swatch.midY - numSize.height / 2),
+            withAttributes: numAttrs
+        )
+
+        // "Damage type - Severity" (localised vocabulary)
+        let titleAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
+            .foregroundColor: textColor,
+        ]
+        let title = "\(l.damageType(annotation.damageType)) - \(l.severity(annotation.severity))" as NSString
+        let textX = margin + 6 + diameter + 8
+        title.draw(at: CGPoint(x: textX, y: y), withAttributes: titleAttrs)
+        var rowHeight = max(diameter, title.size(withAttributes: titleAttrs).height)
+
+        // Description (user text, verbatim)
+        if let desc = annotation.description, !desc.isEmpty {
+            let descAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.italicSystemFont(ofSize: 8),
+                .foregroundColor: secondaryTextColor,
+            ]
+            let descStr = desc as NSString
+            let descRect = CGRect(x: textX, y: y + 12, width: contentWidth - (textX - margin), height: 120)
+            let bounding = descStr.boundingRect(
+                with: CGSize(width: descRect.width, height: 120),
+                options: .usesLineFragmentOrigin,
+                attributes: descAttrs,
+                context: nil
+            )
+            descStr.draw(in: descRect, withAttributes: descAttrs)
+            rowHeight = 12 + bounding.height
+        }
+
+        return y + rowHeight + 6
+    }
+
+    // MARK: - Marker geometry (pure, unit tested)
+
+    /// Maps a stored percentage position to a point inside a drawn photo rect.
+    static func markerPoint(in rect: CGRect, xPercent: Double, yPercent: Double) -> CGPoint {
+        let clampedX = min(max(xPercent, 0), 100)
+        let clampedY = min(max(yPercent, 0), 100)
+        return CGPoint(
+            x: rect.origin.x + CGFloat(clampedX / 100.0) * rect.width,
+            y: rect.origin.y + CGFloat(clampedY / 100.0) * rect.height
+        )
+    }
+
+    /// Maps a stored percentage bounding box (centre + size) to a rect inside a
+    /// drawn photo rect.
+    static func markerRect(
+        in rect: CGRect,
+        xPercent: Double, yPercent: Double,
+        widthPercent: Double, heightPercent: Double
+    ) -> CGRect {
+        let center = markerPoint(in: rect, xPercent: xPercent, yPercent: yPercent)
+        let w = CGFloat(min(max(widthPercent, 0), 100) / 100.0) * rect.width
+        let h = CGFloat(min(max(heightPercent, 0), 100) / 100.0) * rect.height
+        return CGRect(x: center.x - w / 2, y: center.y - h / 2, width: w, height: h)
+    }
+
+    /// Redraws an image in `.up` orientation so EXIF orientation cannot move
+    /// percentage-positioned markers. A no-op for images already `.up`.
+    static func normalizedUp(_ image: UIImage) -> UIImage {
+        guard image.imageOrientation != .up else { return image }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }
+    }
+
+    private func positioned(_ annotation: DamageAnnotation, imageId: String) -> Bool {
+        annotation.imageId == imageId && annotation.xPercent != nil && annotation.yPercent != nil
     }
 
     // MARK: - Formatting
@@ -160,9 +437,9 @@ struct PDFReportGenerator {
         if let wt = dims.weight {
             let weightUnit = dims.unit == .kg || dims.unit == .g ? dims.unit.displayName : "kg"
             result += result.isEmpty ? "" : ", "
-            result += "Weight: \(formatNumber(wt)) \(weightUnit)"
+            result += "\(l.weightLabel): \(formatNumber(wt)) \(weightUnit)"
         }
-        return result.isEmpty ? "Not specified" : result
+        return result
     }
 
     private func formatNumber(_ value: Double) -> String {
@@ -182,68 +459,54 @@ struct PDFReportGenerator {
     ) -> CGFloat {
         var currentY = y
 
-        // Brand name
         let brandAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 22, weight: .bold),
-            .foregroundColor: primaryColor
+            .foregroundColor: primaryColor,
         ]
-        let brand = "Conservatio" as NSString
-        brand.draw(at: CGPoint(x: margin, y: currentY), withAttributes: brandAttrs)
+        ("Conservatio" as NSString).draw(at: CGPoint(x: margin, y: currentY), withAttributes: brandAttrs)
 
-        // Subtitle
         let subAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 8, weight: .regular),
-            .foregroundColor: secondaryTextColor
+            .foregroundColor: secondaryTextColor,
         ]
-        let subtitle = "Intelligent Documentation.\nVerified Preservation." as NSString
-        subtitle.draw(at: CGPoint(x: margin, y: currentY + 28), withAttributes: subAttrs)
+        ("Intelligent Documentation.\nVerified Preservation." as NSString)
+            .draw(at: CGPoint(x: margin, y: currentY + 28), withAttributes: subAttrs)
 
-        // Report info (right side)
-        let infoAttrs: [NSAttributedString.Key: Any] = [
+        // Right meta block. Label and value are stacked so long bilingual
+        // labels never collide with their values, and the block is left
+        // aligned in a column sized to its widest line.
+        let valueAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9, weight: .regular),
-            .foregroundColor: textColor
+            .foregroundColor: textColor,
         ]
         let labelAttrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
-            .foregroundColor: textColor
+            .font: UIFont.systemFont(ofSize: 8.5, weight: .semibold),
+            .foregroundColor: primaryColor,
         ]
 
-        let rightX = pageWidth - margin - 160
+        let pairs: [(String, String)] = [
+            (l.reportIdLabel, reportId),
+            (l.dateLabel, l.date(date)),
+            (l.conservatorLabel, conservator),
+        ]
 
-        ("Report ID:" as NSString).draw(
-            at: CGPoint(x: rightX, y: currentY),
-            withAttributes: labelAttrs
-        )
-        (reportId as NSString).draw(
-            at: CGPoint(x: rightX + 70, y: currentY),
-            withAttributes: infoAttrs
-        )
+        let blockWidth = pairs.reduce(CGFloat(0)) { partial, pair in
+            let lw = (pair.0 as NSString).size(withAttributes: labelAttrs).width
+            let vw = (pair.1 as NSString).size(withAttributes: valueAttrs).width
+            return max(partial, max(lw, vw))
+        }
+        let blockX = pageWidth - margin - min(blockWidth, contentWidth * 0.5)
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd MMM yyyy"
-        let dateStr = dateFormatter.string(from: date)
+        var metaY = currentY
+        for (label, value) in pairs {
+            (label as NSString).draw(at: CGPoint(x: blockX, y: metaY), withAttributes: labelAttrs)
+            metaY += 11
+            (value as NSString).draw(at: CGPoint(x: blockX, y: metaY), withAttributes: valueAttrs)
+            metaY += 14
+        }
 
-        ("Date:" as NSString).draw(
-            at: CGPoint(x: rightX, y: currentY + 14),
-            withAttributes: labelAttrs
-        )
-        (dateStr as NSString).draw(
-            at: CGPoint(x: rightX + 70, y: currentY + 14),
-            withAttributes: infoAttrs
-        )
+        currentY = max(currentY + 48, metaY + 4)
 
-        ("Conservator:" as NSString).draw(
-            at: CGPoint(x: rightX, y: currentY + 28),
-            withAttributes: labelAttrs
-        )
-        (conservator as NSString).draw(
-            at: CGPoint(x: rightX + 70, y: currentY + 28),
-            withAttributes: infoAttrs
-        )
-
-        currentY += 55
-
-        // Divider line
         let path = UIBezierPath()
         path.move(to: CGPoint(x: margin, y: currentY))
         path.addLine(to: CGPoint(x: pageWidth - margin, y: currentY))
@@ -257,14 +520,13 @@ struct PDFReportGenerator {
     private func drawTitle(y: CGFloat) -> CGFloat {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 18, weight: .bold),
-            .foregroundColor: textColor
+            .foregroundColor: textColor,
         ]
-        let title = "CONDITION REPORT" as NSString
+        let title = l.conditionReportTitle as NSString
         let titleSize = title.size(withAttributes: attrs)
         let x = (pageWidth - titleSize.width) / 2
         title.draw(at: CGPoint(x: x, y: y), withAttributes: attrs)
 
-        // Underline
         let path = UIBezierPath()
         path.move(to: CGPoint(x: x, y: y + titleSize.height + 2))
         path.addLine(to: CGPoint(x: x + titleSize.width, y: y + titleSize.height + 2))
@@ -276,9 +538,10 @@ struct PDFReportGenerator {
     }
 
     private func drawObjectPhoto(y: CGFloat, image: UIImage) -> CGFloat {
+        let normalized = Self.normalizedUp(image)
         let maxPhotoHeight: CGFloat = 220
         let maxPhotoWidth = contentWidth * 0.55
-        let aspect = image.size.width / image.size.height
+        let aspect = normalized.size.width / max(normalized.size.height, 1)
         var photoWidth = maxPhotoWidth
         var photoHeight = photoWidth / aspect
         if photoHeight > maxPhotoHeight {
@@ -288,14 +551,12 @@ struct PDFReportGenerator {
 
         let photoRect = CGRect(x: margin, y: y, width: photoWidth, height: photoHeight)
 
-        // Border
-        let borderRect = photoRect.insetBy(dx: -1, dy: -1)
         UIColor(red: 0.9, green: 0.88, blue: 0.86, alpha: 1.0).setStroke()
-        let border = UIBezierPath(rect: borderRect)
+        let border = UIBezierPath(rect: photoRect.insetBy(dx: -1, dy: -1))
         border.lineWidth = 0.5
         border.stroke()
 
-        image.draw(in: photoRect)
+        normalized.draw(in: photoRect)
 
         return y + photoHeight + 16
     }
@@ -303,12 +564,9 @@ struct PDFReportGenerator {
     private func drawSectionHeader(y: CGFloat, title: String) -> CGFloat {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 11, weight: .bold),
-            .foregroundColor: primaryColor
+            .foregroundColor: primaryColor,
         ]
-        (title as NSString).draw(
-            at: CGPoint(x: margin + 4, y: y),
-            withAttributes: attrs
-        )
+        (title as NSString).draw(at: CGPoint(x: margin + 4, y: y), withAttributes: attrs)
 
         let lineY = y + 16
         let path = UIBezierPath()
@@ -324,17 +582,14 @@ struct PDFReportGenerator {
     private func drawInfoRow(y: CGFloat, label: String, value: String) -> CGFloat {
         let labelAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
-            .foregroundColor: textColor
+            .foregroundColor: textColor,
         ]
         let valueAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9, weight: .regular),
-            .foregroundColor: secondaryTextColor
+            .foregroundColor: secondaryTextColor,
         ]
-        (label as NSString).draw(
-            at: CGPoint(x: margin + 4, y: y),
-            withAttributes: labelAttrs
-        )
-        let valueRect = CGRect(x: margin + 80, y: y, width: contentWidth - 84, height: 200)
+        (label as NSString).draw(at: CGPoint(x: margin + 4, y: y), withAttributes: labelAttrs)
+        let valueRect = CGRect(x: infoValueX, y: y, width: pageWidth - margin - infoValueX, height: 200)
         let valueStr = value as NSString
         let boundingRect = valueStr.boundingRect(
             with: CGSize(width: valueRect.width, height: 200),
@@ -349,7 +604,7 @@ struct PDFReportGenerator {
     private func drawBulletPoint(y: CGFloat, text: String) -> CGFloat {
         let bulletAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9, weight: .regular),
-            .foregroundColor: textColor
+            .foregroundColor: textColor,
         ]
         let bullet = "\u{2022} \(text)" as NSString
         let rect = CGRect(x: margin + 8, y: y, width: contentWidth - 12, height: 200)
@@ -366,7 +621,7 @@ struct PDFReportGenerator {
     private func drawIndentedText(y: CGFloat, text: String) -> CGFloat {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.italicSystemFont(ofSize: 8),
-            .foregroundColor: secondaryTextColor
+            .foregroundColor: secondaryTextColor,
         ]
         let str = text as NSString
         let rect = CGRect(x: margin + 20, y: y, width: contentWidth - 24, height: 200)
@@ -383,7 +638,7 @@ struct PDFReportGenerator {
     private func drawNumberedItem(y: CGFloat, number: Int, text: String) -> CGFloat {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9, weight: .regular),
-            .foregroundColor: textColor
+            .foregroundColor: textColor,
         ]
         let str = "\(number). \(text)" as NSString
         let rect = CGRect(x: margin + 8, y: y, width: contentWidth - 12, height: 200)
@@ -400,7 +655,7 @@ struct PDFReportGenerator {
     private func drawBodyText(y: CGFloat, text: String) -> CGFloat {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9, weight: .regular),
-            .foregroundColor: secondaryTextColor
+            .foregroundColor: secondaryTextColor,
         ]
         let str = text as NSString
         let rect = CGRect(x: margin + 4, y: y, width: contentWidth - 8, height: 400)
@@ -416,15 +671,12 @@ struct PDFReportGenerator {
 
     private func drawConditionRating(y: CGFloat, rating: ConditionRating) -> CGFloat {
         var currentY = y
-
-        // Section header
-        currentY = drawSectionHeader(y: currentY, title: "CONDITION RATING")
+        currentY = drawSectionHeader(y: currentY, title: l.conditionRatingSection)
 
         let barWidth: CGFloat = 200
         let barHeight: CGFloat = 8
         let barX = margin + 4
 
-        // Background bar segments (green to red)
         let colors: [UIColor] = [
             UIColor(red: 0.18, green: 0.49, blue: 0.20, alpha: 1.0),
             UIColor(red: 0.33, green: 0.55, blue: 0.18, alpha: 1.0),
@@ -446,14 +698,12 @@ struct PDFReportGenerator {
             UIBezierPath(roundedRect: segmentRect, cornerRadius: cornerRadius).fill()
         }
 
-        // Rating label color
         let ratingColor = uiColorForRating(rating)
         let ratingAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 10, weight: .bold),
-            .foregroundColor: ratingColor
+            .foregroundColor: ratingColor,
         ]
-        let ratingText = rating.displayName as NSString
-        ratingText.draw(
+        (l.conditionRating(rating) as NSString).draw(
             at: CGPoint(x: barX + barWidth + 12, y: currentY - 2),
             withAttributes: ratingAttrs
         )
@@ -463,23 +713,27 @@ struct PDFReportGenerator {
 
     private func uiColorForRating(_ rating: ConditionRating) -> UIColor {
         switch rating {
-        case .excellent:
-            return UIColor(red: 0.18, green: 0.49, blue: 0.20, alpha: 1.0)
-        case .good:
-            return UIColor(red: 0.33, green: 0.55, blue: 0.18, alpha: 1.0)
-        case .fair:
-            return UIColor(red: 0.98, green: 0.66, blue: 0.15, alpha: 1.0)
-        case .poor:
-            return UIColor(red: 0.94, green: 0.42, blue: 0.0, alpha: 1.0)
-        case .critical:
-            return UIColor(red: 0.78, green: 0.16, blue: 0.16, alpha: 1.0)
+        case .excellent: return UIColor(red: 0.18, green: 0.49, blue: 0.20, alpha: 1.0)
+        case .good: return UIColor(red: 0.33, green: 0.55, blue: 0.18, alpha: 1.0)
+        case .fair: return UIColor(red: 0.98, green: 0.66, blue: 0.15, alpha: 1.0)
+        case .poor: return UIColor(red: 0.94, green: 0.42, blue: 0.0, alpha: 1.0)
+        case .critical: return UIColor(red: 0.78, green: 0.16, blue: 0.16, alpha: 1.0)
         }
     }
 
-    private func drawFooter(conservator: String) {
-        let footerY = pageHeight - margin - 30
+    private func colorForSeverity(_ severity: DamageSeverity) -> UIColor {
+        switch severity {
+        case .minor: return UIColor(red: 0.33, green: 0.55, blue: 0.18, alpha: 1.0)
+        case .moderate: return UIColor(red: 0.98, green: 0.66, blue: 0.15, alpha: 1.0)
+        case .severe: return UIColor(red: 0.94, green: 0.42, blue: 0.0, alpha: 1.0)
+        case .critical: return UIColor(red: 0.78, green: 0.16, blue: 0.16, alpha: 1.0)
+        }
+    }
 
-        // Divider
+    /// Footer chrome drawn on every page: divider, brand line, and page number.
+    private func drawFooterChrome() {
+        let footerY = pageHeight - margin - 20
+
         let path = UIBezierPath()
         path.move(to: CGPoint(x: margin, y: footerY))
         path.addLine(to: CGPoint(x: pageWidth - margin, y: footerY))
@@ -487,25 +741,22 @@ struct PDFReportGenerator {
         path.lineWidth = 0.5
         path.stroke()
 
-        // Signature line
-        let sigAttrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.italicSystemFont(ofSize: 9),
-            .foregroundColor: secondaryTextColor
-        ]
-        let sig = conservator as NSString
-        let sigSize = sig.size(withAttributes: sigAttrs)
-        sig.draw(
-            at: CGPoint(x: pageWidth - margin - sigSize.width, y: footerY + 8),
-            withAttributes: sigAttrs
-        )
-
-        // Page info
         let pageAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 7, weight: .regular),
-            .foregroundColor: secondaryTextColor
+            .foregroundColor: secondaryTextColor,
         ]
-        ("Generated by Conservatio" as NSString).draw(
+        (l.generatedByConservatio as NSString).draw(
             at: CGPoint(x: margin, y: footerY + 8),
+            withAttributes: pageAttrs
+        )
+
+        // The total page count is unknown while streaming pages, so the footer
+        // shows the current page number only.
+        let pageLabel = l.pick(en: "Page", el: "Σελίδα")
+        let currentPage = "\(pageLabel) \(pageNumber)" as NSString
+        let size = currentPage.size(withAttributes: pageAttrs)
+        currentPage.draw(
+            at: CGPoint(x: pageWidth - margin - size.width, y: footerY + 8),
             withAttributes: pageAttrs
         )
     }

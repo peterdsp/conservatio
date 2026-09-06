@@ -63,8 +63,40 @@ struct SyncSettingsView: View {
     @State private var isTesting = false
     @State private var testResult: TestResult?
 
+    private var engine: SyncEngine { SyncEngine.shared }
+
     private var lastSyncDate: Date? {
         lastSyncAtRaw > 0 ? Date(timeIntervalSince1970: lastSyncAtRaw) : nil
+    }
+
+    private var statusText: String {
+        switch engine.status {
+        case .idle: return engine.pendingCount > 0 ? "Waiting" : "Up to date"
+        case .syncing: return "Syncing"
+        case .offline: return "Offline"
+        case .authRequired: return "Sign in required"
+        case .error: return "Needs attention"
+        }
+    }
+
+    private var statusIcon: String {
+        switch engine.status {
+        case .idle: return engine.pendingCount > 0 ? "clock" : "checkmark.circle.fill"
+        case .syncing: return "arrow.triangle.2.circlepath"
+        case .offline: return "wifi.slash"
+        case .authRequired: return "person.crop.circle.badge.exclamationmark"
+        case .error: return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var statusColor: Color {
+        switch engine.status {
+        case .idle: return engine.pendingCount > 0 ? .orange : .green
+        case .syncing: return .secondary
+        case .offline: return .secondary
+        case .authRequired: return .orange
+        case .error: return .red
+        }
     }
 
     var body: some View {
@@ -142,14 +174,29 @@ struct SyncSettingsView: View {
                 }
             }
 
-            if storageMode != .local {
-                Section("Sync Options") {
-                    Toggle("Auto Sync", isOn: $autoSync)
-                    Toggle("Sync Photos", isOn: $syncPhotos)
-                    Toggle("Wi-Fi Only", isOn: $syncOnWiFiOnly)
-                }
-
+            if objectStore?.isSignedIn == true {
                 Section {
+                    HStack {
+                        Text("Status")
+                        Spacer()
+                        HStack(spacing: 6) {
+                            Image(systemName: statusIcon)
+                                .foregroundStyle(statusColor)
+                            Text(statusText)
+                                .foregroundStyle(.secondary)
+                            if isSyncing { ProgressView() }
+                        }
+                    }
+
+                    if engine.pendingCount > 0 {
+                        HStack {
+                            Text("Pending changes")
+                            Spacer()
+                            Text("\(engine.pendingCount)")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
                     HStack {
                         Text("Last Sync")
                         Spacer()
@@ -166,14 +213,22 @@ struct SyncSettingsView: View {
                             if isSyncing { ProgressView() }
                         }
                     }
-                    .disabled(isSyncing || !(objectStore?.isSignedIn ?? false))
+                    .disabled(isSyncing)
                 } header: {
-                    Text("Status")
+                    Text("Sync")
                 } footer: {
-                    if !(objectStore?.isSignedIn ?? false) {
-                        Text("Sign in to sync your objects with the Conservatio server.")
+                    if let error = engine.lastError, engine.pendingCount > 0 {
+                        Text("Some changes could not sync yet: \(error) They stay saved on this device and retry automatically.")
                     } else {
-                        Text("Pulls the latest objects from the server. Reports, projects, and clients sync automatically when created.")
+                        Text("Objects, reports, projects, and clients sync to the Conservatio server. Changes made offline are saved locally and pushed when you reconnect.")
+                    }
+                }
+
+                if storageMode != .local {
+                    Section("Sync Options") {
+                        Toggle("Auto Sync", isOn: $autoSync)
+                        Toggle("Sync Photos", isOn: $syncPhotos)
+                        Toggle("Wi-Fi Only", isOn: $syncOnWiFiOnly)
                     }
                 }
             }
@@ -195,8 +250,9 @@ struct SyncSettingsView: View {
     private func syncNow() async {
         guard let objectStore, objectStore.isSignedIn else { return }
         isSyncing = true
+        // Pushes every pending change (all record types) and pulls objects.
+        // The engine records the successful sync time in `lastSyncAt`.
         await objectStore.syncFromServer()
-        lastSyncAtRaw = Date().timeIntervalSince1970
         isSyncing = false
     }
 

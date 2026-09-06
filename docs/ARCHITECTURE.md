@@ -13,11 +13,12 @@ Conservatio follows a multiplatform architecture with KMP (Kotlin Multiplatform)
 │  └── Design: shared color/spacing tokens    │
 ├─────────────────┬───────────────────────────┤
 │   iOS (SwiftUI) │   Android (Compose)       │
-│   Native camera │   Native camera           │
-│   Canvas annot. │   Canvas annotation       │
-│   SQLDelight    │   SQLDelight              │
-│   PDF (UIKit)   │   PDF (Android Print)     │
+│   Camera+photos │   Gallery import          │
+│   Annotation    │   (annotation planned)    │
+│   Local store   │   Local store             │
+│   PDF (UIKit)   │   (PDF planned)           │
 └─────────────────┴───────────────────────────┘
+        (shared SQLDelight DB defined, not yet wired)
           │               │
           └───── Sync ────┘
                   │
@@ -42,12 +43,16 @@ Conservatio follows a multiplatform architecture with KMP (Kotlin Multiplatform)
 
 ### Offline-first (Mobile)
 
+Intended design: a shared SQLDelight database with a `sync_status` column drives sync. Current implementation on iOS uses native on-device JSON stores plus a durable change outbox; the flow is otherwise the same:
+
 1. User creates/edits data on mobile
-2. Data is saved to local SQLDelight database immediately
-3. Record is marked with `sync_status = PENDING`
-4. When online, the sync service pushes pending records to the Conservatio server (Ktor REST API)
-5. On success, `sync_status` is updated to `SYNCED`
-6. Periodic pull fetches remote changes
+2. Data is saved to local device storage immediately
+3. The change is appended to a durable, persisted outbox (survives app restart)
+4. When online, the sync engine pushes queued changes to the Conservatio server (Ktor REST API), coalescing per record and using idempotent upserts so a retried create never duplicates a record
+5. On success the change is removed from the outbox; auth, offline, and server errors keep it queued for retry, with visible sync status
+6. A pull fetches remote changes and merges them without discarding unsynced local edits (local pending changes win)
+
+The Android app currently uses local JSON storage with best-effort push and no offline queue. Neither client is wired to the shared SQLDelight module yet.
 
 ### Web companion
 
@@ -89,7 +94,7 @@ Interfaces defining CRUD + Flow-based observation for each entity. Platform-spec
 Ktor-based HTTP client for the Conservatio server REST API (`/api/...`). Uses kotlinx.serialization for JSON encoding/decoding.
 
 ### shared/data/local/
-SQLDelight database with `expect/actual` pattern for platform-specific driver creation (AndroidSqliteDriver, NativeSqliteDriver).
+SQLDelight database with `expect/actual` pattern for platform-specific driver creation (AndroidSqliteDriver, NativeSqliteDriver). This is defined in the shared module but not yet consumed by the iOS or Android apps, which currently persist to native on-device stores.
 
 ## Security
 
@@ -101,13 +106,15 @@ SQLDelight database with `expect/actual` pattern for platform-specific driver cr
 ## Image Handling
 
 ### Capture
-- Native camera APIs on iOS (AVFoundation/PhotosUI) and Android (CameraX/MediaStore)
+- iOS: camera capture via UIImagePickerController and gallery import via PhotosUI
+- Android: gallery/document import (in-app camera capture is not yet implemented)
 - Images stored locally first, uploaded to the Conservatio server on sync
 
-### Annotation
-- Canvas-based overlay for marking damage areas
-- Annotations stored as percentage-based coordinates (responsive to display size)
-- Each annotation links to a DamageType and DamageSeverity
+### Annotation (iOS)
+- Tap-to-place numbered damage markers overlaid on a photo
+- Annotations stored as percentage-based coordinates (responsive to display size and orientation)
+- Each annotation links to a DamageType and DamageSeverity, and renders in the exported PDF with a legend
+- Not yet implemented on Android (its DamageAnnotation model has no coordinates)
 
 ### Storage
 - Original images uploaded to and stored on the Conservatio server
@@ -116,15 +123,18 @@ SQLDelight database with `expect/actual` pattern for platform-specific driver cr
 
 ## PDF Generation
 
-Reports are generated locally on mobile (offline capability):
-- iOS: Core Graphics / UIKit PDF rendering
-- Android: Android Print Framework / iText
+Reports are generated locally on-device, offline. Implemented on iOS only (Core Graphics / UIKit PDF rendering); Android PDF export and any web-side PDF generation are not implemented yet.
 
-The web companion can generate PDFs server-side via a Next.js API route.
+The iOS PDF currently includes:
+- Branded header with report metadata
+- Condition summary with controlled damage vocabulary
+- Photo documentation with numbered damage markers and a per-photo legend
+- Recommended-treatment notes and free-text notes
+- A condition-rating gauge
+- Content toggles (photos, annotations, gauge) and paper size (A4/Letter)
+- Report language: English, Greek, or bilingual Greek/English for headings, labels, controlled vocabulary, and dates; user-entered text is never translated
 
-PDF templates support:
-- Branded header with conservator/studio logo
-- Condition report with annotated images
-- Treatment proposal with step breakdown
-- Before/after comparison
-- Multilingual output (Greek, English initially)
+Planned:
+- Structured treatment proposals with a step breakdown
+- Before/after comparison plates
+- Android and web PDF export

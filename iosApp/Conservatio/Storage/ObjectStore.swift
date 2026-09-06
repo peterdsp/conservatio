@@ -14,37 +14,75 @@ class ObjectStore {
         load()
     }
 
+    @MainActor
     func add(_ object: ConservationObject) {
         objects.insert(object, at: 0)
         save()
-        Task { await syncCreatedObject(object) }
-    }
-
-    func update(_ object: ConservationObject) {
-        if let index = objects.firstIndex(where: { $0.id == object.id }) {
-            var updated = object
-            updated.updatedAt = Date()
-            objects[index] = updated
-            save()
-        }
-    }
-
-    func delete(_ object: ConservationObject) {
-        objects.removeAll { $0.id == object.id }
-        save()
-        Task { try? await APIClient.shared.deleteObject(id: object.id.uuidString) }
+        SyncEngine.shared.enqueue(.object, id: object.id.uuidString, operation: .create, body: Self.request(for: object))
     }
 
     @MainActor
+    func update(_ object: ConservationObject) {
+        guard let index = objects.firstIndex(where: { $0.id == object.id }) else { return }
+        var updated = object
+        updated.updatedAt = Date()
+        objects[index] = updated
+        save()
+        SyncEngine.shared.enqueue(.object, id: updated.id.uuidString, operation: .update, body: Self.request(for: updated))
+    }
+
+    @MainActor
+    func delete(_ object: ConservationObject) {
+        objects.removeAll { $0.id == object.id }
+        save()
+        SyncEngine.shared.enqueueDelete(.object, id: object.id.uuidString)
+    }
+
+    /// Pushes any pending local changes, then pulls the server and merges.
+    /// Records with unpushed local edits, and records that only exist locally,
+    /// are kept, so a pull never discards the user's unsynced work.
+    @MainActor
     func syncFromServer() async {
         guard APIClient.shared.isLoggedIn else { return }
+        await SyncEngine.shared.flush()
         do {
             let serverObjects = try await APIClient.shared.fetchObjects()
-            objects = serverObjects.compactMap { $0.conservationObject }
+            merge(serverObjects.compactMap { $0.conservationObject })
             save()
         } catch {
-            print("Failed to sync objects: \(error)")
+            print("Failed to pull objects: \(error)")
         }
+    }
+
+    /// Merge policy: local wins for records with a pending change or that the
+    /// server does not have; the server version is taken otherwise. Local-only
+    /// records are never deleted by a pull.
+    @MainActor
+    private func merge(_ serverObjects: [ConservationObject]) {
+        var byId: [UUID: ConservationObject] = [:]
+        for server in serverObjects { byId[server.id] = server }
+        for local in objects where SyncEngine.shared.hasPending(.object, id: local.id.uuidString) || byId[local.id] == nil {
+            byId[local.id] = local
+        }
+        objects = byId.values.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    static func request(for object: ConservationObject) -> CreateObjectRequest {
+        CreateObjectRequest(
+            id: object.id.uuidString,
+            title: object.title,
+            objectType: object.objectType.rawValue,
+            materials: object.materials,
+            height: object.dimensions?.height,
+            width: object.dimensions?.width,
+            depth: object.dimensions?.depth,
+            measurementUnit: object.dimensions?.unit.displayName,
+            ownerName: object.ownerName,
+            locationDescription: object.locationDescription,
+            inventoryNumber: object.inventoryNumber,
+            description: object.description,
+            imageIds: object.imageIds
+        )
     }
 
     func object(for id: UUID) -> ConservationObject? {
@@ -99,25 +137,6 @@ class ObjectStore {
         }
     }
 
-    private func syncCreatedObject(_ object: ConservationObject) async {
-        guard APIClient.shared.isLoggedIn else { return }
-        let request = CreateObjectRequest(
-            id: object.id.uuidString,
-            title: object.title,
-            objectType: object.objectType.rawValue,
-            materials: object.materials,
-            height: object.dimensions?.height,
-            width: object.dimensions?.width,
-            depth: object.dimensions?.depth,
-            measurementUnit: object.dimensions?.unit.displayName,
-            ownerName: object.ownerName,
-            locationDescription: object.locationDescription,
-            inventoryNumber: object.inventoryNumber,
-            description: object.description,
-            imageIds: object.imageIds
-        )
-        _ = try? await APIClient.shared.createObject(request)
-    }
 }
 
 private extension ServerObject {

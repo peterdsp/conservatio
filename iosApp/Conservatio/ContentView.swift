@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     var initialTab: Tab?
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: Tab = .dashboard
     @State private var objectStore = ObjectStore()
     @State private var reportStore = ReportStore()
@@ -61,7 +62,12 @@ struct ContentView: View {
             }
         }
         .task {
-            await objectStore.syncFromServer()
+            await fullSync()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await fullSync() }
+            }
         }
         .onOpenURL { url in
             handleDeepLink(url)
@@ -69,6 +75,17 @@ struct ContentView: View {
         .sheet(isPresented: $showCreateObject) {
             CreateObjectView(objectStore: objectStore)
         }
+    }
+
+    /// Pushes any pending local changes and pulls every record type, merging
+    /// without discarding unsynced local work. Safe to call when signed out
+    /// (each store no-ops) and safe to call repeatedly (the engine guards
+    /// against concurrent flushes).
+    private func fullSync() async {
+        await objectStore.syncFromServer()
+        await reportStore.syncFromServer()
+        await clientStore.syncFromServer()
+        await projectStore.syncFromServer()
     }
 
     private func handleDeepLink(_ url: URL) {

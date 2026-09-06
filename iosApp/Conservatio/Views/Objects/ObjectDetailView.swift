@@ -3,9 +3,23 @@ import SwiftUI
 struct ObjectDetailView: View {
     let object: ConservationObject
     var reportStore: ReportStore
-    @State private var showCreateReport = false
-    @State private var showPDFPreview = false
-    @State private var pdfData: Data?
+    @State private var activeSheet: ActiveSheet?
+
+    /// A single sheet driver. Two separate `.sheet(isPresented:)` modifiers on
+    /// one view (and presenting from a `Menu`) can race into a blank sheet, so
+    /// both the "new report" form and the PDF preview go through one
+    /// `.sheet(item:)`.
+    private enum ActiveSheet: Identifiable {
+        case newReport
+        case pdfPreview(Data)
+
+        var id: String {
+            switch self {
+            case .newReport: return "newReport"
+            case .pdfPreview: return "pdfPreview"
+            }
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -25,14 +39,14 @@ struct ObjectDetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button {
-                        showCreateReport = true
+                        activeSheet = .newReport
                     } label: {
                         Label("New Report", systemImage: "doc.badge.plus")
                     }
 
                     if let latestReport = reportStore.reports(for: object.id).first {
                         Button {
-                            generatePDF(for: latestReport)
+                            activeSheet = .pdfPreview(makePDFData(for: latestReport))
                         } label: {
                             Label("Export PDF", systemImage: "arrow.down.doc")
                         }
@@ -42,15 +56,12 @@ struct ObjectDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showCreateReport) {
-            CreateReportView(objectId: object.id, reportStore: reportStore)
-        }
-        .sheet(isPresented: $showPDFPreview) {
-            if let data = pdfData {
-                PDFPreviewView(
-                    pdfData: data,
-                    fileName: buildPDFFileName()
-                )
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .newReport:
+                CreateReportView(objectId: object.id, reportStore: reportStore, objectImageIds: object.imageIds)
+            case .pdfPreview(let data):
+                PDFPreviewView(pdfData: data, fileName: buildPDFFileName())
             }
         }
     }
@@ -153,7 +164,7 @@ struct ObjectDetailView: View {
                 Text("Condition Reports")
                     .font(.conservatioTitleMedium)
                 Spacer()
-                Button("Add") { showCreateReport = true }
+                Button("Add") { activeSheet = .newReport }
                     .font(.conservatioLabelLarge)
             }
 
@@ -177,16 +188,20 @@ struct ObjectDetailView: View {
 
     // MARK: - PDF Export
 
-    private func generatePDF(for report: ConditionReport) {
-        let images: [UIImage] = object.imageIds.compactMap { ImageStore.shared.load($0) }
+    private func makePDFData(for report: ConditionReport) -> Data {
+        // Prefer the images the report documents; fall back to the object's
+        // photos for older reports saved before photos were attached.
+        let ids = report.imageIds.isEmpty ? object.imageIds : report.imageIds
+        let photos: [ReportPhoto] = ids.compactMap { id in
+            ImageStore.shared.load(id).map { ReportPhoto(id: id, image: $0) }
+        }
         let generator = PDFReportGenerator()
-        pdfData = generator.generateReport(
+        return generator.generateReport(
             object: object,
             report: report,
-            objectImages: images,
+            photos: photos,
             conservatorName: report.examiner.isEmpty ? "Conservator" : report.examiner
         )
-        showPDFPreview = true
     }
 
     private func buildPDFFileName() -> String {

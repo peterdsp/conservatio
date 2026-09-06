@@ -20,14 +20,14 @@ The gap between "nothing" and "enterprise" is enormous. And it is exactly where 
 
 Before writing a single line of code, we analyzed the existing landscape. The research happened entirely in conversation, evaluating real products against real practitioner needs.
 
-**Existing tools reviewed:**
+**Existing tools reviewed** (positioning based on our own reading of publicly available product information, not a formal feature comparison):
 
-- **TMS Conservation Studio** (Gallery Systems): the gold standard for large institutions. Powerful, expensive, and designed for museums with dedicated registrars. Not accessible to a solo conservator.
-- **Horus Condition Report**: a mobile app for creating condition reports. Focused narrowly on one artifact type. No project management, no client tracking, no business workflow.
-- **Articheck**: digital condition reporting for art handling and logistics. Built for shipping and insurance, not for conservation treatment documentation.
-- **CatalogIt**: collections management aimed at small museums. Good for cataloging objects, but lacks the conservation-specific vocabulary and treatment documentation workflow.
+- **TMS Conservation Studio** (Gallery Systems): widely used by large institutions with dedicated registrars, and priced accordingly.
+- **Horus Condition Report**: a mobile app oriented around condition reports.
+- **Articheck**: digital condition reporting oriented toward art handling and logistics.
+- **CatalogIt**: collections management aimed at small museums.
 
-Each tool solves part of the problem. None combines conservation documentation with private practice business workflows and institutional standards in one platform.
+Our read was that each tool covers part of the workflow we care about; Conservatio aims to combine conservation documentation with private-practice business workflows in one place. These are our impressions for positioning, not verified claims about any competitor's current capabilities.
 
 We identified eight distinct market segments, ranging from solo freelance conservators to public heritage authorities. We ranked seven product ideas by market potential, technical feasibility, and alignment with the developer's domain knowledge.
 
@@ -125,7 +125,7 @@ The final stack is lean: PostgreSQL and a Ktor application server. Data stored o
 
 **Type safety end-to-end.** Kotlin domain models are shared between the mobile clients and the API server. When a new damage type is added to the enum, it propagates to every platform at compile time. No schema drift, no deserialization surprises, no mismatched field names.
 
-**Offline-first by design.** SQLDelight on mobile provides a local database that works with zero connectivity. Conservation work happens in church crypts, archaeological trenches, and museum storage rooms where cellular signal does not reach. Reports can be created, edited, and annotated entirely offline, then synced when connectivity returns.
+**Offline-first by design.** The mobile apps store records on device and work with zero connectivity. Conservation work happens in church crypts, archaeological trenches, and museum storage rooms where cellular signal does not reach. On iOS, objects and reports can be created, edited, and annotated entirely offline; each change is written locally and queued in a durable on-device outbox, then pushed to the server when connectivity returns, with visible sync status and retry. (The shared KMP module defines SQLDelight schemas for this role; the iOS client currently uses native on-device storage rather than the shared database.)
 
 **Image annotation with percentage coordinates.** Damage annotations on photographs are stored as percentage-based coordinates relative to the image dimensions. This makes annotations responsive to display size: the same annotation renders correctly on a phone screen, a tablet, and a desktop browser without coordinate translation.
 
@@ -145,16 +145,19 @@ The result is not a prototype or a wireframe collection. It is a buildable, depl
 
 Understanding the domain was essential. Conservation ethics (minimal intervention, reversibility, documentation as obligation), Spectrum standards for collections management, controlled vocabulary for damage types, annotation workflows for condition reporting, and the structural difference between institutional and private practice needs: all of this shaped every model, every screen, and every feature decision. Without that domain knowledge, the software would be a generic CRUD app with conservation-themed labels.
 
-## 9. What Is Next
+## 9. Current Status and What Is Next
 
-The foundation is laid. The roadmap focuses on the features that make the tool genuinely useful for daily conservation work:
+**Shipping today (iOS):** object registration with photos, condition reports with controlled damage vocabulary, on-photo damage annotation with numbered markers, PDF export with a damage legend in English, Greek, or bilingual Greek/English, and offline-first storage with a durable sync outbox to the self-hosted server.
 
-1. **Object creation flow**: full wizard for registering new objects with metadata, photography, and initial condition assessment. iOS first, then Android.
-2. **Image annotation canvas**: touch-based damage marking with typed annotations, layered overlays, and before/after comparison views.
-3. **PDF report generation**: professional condition reports matching the format conservators already use, with institutional branding, image plates, and damage maps.
-4. **Raspberry Pi deployment**: Docker Compose up, Cloudflare Tunnel configured, database seeded, and API live.
-5. **Beta testing**: real conservators in Greece using the tool on real projects, providing feedback on workflow fit.
-6. **Feature expansion**: environmental monitoring integration, GIS support for archaeological sites, and museum-lite CMS capabilities for small institutions.
+**In development:** the Android app is a Compose UI shell with the shared theme; it does not yet have the iOS feature set. The web companion handles CRUD against the API but does not generate PDFs.
+
+**Planned:**
+
+1. **Treatment proposals**: structured methodology, materials, cost estimates, and step-by-step plans with progress tracking. A `TreatmentProposal` domain model exists; the workflow and screens are not built yet. Reports currently capture recommended treatment as free text.
+2. **Before/after comparison** views for annotated images.
+3. **Android and web parity**: bring condition reporting, annotation, and PDF export to the other platforms.
+4. **Beta testing**: real conservators in Greece using the tool on real projects, providing feedback on workflow fit.
+5. **Feature expansion**: environmental monitoring integration, GIS support for archaeological sites, and museum-lite CMS capabilities for small institutions.
 
 ## 10. By the Numbers
 
@@ -175,4 +178,4 @@ The foundation is laid. The roadmap focuses on the features that make the tool g
 
 ---
 
-*Conservatio is open source. The code, architecture documentation, and design specifications are available on GitHub. Built by a conservation-aware engineer who believes that heritage professionals deserve tools as rigorous as the work they do.*
+*Conservatio is source-available under a proprietary license. The code, architecture documentation, and design specifications are published on GitHub for transparency and review. Built by a conservation-aware engineer who believes that heritage professionals deserve tools as rigorous as the work they do.*
