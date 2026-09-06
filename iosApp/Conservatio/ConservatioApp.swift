@@ -6,16 +6,23 @@ struct ConservatioApp: App {
     @State private var initialTab: Tab? = nil
     @State private var apiClient = APIClient.shared
     @State private var isAuthenticated = false
+    /// The app is offline-first. Once the user chooses to work without an
+    /// account, we remember it so they are not forced through the sign-in wall
+    /// on every launch (they can still sign in later from Settings to sync).
+    @State private var offlineMode = UserDefaults.standard.bool(forKey: "offlineMode")
 
     var body: some Scene {
         WindowGroup {
             ZStack {
-                if isAuthenticated || !showSplash {
-                    if apiClient.isLoggedIn || isAuthenticated {
+                if isAuthenticated || offlineMode || !showSplash {
+                    if apiClient.isLoggedIn || isAuthenticated || offlineMode {
                         ContentView(initialTab: initialTab)
                     } else {
                         LoginView(apiClient: apiClient) {
                             withAnimation { isAuthenticated = true }
+                        } onContinueOffline: {
+                            UserDefaults.standard.set(true, forKey: "offlineMode")
+                            withAnimation { offlineMode = true }
                         }
                     }
                 }

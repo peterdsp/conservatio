@@ -87,7 +87,7 @@ Jetpack Compose UI with a full Material 3 theme supporting both light and dark m
 SwiftUI with TabView navigation and NavigationStack routing. A dashboard with quick-action cards, custom typography using the SF system fonts, and a color system that maps the shared palette to iOS semantic colors.
 
 **Web companion:**
-Next.js 14 with the App Router, TypeScript throughout, and Tailwind CSS for styling. A collapsible sidebar navigation, stats dashboard with summary cards, and a Supabase client for data access.
+Next.js 14 with the App Router, TypeScript throughout, and Tailwind CSS for styling. A collapsible sidebar navigation, stats dashboard with summary cards, and a REST client that talks to the Ktor API for data access.
 
 **Backend:**
 Ktor API server with JWT-based authentication, bcrypt password hashing, Exposed ORM for database access, PostgreSQL as the data store, and local filesystem image storage. Full REST API covering users, objects, reports, and images.

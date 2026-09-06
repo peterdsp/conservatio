@@ -21,15 +21,6 @@ struct StorageInfoView: View {
                 }
             }
 
-            Section {
-                Button(role: .destructive) {
-                    // TODO: clear cache
-                } label: {
-                    Label("Clear Image Cache", systemImage: "trash")
-                }
-            } footer: {
-                Text("This removes cached thumbnails only. Original images are preserved.")
-            }
         }
         .navigationTitle("Storage")
         .onAppear {

@@ -73,7 +73,7 @@ struct CreateObjectView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(t("g.save")) { saveObject() }
-                        .disabled(title.isEmpty)
+                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .bold()
                 }
             }
@@ -245,7 +245,7 @@ struct CreateObjectView: View {
 
         let object = ConservationObject(
             id: existing?.id ?? UUID(),
-            title: title,
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             objectType: objectType,
             materials: materials,
             dimensions: dimensions,

@@ -3,11 +3,29 @@ import SwiftUI
 struct SettingsView: View {
     var objectStore: ObjectStore?
     @State private var showClearConfirm = false
+    @State private var api = APIClient.shared
+    @State private var showLogin = false
 
     var body: some View {
         NavigationStack {
             List {
                 Section(t("settings.account")) {
+                    if api.isLoggedIn {
+                        Button(role: .destructive) {
+                            api.logout()
+                            // Stay inside the offline-first app after signing out.
+                            UserDefaults.standard.set(true, forKey: "offlineMode")
+                        } label: {
+                            Label(t("g.signOut"), systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    } else {
+                        Button {
+                            showLogin = true
+                        } label: {
+                            Label(t("login.signInToSync"), systemImage: "person.crop.circle.badge.plus")
+                        }
+                    }
+
                     NavigationLink {
                         ProfileSettingsView()
                     } label: {
@@ -15,7 +33,7 @@ struct SettingsView: View {
                     }
 
                     NavigationLink {
-                        SyncSettingsView()
+                        SyncSettingsView(objectStore: objectStore)
                     } label: {
                         Label("Sync & Storage", systemImage: "arrow.triangle.2.circlepath")
                     }
@@ -93,6 +111,13 @@ struct SettingsView: View {
                 Button(t("g.cancel"), role: .cancel) {}
             } message: {
                 Text(t("settings.clearConfirm"))
+            }
+            .sheet(isPresented: $showLogin) {
+                LoginView(apiClient: api) {
+                    showLogin = false
+                    // Pull down anything already on the account after signing in.
+                    Task { await objectStore?.syncFromServer() }
+                }
             }
         }
     }

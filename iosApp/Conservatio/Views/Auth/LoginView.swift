@@ -8,6 +8,10 @@ struct LoginView: View {
 
     var apiClient: APIClient
     var onSuccess: () -> Void
+    /// Called when the user chooses to work offline without an account. The app
+    /// is offline-first, so every record is created locally; sync only happens
+    /// once the user signs in later.
+    var onContinueOffline: (() -> Void)?
 
     var body: some View {
         ZStack {
@@ -92,10 +96,33 @@ struct LoginView: View {
                         .padding(.horizontal, 32)
                 }
                 if isLoading && errorMessage == nil {
-                    Text("Finishing sign-in…")
+                    Text(t("login.finishingOauth"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .padding(.top, 12)
+                }
+
+                if let onContinueOffline {
+                    VStack(spacing: 6) {
+                        Button {
+                            onContinueOffline()
+                        } label: {
+                            Text(t("login.continueOffline"))
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Color.conservatioPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .disabled(isLoading)
+
+                        Text(t("login.offlineHint"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 18)
+                    .padding(.horizontal, 32)
                 }
 
                 Spacer()

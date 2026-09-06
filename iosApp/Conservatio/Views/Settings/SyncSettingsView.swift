@@ -36,31 +36,49 @@ enum StorageMode: String, CaseIterable, Codable {
         case .selfHosted: return "Connect to your own Conservatio server (Raspberry Pi, VPS, etc.)."
         }
     }
+
+    /// Whether this backend is actually implemented. The default Conservatio
+    /// server and self-hosted servers are wired through `APIClient`; the
+    /// third-party cloud providers are not yet available. To connect a
+    /// provider, see the Cloud Storage screen.
+    var isAvailable: Bool {
+        switch self {
+        case .local, .selfHosted: return true
+        case .googleDrive, .oneDrive, .iCloud: return false
+        }
+    }
 }
 
 struct SyncSettingsView: View {
+    var objectStore: ObjectStore?
+
     @AppStorage("storageMode") private var storageMode: StorageMode = .local
     @AppStorage("serverURL") private var serverURL: String = ""
     @AppStorage("autoSync") private var autoSync: Bool = true
     @AppStorage("syncPhotos") private var syncPhotos: Bool = true
     @AppStorage("syncOnWiFiOnly") private var syncOnWiFiOnly: Bool = true
-    @State private var lastSyncDate: Date? = nil
-    @State private var showServerConfig = false
+    @AppStorage("lastSyncAt") private var lastSyncAtRaw: Double = 0
+
+    @State private var isSyncing = false
+    @State private var isTesting = false
+    @State private var testResult: TestResult?
+
+    private var lastSyncDate: Date? {
+        lastSyncAtRaw > 0 ? Date(timeIntervalSince1970: lastSyncAtRaw) : nil
+    }
 
     var body: some View {
         List {
             Section {
                 ForEach(StorageMode.allCases, id: \.self) { mode in
                     Button {
+                        guard mode.isAvailable else { return }
                         storageMode = mode
-                        if mode == .selfHosted {
-                            showServerConfig = true
-                        }
                     } label: {
                         HStack {
                             Label {
                                 Text(mode.rawValue)
-                                    .foregroundStyle(Color.primary)
+                                    .foregroundStyle(mode.isAvailable ? Color.primary : Color.secondary)
                             } icon: {
                                 Image(systemName: mode.icon)
                                     .foregroundStyle(mode.iconColor)
@@ -68,18 +86,23 @@ struct SyncSettingsView: View {
 
                             Spacer()
 
-                            if storageMode == mode {
+                            if !mode.isAvailable {
+                                Text("Coming soon")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else if storageMode == mode {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(Color.conservatioPrimary)
                                     .fontWeight(.semibold)
                             }
                         }
                     }
+                    .disabled(!mode.isAvailable)
                 }
             } header: {
                 Text("Storage Location")
             } footer: {
-                Text(storageMode.description)
+                Text(storageMode.description + "\n\nTo mirror your data to Google Drive, iCloud, or OneDrive, open Cloud Storage in Settings.")
             }
 
             if storageMode == .selfHosted {
@@ -92,12 +115,29 @@ struct SyncSettingsView: View {
                             .textContentType(.URL)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
                     }
 
                     Button {
-                        // TODO: test connection
+                        Task { await testConnection() }
                     } label: {
-                        Label("Test Connection", systemImage: "antenna.radiowaves.left.and.right")
+                        HStack {
+                            Label("Test Connection", systemImage: "antenna.radiowaves.left.and.right")
+                            Spacer()
+                            if isTesting {
+                                ProgressView()
+                            } else if let result = testResult {
+                                Image(systemName: result.systemImage)
+                                    .foregroundStyle(result.color)
+                            }
+                        }
+                    }
+                    .disabled(isTesting)
+
+                    if let result = testResult {
+                        Text(result.message)
+                            .font(.caption)
+                            .foregroundStyle(result.color)
                     }
                 }
             }
@@ -109,7 +149,7 @@ struct SyncSettingsView: View {
                     Toggle("Wi-Fi Only", isOn: $syncOnWiFiOnly)
                 }
 
-                Section("Status") {
+                Section {
                     HStack {
                         Text("Last Sync")
                         Spacer()
@@ -118,9 +158,22 @@ struct SyncSettingsView: View {
                     }
 
                     Button {
-                        // TODO: trigger sync
+                        Task { await syncNow() }
                     } label: {
-                        Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
+                        HStack {
+                            Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
+                            Spacer()
+                            if isSyncing { ProgressView() }
+                        }
+                    }
+                    .disabled(isSyncing || !(objectStore?.isSignedIn ?? false))
+                } header: {
+                    Text("Status")
+                } footer: {
+                    if !(objectStore?.isSignedIn ?? false) {
+                        Text("Sign in to sync your objects with the Conservatio server.")
+                    } else {
+                        Text("Pulls the latest objects from the server. Reports, projects, and clients sync automatically when created.")
                     }
                 }
             }
@@ -131,12 +184,6 @@ struct SyncSettingsView: View {
                 } label: {
                     Label("Browse Local Files", systemImage: "folder")
                 }
-
-                Button {
-                    // TODO: export all data
-                } label: {
-                    Label("Export All Data", systemImage: "square.and.arrow.up")
-                }
             } header: {
                 Text("Data Management")
             }
@@ -144,55 +191,110 @@ struct SyncSettingsView: View {
         .navigationTitle("Sync & Storage")
     }
 
+    @MainActor
+    private func syncNow() async {
+        guard let objectStore, objectStore.isSignedIn else { return }
+        isSyncing = true
+        await objectStore.syncFromServer()
+        lastSyncAtRaw = Date().timeIntervalSince1970
+        isSyncing = false
+    }
+
+    @MainActor
+    private func testConnection() async {
+        testResult = nil
+        isTesting = true
+        defer { isTesting = false }
+
+        let candidate = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: candidate), url.scheme != nil, url.host != nil else {
+            testResult = .init(ok: false, message: "Enter a valid URL, for example https://api.example.com")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if response is HTTPURLResponse {
+                // Any HTTP response means the host answered and is reachable.
+                testResult = .init(ok: true, message: "Server reachable.")
+            } else {
+                testResult = .init(ok: false, message: "No HTTP response from server.")
+            }
+        } catch {
+            testResult = .init(ok: false, message: "Could not reach server: \(error.localizedDescription)")
+        }
+    }
+
     private func formatDate(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return formatter.localizedString(for: date, relativeTo: Date())
     }
+
+    private struct TestResult {
+        let ok: Bool
+        let message: String
+        var color: Color { ok ? .green : .red }
+        var systemImage: String { ok ? "checkmark.circle.fill" : "xmark.circle.fill" }
+    }
 }
 
 struct LocalFilesView: View {
+    @State private var objectCount = 0
+    @State private var reportCount = 0
+    @State private var imageCount = 0
+    @State private var imageBytes: Int64 = 0
+
     var body: some View {
         List {
             Section("Objects") {
-                HStack {
-                    Text("Saved Objects")
-                    Spacer()
-                    Text("0")
-                        .foregroundStyle(.secondary)
-                }
+                LabeledContent("Saved Objects", value: "\(objectCount)")
             }
 
             Section("Images") {
-                HStack {
-                    Text("Stored Images")
-                    Spacer()
-                    Text("0")
-                        .foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text("Total Size")
-                    Spacer()
-                    Text("0 MB")
-                        .foregroundStyle(.secondary)
-                }
+                LabeledContent("Stored Images", value: "\(imageCount)")
+                LabeledContent("Total Size", value: ByteCountFormatter.string(fromByteCount: imageBytes, countStyle: .file))
             }
 
             Section("Reports") {
-                HStack {
-                    Text("Saved Reports")
-                    Spacer()
-                    Text("0")
-                        .foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text("Exported PDFs")
-                    Spacer()
-                    Text("0")
-                        .foregroundStyle(.secondary)
-                }
+                LabeledContent("Saved Reports", value: "\(reportCount)")
             }
         }
         .navigationTitle("Local Files")
+        .onAppear(perform: calculate)
+    }
+
+    private func calculate() {
+        let fm = FileManager.default
+        guard let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+
+        objectCount = decodeCount(at: docs.appendingPathComponent("conservation_objects.json"))
+        reportCount = decodeCount(at: docs.appendingPathComponent("condition_reports.json"))
+
+        var images = 0
+        var bytes: Int64 = 0
+        if let enumerator = fm.enumerator(at: docs, includingPropertiesForKeys: [.fileSizeKey]) {
+            for case let fileURL as URL in enumerator {
+                let ext = fileURL.pathExtension.lowercased()
+                if ext == "jpeg" || ext == "jpg" || ext == "png" {
+                    images += 1
+                    if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                        bytes += Int64(size)
+                    }
+                }
+            }
+        }
+        imageCount = images
+        imageBytes = bytes
+    }
+
+    private func decodeCount(at url: URL) -> Int {
+        guard let data = try? Data(contentsOf: url),
+              let array = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return 0 }
+        return array.count
     }
 }

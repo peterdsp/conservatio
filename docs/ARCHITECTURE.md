@@ -21,13 +21,14 @@ Conservatio follows a multiplatform architecture with KMP (Kotlin Multiplatform)
           │               │
           └───── Sync ────┘
                   │
-         ┌───────┴────────┐
-         │  Supabase       │
-         │  ├── Postgres   │
-         │  ├── Auth       │
-         │  ├── Storage    │
-         │  └── Realtime   │
-         └───────┬─────────┘
+         ┌────────┴────────────┐
+         │  Server (Ktor)       │
+         │  ├── PostgreSQL      │
+         │  ├── JWT + OAuth     │
+         │  ├── Image storage   │
+         │  └── REST /api/...   │
+         │  Self-hosted (Docker)│
+         └────────┬────────────┘
                  │
          ┌───────┴────────┐
          │  Web (Next.js)  │
@@ -44,13 +45,13 @@ Conservatio follows a multiplatform architecture with KMP (Kotlin Multiplatform)
 1. User creates/edits data on mobile
 2. Data is saved to local SQLDelight database immediately
 3. Record is marked with `sync_status = PENDING`
-4. When online, sync service pushes pending records to Supabase
+4. When online, the sync service pushes pending records to the Conservatio server (Ktor REST API)
 5. On success, `sync_status` is updated to `SYNCED`
 6. Periodic pull fetches remote changes
 
 ### Web companion
 
-The web app connects directly to Supabase via the JS client SDK. No offline support needed for desktop use.
+The web app connects directly to the Conservatio server via its REST API (`/api/...`). No offline support needed for desktop use.
 
 ## Domain Model
 
@@ -85,23 +86,23 @@ Kotlin data classes with `@Serializable` annotation. These are the source of tru
 Interfaces defining CRUD + Flow-based observation for each entity. Platform-specific implementations use SQLDelight for local storage.
 
 ### shared/data/remote/
-Ktor-based HTTP client for Supabase REST API. Uses kotlinx.serialization for JSON encoding/decoding.
+Ktor-based HTTP client for the Conservatio server REST API (`/api/...`). Uses kotlinx.serialization for JSON encoding/decoding.
 
 ### shared/data/local/
 SQLDelight database with `expect/actual` pattern for platform-specific driver creation (AndroidSqliteDriver, NativeSqliteDriver).
 
 ## Security
 
-- Supabase Row Level Security (RLS) ensures data isolation per user
-- All tables require `auth.uid() = user_id` for access
-- Images stored in private Supabase Storage buckets
+- The Ktor server scopes every query to the authenticated user, ensuring data isolation
+- Requests are authenticated with a JWT (email/password or OAuth) sent as a Bearer token
+- Images are stored on the server and served only to their owner
 - No sensitive data stored in plain text locally
 
 ## Image Handling
 
 ### Capture
 - Native camera APIs on iOS (AVFoundation/PhotosUI) and Android (CameraX/MediaStore)
-- Images stored locally first, uploaded to Supabase Storage on sync
+- Images stored locally first, uploaded to the Conservatio server on sync
 
 ### Annotation
 - Canvas-based overlay for marking damage areas
@@ -109,8 +110,8 @@ SQLDelight database with `expect/actual` pattern for platform-specific driver cr
 - Each annotation links to a DamageType and DamageSeverity
 
 ### Storage
-- Original images stored in Supabase Storage bucket
-- Thumbnails generated on upload (Supabase Image Transformations)
+- Original images uploaded to and stored on the Conservatio server
+- The server returns an image ID (`<uuid>.jpg`) referenced by the parent record
 - Image IDs stored as arrays in the parent record
 
 ## PDF Generation

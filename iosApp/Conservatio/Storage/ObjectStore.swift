@@ -5,6 +5,9 @@ class ObjectStore {
     private(set) var objects: [ConservationObject] = []
     private let fileURL: URL
 
+    /// Whether the user is signed in and therefore able to sync with the server.
+    var isSignedIn: Bool { APIClient.shared.isLoggedIn }
+
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         fileURL = docs.appendingPathComponent("conservation_objects.json")

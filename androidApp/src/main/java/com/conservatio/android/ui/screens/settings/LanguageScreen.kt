@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
+import com.conservatio.android.ui.LocalSetLanguage
+import com.conservatio.android.ui.Strings
 import com.conservatio.android.ui.theme.ConservatioColors
 
 private data class LangOption(val code: String, val label: String)
@@ -54,15 +56,18 @@ private val reportLanguages = listOf(
 @Composable
 fun LanguageScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val prefs = context.getSharedPreferences("conservatio", Context.MODE_PRIVATE)
-    var appLang by remember { mutableStateOf(prefs.getString("app_language", "en") ?: "en") }
-    var reportLang by remember { mutableStateOf(prefs.getString("report_language", "en") ?: "en") }
+    val prefs = context.getSharedPreferences(Strings.PREFS, Context.MODE_PRIVATE)
+    // Switches the app UI language live and persists it (same source of truth
+    // the whole tree reads through str()).
+    val setAppLanguage = LocalSetLanguage.current
+    var appLang by remember { mutableStateOf(prefs.getString(Strings.KEY_APP_LANGUAGE, "en") ?: "en") }
+    var reportLang by remember { mutableStateOf(prefs.getString(Strings.KEY_REPORT_LANGUAGE, "en") ?: "en") }
 
-    fun save() {
-        prefs.edit()
-            .putString("app_language", appLang)
-            .putString("report_language", reportLang)
-            .apply()
+    // Persist the report language immediately on each tap so the choice
+    // survives even when the user leaves via the system back gesture.
+    fun selectReportLanguage(code: String) {
+        reportLang = code
+        prefs.edit().putString(Strings.KEY_REPORT_LANGUAGE, code).apply()
     }
 
     Scaffold(
@@ -70,7 +75,7 @@ fun LanguageScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text("Language") },
                 navigationIcon = {
-                    IconButton(onClick = { save(); onBack() }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, "Back")
                     }
                 },
@@ -86,7 +91,7 @@ fun LanguageScreen(onBack: () -> Unit) {
             appLanguages.forEach { lang ->
                 item {
                     Card(
-                        onClick = { appLang = lang.code },
+                        onClick = { appLang = lang.code; setAppLanguage(lang.code) },
                         colors = if (appLang == lang.code) {
                             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                         } else {
@@ -116,7 +121,7 @@ fun LanguageScreen(onBack: () -> Unit) {
             reportLanguages.forEach { lang ->
                 item {
                     Card(
-                        onClick = { reportLang = lang.code },
+                        onClick = { selectReportLanguage(lang.code) },
                         colors = if (reportLang == lang.code) {
                             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                         } else {
