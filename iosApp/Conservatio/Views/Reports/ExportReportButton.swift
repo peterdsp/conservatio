@@ -3,18 +3,21 @@ import SwiftUI
 struct ExportReportButton: View {
     let object: ConservationObject
     let report: ConditionReport
-    let objectImages: [UIImage]
 
     @State private var showPreview = false
     @State private var pdfData: Data?
 
     var body: some View {
         Button {
+            let ids = report.imageIds.isEmpty ? object.imageIds : report.imageIds
+            let photos: [ReportPhoto] = ids.compactMap { id in
+                ImageStore.shared.load(id).map { ReportPhoto(id: id, image: $0) }
+            }
             let generator = PDFReportGenerator()
             pdfData = generator.generateReport(
                 object: object,
                 report: report,
-                objectImages: objectImages,
+                photos: photos,
                 conservatorName: report.examiner.isEmpty ? "Conservator" : report.examiner
             )
             showPreview = true

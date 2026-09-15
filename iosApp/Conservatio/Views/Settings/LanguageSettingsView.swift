@@ -13,14 +13,12 @@ struct LanguageSettingsView: View {
         ("el", "Ελληνικά"),
     ]
 
+    // Only the report languages Conservatio actually renders. Bilingual prints
+    // Greek and English side by side for EU and cross-border documentation.
     private let reportLanguages: [(String, String)] = [
         ("en", "English"),
         ("el", "Ελληνικά"),
-        ("it", "Italiano"),
-        ("es", "Español"),
-        ("fr", "Français"),
-        ("de", "Deutsch"),
-        ("tr", "Türkçe"),
+        ("el+en", "Ελληνικά / English"),
     ]
 
     var body: some View {

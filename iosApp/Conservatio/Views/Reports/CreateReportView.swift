@@ -5,6 +5,9 @@ struct CreateReportView: View {
     let objectId: UUID
     var reportStore: ReportStore
     var existing: ConditionReport?
+    /// The object's photo ids, so damage markers can be placed on them and the
+    /// report can document those photos in its exported PDF.
+    var objectImageIds: [String] = []
 
     @State private var reportType: ReportType
     @State private var overallCondition: ConditionRating
@@ -15,10 +18,11 @@ struct CreateReportView: View {
     @State private var damageAnnotations: [DamageAnnotation]
     @State private var showAddDamage = false
 
-    init(objectId: UUID, reportStore: ReportStore, existing: ConditionReport? = nil) {
+    init(objectId: UUID, reportStore: ReportStore, existing: ConditionReport? = nil, objectImageIds: [String] = []) {
         self.objectId = objectId
         self.reportStore = reportStore
         self.existing = existing
+        self.objectImageIds = objectImageIds
         _reportType = State(initialValue: existing?.reportType ?? .initialAssessment)
         _overallCondition = State(initialValue: existing?.overallCondition ?? .fair)
         _examiner = State(initialValue: existing?.examiner ?? "")
@@ -54,6 +58,8 @@ struct CreateReportView: View {
                     TextField("Your name", text: $examiner)
                     DatePicker("Date", selection: $examinationDate, displayedComponents: .date)
                 }
+
+                photoAnnotationSection
 
                 Section {
                     if damageAnnotations.isEmpty {
@@ -118,6 +124,52 @@ struct CreateReportView: View {
         }
     }
 
+    /// Lets the conservator open each object photo and drop numbered damage
+    /// markers on it. Markers are stored as percentage coordinates against the
+    /// photo, so they render on the matching photo in the exported PDF.
+    @ViewBuilder
+    private var photoAnnotationSection: some View {
+        if !objectImageIds.isEmpty {
+            Section {
+                ForEach(objectImageIds, id: \.self) { imageId in
+                    if let image = ImageStore.shared.load(imageId) {
+                        NavigationLink {
+                            ImageAnnotationView(
+                                image: image,
+                                imageId: imageId,
+                                annotations: $damageAnnotations
+                            )
+                            .navigationTitle("Annotate Photo")
+                            .navigationBarTitleDisplayMode(.inline)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 56, height: 56)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                let count = markerCount(for: imageId)
+                                Text(count == 0
+                                     ? "Tap to place damage markers"
+                                     : "\(count) marker\(count == 1 ? "" : "s")")
+                                    .font(.conservatioBodyMedium)
+                                    .foregroundStyle(count == 0 ? .secondary : .primary)
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Photos")
+            } footer: {
+                Text("Open a photo to mark damage directly on it. Markers appear on the matching photo in the exported PDF.")
+            }
+        }
+    }
+
+    private func markerCount(for imageId: String) -> Int {
+        damageAnnotations.filter { $0.imageId == imageId && $0.xPercent != nil }.count
+    }
+
     private func saveReport() {
         let report = ConditionReport(
             id: existing?.id ?? UUID(),
@@ -129,6 +181,7 @@ struct CreateReportView: View {
             damageAnnotations: damageAnnotations,
             notes: notes.isEmpty ? nil : notes,
             recommendations: recommendations.isEmpty ? nil : recommendations,
+            imageIds: existing?.imageIds.isEmpty == false ? existing!.imageIds : objectImageIds,
             createdAt: existing?.createdAt ?? Date(),
             updatedAt: Date()
         )
