@@ -1,0 +1,249 @@
+/* Conservatio landing page, scoped to .cv-landing so nothing reaches the
+   web companion on /app. Generated from site/styles.css by the snippet in
+   that commit; edit site/styles.css and regenerate rather than this file. */
+@import url("https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&display=swap");
+
+/* Conservatio, conservatio.peterdsp.dev
+   Direction: "The quiet instrument" (tasteskill v2, seed 430420627)
+   Type: Albert Sans · Colour: frost and slate
+   The idea: the condition report's own fields become the page's structure, and
+   the page's one live control is the loupe that measures damage off a photograph. */
+.cv-landing {
+  --bg: #f7f9fa;
+  --surface: #ecf0f2;
+  --ink: #1f3038;
+  --muted: #5d6b72;
+  --accent: #0d7480;
+  --accent-ink: #ffffff;
+
+  --font-display: "Albert Sans", system-ui, sans-serif;
+  --font-text: "Albert Sans", system-ui, sans-serif;
+
+  --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.9375rem);
+  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.5rem);
+  --step-head: clamp(1.5rem, 1.15rem + 1.5vw, 2.25rem);
+  --step-display: clamp(1.625rem, 1.3rem + 1.4vw, 2rem);
+
+  --margin: clamp(1.25rem, 2.6vw, 2.5rem);
+  --col: 42rem;
+  --section: clamp(4rem, 6vw, 6rem);
+  --radius: 0px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cv-landing *, .cv-landing *::before, .cv-landing *::after { box-sizing: border-box; }
+.cv-landing {
+  min-height: 100vh; margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-text); font-size: var(--step-body);
+  line-height: 1.5; letter-spacing: 0;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+.cv-landing h1, .cv-landing h2, .cv-landing h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.035em; line-height: 1.0; margin: 0; text-wrap: balance; }
+.cv-landing p { margin: 0; }
+.cv-landing img { display: block; max-width: 100%; }
+.cv-landing a { color: inherit; }
+.cv-landing ul, .cv-landing ol { list-style: none; margin: 0; padding: 0; }
+.cv-landing button, .cv-landing input { font: inherit; color: inherit; }
+.cv-landing ::selection { background: var(--ink); color: var(--bg); }
+.cv-landing :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.cv-landing .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.cv-landing .skip { position: absolute; left: -9999px; }
+.cv-landing .skip:focus { left: 1rem; top: 1rem; z-index: 99; background: var(--ink); color: var(--bg); padding: 12px 18px; }
+.cv-landing .btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 20px;
+  background: var(--accent); color: var(--accent-ink);
+  font-weight: 500; font-size: var(--step-body); text-decoration: none;
+  border: 0; border-radius: var(--radius); cursor: pointer;
+  transition: opacity 180ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.cv-landing .btn:hover { opacity: 0.88; }
+.cv-landing .btn:active { transform: translateY(1px); }
+.cv-landing .tlink { font-weight: 500; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.cv-landing .tlink:hover { opacity: 0.65; }
+/* ---------- hero: a control that reads the page ---------- */
+.cv-landing .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 94svh; position: relative; }
+.cv-landing .hero-l { background: var(--ink); color: var(--bg); display: flex; flex-direction: column; justify-content: space-between; padding: clamp(1.5rem, 2.6vw, 2.5rem); }
+.cv-landing .hero-r { background: var(--surface); display: grid; place-items: center; padding: clamp(1.5rem, 3vw, 3rem); }
+.cv-landing .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-size: var(--step-small); }
+.cv-landing .hero-mark { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.03em; text-decoration: none; }
+.cv-landing .hero-mark img { width: 26px; height: 26px; }
+.cv-landing .hero-l h1 { font-size: var(--step-display); line-height: 1.12; max-width: 17ch; }
+.cv-landing .hero-l .sub { margin-top: 1.1rem; max-width: 44ch; font-size: var(--step-body); color: color-mix(in srgb, var(--bg) 78%, transparent); line-height: 1.55; }
+.cv-landing .hero-act { margin-top: 1.6rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
+.cv-landing .hero-act .tlink { font-size: var(--step-body); }
+.cv-landing .hero-bottom { max-width: 46ch; }
+/* the loupe: the product's defining control, working on a real fresco */
+.cv-landing .loupe { width: min(450px, 100%); }
+.cv-landing .loupe-img { position: relative; overflow: hidden; background: var(--ink); cursor: crosshair; touch-action: none; aspect-ratio: 3 / 4; }
+.cv-landing .loupe-img img { width: 100%; height: 100%; object-fit: cover; }
+.cv-landing .mark {
+  position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+  border: 2px solid var(--accent-ink); border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  display: grid; place-items: center; cursor: pointer; padding: 0;
+}
+.cv-landing .mark[aria-pressed="true"] { background: var(--accent); transform: scale(1.18); }
+.cv-landing .mark i { width: 4px; height: 4px; background: var(--accent-ink); border-radius: 50%; display: block; }
+.cv-landing .xhair { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 160ms var(--ease-out); }
+.cv-landing .loupe-img:hover .xhair { opacity: 1; }
+.cv-landing .xhair b { position: absolute; background: color-mix(in srgb, var(--accent-ink) 70%, transparent); display: block; }
+.cv-landing .xhair .vx { top: 0; bottom: 0; width: 1px; }
+/* taste-skill-ignore: crosshair inside the data-ui loupe */
+.cv-landing .xhair .hz { left: 0; right: 0; height: 1px; }
+/* taste-skill-ignore: crosshair inside the data-ui loupe */
+.cv-landing .loupe-read { background: var(--bg); padding: 12px 14px; font-size: 13px; line-height: 1.45; }
+.cv-landing .loupe-read dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; }
+.cv-landing .loupe-read dt { color: var(--muted); }
+.cv-landing .loupe-read dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.cv-landing .loupe-cap { margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+/* ---------- the page column ---------- */
+.cv-landing .band { padding-block: var(--section); padding-inline: var(--margin); }
+.cv-landing .band.sur { background: var(--surface); }
+.cv-landing .band.sur [data-ui] { background: var(--bg); }
+.cv-landing .band.sur [data-ui] .ui-bar { background: color-mix(in srgb, var(--ink) 9%, var(--bg)); }
+/* the narrow column, and the picture that closes the far side of the screen */
+.cv-landing .col { width: min(var(--col), 100%); margin-left: max(var(--margin), 14vw); }
+.cv-landing .colpic { display: grid; grid-template-columns: minmax(0, var(--col)) minmax(0, 0.95fr); gap: clamp(2rem, 5vw, 5rem); align-items: stretch; margin-left: max(var(--margin), 10vw); }
+.cv-landing .colpic > figure { margin: 0; display: flex; flex-direction: column; }
+.cv-landing .colpic img { width: 100%; height: 100%; min-height: 380px; object-fit: cover; }
+.cv-landing .colpic figcaption { margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+@media (max-width: 1100px) {
+.cv-landing .colpic { grid-template-columns: 1fr; margin-left: 0; }
+.cv-landing .colpic img { min-height: 0; height: auto; } }
+@media (max-width: 1100px) {
+.cv-landing .col { margin-left: 0; } }
+.cv-landing .band h2 { font-size: var(--step-head); max-width: 18ch; }
+.cv-landing .band .intro { margin-top: 1.1rem; max-width: 46ch; }
+.cv-landing .band .intro + * { margin-top: 2.5rem; }
+/* ---------- showcase: one row, three states ---------- */
+.cv-landing .lit { background: var(--ink); color: var(--bg); padding-block: clamp(4rem, 8vw, 7rem); padding-inline: var(--margin); }
+.cv-landing .states { margin-left: max(0px, 8vw); }
+.cv-landing .lit h2 { max-width: 20ch; margin-bottom: clamp(2.5rem, 5vw, 4.5rem); }
+.cv-landing .state { display: grid; grid-template-columns: minmax(0, 7rem) minmax(0, 640px); gap: clamp(1rem, 2.5vw, 2.5rem); align-items: start; }
+.cv-landing .state + .state { margin-top: 56px; }
+.cv-landing .state .word { text-align: right; font-size: var(--step-lead); font-weight: 500; letter-spacing: -0.02em; color: color-mix(in srgb, var(--bg) 72%, transparent); }
+.cv-landing .state .says { grid-column: 2; margin-top: 10px; font-size: var(--step-body); color: color-mix(in srgb, var(--bg) 78%, transparent); max-width: 52ch; }
+.cv-landing .state.live [data-ui] { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cv-landing .state button.act { margin-top: 10px; background: var(--accent); color: var(--accent-ink); border: 0; min-height: 36px; padding: 0 14px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.cv-landing .state button.act:hover { opacity: .88; }
+/* ---------- interface fragments ---------- */
+.cv-landing [data-ui] { background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.4; max-width: 100%; min-width: 0; }
+.cv-landing [data-ui] .ui-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface); font-weight: 500; }
+.cv-landing [data-ui] .ui-main { padding: 12px; }
+.cv-landing [data-ui] .f { display: grid; grid-template-columns: 8.5rem 1fr; gap: 4px 12px; }
+.cv-landing [data-ui] .f dt { color: var(--muted); }
+.cv-landing [data-ui] .f dd { margin: 0; font-weight: 500; }
+.cv-landing [data-ui] .r { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; }
+.cv-landing [data-ui] .r + .r { border-top: 1px solid var(--surface); }
+/* taste-skill-ignore: inside a data-ui fragment */
+.cv-landing [data-ui] .sev { font-weight: 500; }
+.cv-landing [data-ui] .gauge { height: 8px; background: var(--surface); margin-top: 8px; }
+.cv-landing [data-ui] .gauge i { display: block; height: 100%; background: var(--accent); }
+.cv-landing [data-ui] .chip { padding: 3px 9px; background: var(--surface); font-size: 12px; font-weight: 500; }
+/* ---------- how it works: the itinerary slip ---------- */
+.cv-landing .slip-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); gap: clamp(2rem, 6vw, 6rem); align-items: start; }
+.cv-landing .slip {
+  background: var(--bg); padding: 1.75rem 1.5rem 2.5rem; font-size: 1rem;
+  --zig: 10px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--zig)),
+    96% 100%, 92% calc(100% - var(--zig)), 88% 100%, 84% calc(100% - var(--zig)), 80% 100%,
+    76% calc(100% - var(--zig)), 72% 100%, 68% calc(100% - var(--zig)), 64% 100%,
+    60% calc(100% - var(--zig)), 56% 100%, 52% calc(100% - var(--zig)), 48% 100%,
+    44% calc(100% - var(--zig)), 40% 100%, 36% calc(100% - var(--zig)), 32% 100%,
+    28% calc(100% - var(--zig)), 24% 100%, 20% calc(100% - var(--zig)), 16% 100%,
+    12% calc(100% - var(--zig)), 8% 100%, 4% calc(100% - var(--zig)), 0 100%);
+}
+.cv-landing .slip h3 { font-size: var(--step-small); font-weight: 600; letter-spacing: 0; margin-top: 1.75rem; }
+.cv-landing .slip h3:first-of-type { margin-top: 0; }
+.cv-landing .slip .line { display: flex; align-items: baseline; gap: 6px; margin-top: 0.6rem; font-size: 1rem; }
+.cv-landing .slip .line .what { flex: 0 1 auto; }
+.cv-landing .slip .line .dots { flex: 1 1 auto; min-width: 12px; border-bottom: 2px dotted color-mix(in srgb, var(--muted) 55%, transparent); transform: translateY(-4px); }
+.cv-landing .slip .line .val { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cv-landing .slip .total { margin: 1.75rem -1.5rem 0; background: var(--ink); color: var(--bg); padding: 12px 1.5rem; display: flex; justify-content: space-between; gap: 12px; font-weight: 500; }
+/* ---------- features: a panel with margin notes ---------- */
+.cv-landing .plate { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px) minmax(0, 1fr); gap: clamp(1.5rem, 2.6vw, 2.5rem); align-items: start; }
+.cv-landing .plate .note { max-width: 30ch; }
+.cv-landing .plate .note + .note { margin-top: clamp(2rem, 3.4vw, 3rem); }
+.cv-landing .plate .note b { display: block; font-size: var(--step-body); font-weight: 600; margin-bottom: 4px; }
+.cv-landing .plate .note span { font-size: var(--step-body); color: var(--muted); line-height: 1.5; }
+.cv-landing .plate .l { text-align: right; }
+.cv-landing .plate .l .note { margin-left: auto; }
+.cv-landing .plate .panel { align-self: start; }
+.cv-landing .plate h2 { grid-column: 1; text-align: right; margin-left: auto; max-width: 14ch; margin-bottom: clamp(1.5rem, 3vw, 2.5rem); }
+/* ---------- list: two-ended rows ---------- */
+.cv-landing .rows { width: min(var(--col), 100%); }
+.cv-landing .rows .grp { margin-top: 2.5rem; font-size: var(--step-body); font-weight: 500; color: var(--muted); }
+.cv-landing .rows .grp:first-child { margin-top: 0; }
+.cv-landing .rows .row { display: flex; align-items: baseline; justify-content: space-between; gap: 1.5rem; padding: 10px 0; min-height: 38px; }
+.cv-landing .rows .row .nm { display: flex; align-items: baseline; gap: 10px; font-size: var(--step-body); font-weight: 500; }
+.cv-landing .rows .row .nm i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: block; flex: none; transform: translateY(-1px); }
+.cv-landing .rows .row .nm i.part { background: color-mix(in srgb, var(--accent) 42%, var(--surface)); }
+.cv-landing .rows .row .nm i.soon { background: var(--surface); }
+.cv-landing .rows .row .v { font-size: var(--step-body); color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+/* ---------- proof: one quiet row of names ---------- */
+.cv-landing .whom { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1rem 2.5rem; }
+.cv-landing .whom .lead { font-size: var(--step-body); color: var(--muted); }
+.cv-landing .whom span.n { font-size: var(--step-lead); font-weight: 500; letter-spacing: -0.02em; }
+/* ---------- cta and footer ---------- */
+.cv-landing .cta { padding-block: clamp(5rem, 12vh, 9rem) clamp(4rem, 9vh, 7rem); padding-inline: var(--margin); }
+.cv-landing .cta p { max-width: 34ch; font-size: var(--step-lead); line-height: 1.4; }
+.cv-landing .cta .act { margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
+.cv-landing .foot { padding: 0 var(--margin) 2rem; }
+.cv-landing .foot .in { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: baseline; font-size: var(--step-body); color: var(--muted); }
+.cv-landing .foot .in nav { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; }
+.cv-landing .foot .in a { color: var(--ink); }
+.cv-landing .foot .in :last-child { text-align: right; }
+.cv-landing .credits { margin-top: 1.5rem; font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 80ch; }
+.cv-landing .credits a { color: inherit; }
+/* ---------- motion ---------- */
+.cv-landing .mask { overflow: hidden; }
+.cv-landing .mask > span { display: block; transform: translateY(105%); }
+.cv-landing .in .mask > span { transform: none; transition: transform 900ms var(--ease-expo); }
+.cv-landing .in .mask:nth-of-type(2) > span { transition-delay: 110ms; }
+.cv-landing .rise { opacity: 0; transform: translateY(18px); }
+.cv-landing .in .rise, .cv-landing .in.rise { opacity: 1; transform: none; transition: opacity 700ms var(--ease-expo), transform 700ms var(--ease-expo); }
+.cv-landing .in .rise:nth-child(2) { transition-delay: 70ms; }
+.cv-landing .in .rise:nth-child(3) { transition-delay: 140ms; }
+.cv-landing .in .rise:nth-child(4) { transition-delay: 210ms; }
+@media (max-width: 900px) {
+.cv-landing .fig-grid { grid-template-columns: 1fr; align-items: start; }
+.cv-landing .verdicts { columns: 1; }
+/* The blueprint puts the fragment first on a phone. The house rules want the
+     page's title on the first screen and no short line directly above it, and
+     they outrank the blueprint, so the title block leads and the loupe follows. */
+.cv-landing .hero { grid-template-columns: 1fr; min-height: 0; position: relative; }
+.cv-landing .hero-l { order: 1; padding: 7.5rem var(--margin) 2.25rem; }
+.cv-landing .hero-r { order: 2; min-height: 0; padding: 0 var(--margin) 2.5rem; }
+.cv-landing .hero-top {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+    padding: 1.25rem var(--margin); margin: 0; color: var(--bg);
+  }
+.cv-landing .loupe { width: 100%; max-width: 460px; }
+.cv-landing .loupe-img { aspect-ratio: 4 / 3; }
+.cv-landing .slip-wrap { grid-template-columns: 1fr; }
+.cv-landing .plate { grid-template-columns: 1fr; }
+.cv-landing .plate h2 { text-align: left; margin-left: 0; max-width: none; }
+.cv-landing .plate .l { text-align: left; }
+.cv-landing .plate .l .note { margin-left: 0; }
+.cv-landing .plate .panel { order: -1; }
+.cv-landing .states { margin-left: 0; }
+.cv-landing .state { grid-template-columns: 1fr; gap: 10px; }
+.cv-landing .state .word { text-align: left; order: 2; }
+.cv-landing .state .says { grid-column: 1; order: 3; }
+.cv-landing .state + .state { margin-top: 48px; }
+.cv-landing .lit-head { grid-template-columns: 1fr; align-items: start; }
+.cv-landing .colpic { grid-template-columns: 1fr; margin-left: 0; }
+.cv-landing .colpic img { min-height: 0; height: auto; }
+.cv-landing .foot .in { grid-template-columns: 1fr; }
+.cv-landing .foot .in nav { justify-content: flex-start; }
+.cv-landing .foot .in :last-child { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+.cv-landing *, .cv-landing *::before, .cv-landing *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+.cv-landing .mask > span { transform: none; }
+.cv-landing .rise { opacity: 1; transform: none; }
+.cv-landing .mask > span { transform: none; }
+.cv-landing .rise { opacity: 1; transform: none; }
+}
