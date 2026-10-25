@@ -1,6 +1,6 @@
 /* Conservatio landing page, scoped to .cv-landing so nothing reaches the
-   web companion on /app. Generated from site/styles.css by the snippet in
-   that commit; edit site/styles.css and regenerate rather than this file. */
+   web companion on /app. Generated from site/styles.css; edit that file
+   and regenerate rather than editing this one. */
 @import url("https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&display=swap");
 
 /* Conservatio, conservatio.peterdsp.dev
@@ -71,7 +71,14 @@
 .cv-landing .hero-mark img { width: 26px; height: 26px; }
 .cv-landing .hero-l h1 { font-size: var(--step-display); line-height: 1.12; max-width: 17ch; }
 .cv-landing .hero-l .sub { margin-top: 1.1rem; max-width: 44ch; font-size: var(--step-body); color: color-mix(in srgb, var(--bg) 78%, transparent); line-height: 1.55; }
-.cv-landing .hero-act { margin-top: 1.6rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
+.cv-landing .devnote {
+  margin-top: 1.4rem; max-width: 46ch; font-size: var(--step-small);
+  line-height: 1.5; padding: 0.9rem 1.1rem;
+  background: color-mix(in srgb, var(--bg) 14%, transparent);
+  color: color-mix(in srgb, var(--bg) 88%, transparent);
+}
+.cv-landing .devnote b { color: var(--bg); font-weight: 600; }
+.cv-landing .hero-act { margin-top: 1.4rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
 .cv-landing .hero-act .tlink { font-size: var(--step-body); }
 .cv-landing .hero-bottom { max-width: 46ch; }
 /* the loupe: the product's defining control, working on a real fresco */

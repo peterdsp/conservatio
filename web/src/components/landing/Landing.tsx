@@ -125,6 +125,12 @@ export function Landing() {
                 bilingual PDF at the end. Built for conservators, museums, churches and
                 archaeological teams, and built to work with no signal at all.
               </p>
+              <p className="devnote rise">
+                <b>Nothing is released yet.</b> Conservatio is in active development. There is no App
+                Store listing, no Play Store listing and no public build: the iOS, Android and web
+                clients run from source only. Everything below describes what is built and working in
+                the repository today, not what you can download.
+              </p>
               <div className="hero-act rise">
                 <a className="btn" href="#platforms">
                   See what runs today
@@ -438,24 +444,25 @@ export function Landing() {
             <div>
               <h2 className="rise">Where it runs today.</h2>
               <p className="intro rise">
-                iOS is the most complete client. Android and the web companion are catching up, and
-                this list says exactly how far each one has got.
+                None of this is released. iOS is the most complete client, Android and the web
+                companion are behind it, and this list says exactly how far each one has got in the
+                repository.
               </p>
               <div className="rows rise">
-                <p className="grp">iOS, native SwiftUI</p>
-                <PRow label="Object cataloguing" value="shipping" />
-                <PRow label="Camera capture and on-site annotation" value="shipping" />
-                <PRow label="Condition reports" value="shipping" />
-                <PRow label="Offline storage and sync" value="shipping" />
-                <PRow label="Bilingual PDF export" value="shipping" />
-                <p className="grp">Android, Jetpack Compose and Material 3</p>
-                <PRow label="Object cataloguing" value="shipping" />
-                <PRow label="Photo attachment" value="shipping" />
-                <PRow label="Bilingual interface" value="shipping" />
-                <PRow label="Condition reports and annotation" value="in development" dot="soon" />
-                <PRow label="PDF export" value="in development" dot="soon" />
-                <p className="grp">Web, desktop companion</p>
-                <PRow label="Browse and edit objects, projects, clients" value="shipping" />
+                <p className="grp">iOS, native SwiftUI, runs from source</p>
+                <PRow label="Object cataloguing" value="built" />
+                <PRow label="Camera capture and on-site annotation" value="built" />
+                <PRow label="Condition reports" value="built" />
+                <PRow label="Offline storage and sync" value="built" />
+                <PRow label="Bilingual PDF export" value="built" />
+                <p className="grp">Android, Jetpack Compose and Material 3, runs from source</p>
+                <PRow label="Object cataloguing" value="built" />
+                <PRow label="Photo attachment" value="built" />
+                <PRow label="Bilingual interface" value="built" />
+                <PRow label="Condition reports and annotation" value="in progress" dot="soon" />
+                <PRow label="PDF export" value="in progress" dot="soon" />
+                <p className="grp">Web, desktop companion, the only part you can open today</p>
+                <PRow label="Browse and edit objects, projects, clients" value="built" />
                 <PRow label="No install needed" value="browser" dot="part" />
                 <PRow label="PDF export" value="mobile only" dot="soon" />
               </div>
