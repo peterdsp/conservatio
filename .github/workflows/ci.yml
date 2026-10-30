@@ -47,3 +47,33 @@ jobs:
       - run: npm install
       - run: npm run lint
       - run: npx tsc --noEmit
+
+  # Until now nothing in CI ran Gradle, so the Kotlin Multiplatform code and the
+  # Android app were never compiled by any check. The web lint job above covers
+  # only the `web` directory. That gap hid a build failure: `:shared` declared a
+  # `jvm()` target that crashed the Kotlin 2.0.21 JVM backend, so
+  # `./gradlew :shared:assemble` had been failing outright.
+  #
+  # This compiles rather than tests, because the project currently has no Kotlin
+  # test sources. When tests are added, add `:shared:allTests` here; a test step
+  # over zero tests would only look like coverage.
+  gradle:
+    name: Kotlin and Android build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # 17 because shared/build.gradle.kts sets jvmTarget and
+          # source/targetCompatibility to 17.
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build shared, server and the Android app
+        run: ./gradlew --no-daemon :shared:assemble :server:assemble :androidApp:assembleDebug

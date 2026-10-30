@@ -14,7 +14,17 @@ kotlin {
         }
     }
 
-    jvm()
+    // No jvm() target. It had no src/jvmMain directory and no consumer: only
+    // androidApp depends on :shared, and it uses the Android target, while
+    // :server declares its ktor dependencies directly and never depends on
+    // :shared at all. Compiling it crashed the Kotlin 2.0.21 JVM backend
+    // ("Internal error in file lowering: should not be called", in
+    // IrFakeOverrideSymbolBase.getOwner via ExternalPackageParentPatcherLowering),
+    // which broke `./gradlew :shared:assemble` outright. Nothing in CI ran Gradle,
+    // so that went unnoticed.
+    //
+    // If a JVM or desktop consumer is ever wanted, re-adding the target means
+    // bumping Kotlin past that compiler bug first, or it will fail the same way.
 
     listOf(
         iosX64(),
@@ -45,11 +55,6 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
             implementation(libs.kotlinx.coroutines.android)
-        }
-        val jvmMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.okhttp)
-            }
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
