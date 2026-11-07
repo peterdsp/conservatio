@@ -1,0 +1,23 @@
+Conservatio is a condition reporting app for conservators of cultural heritage. Photograph an object, mark the damage right on the photo, and export a professional PDF condition report, even in a church, a storeroom or an excavation site with no signal.
+
+It is made for private conservators, small museums, galleries, churches and archaeological teams who are tired of Word templates, scattered photos and retyping the same report.
+
+Mark damage on the photo
+Tap a photo to drop a numbered marker on a crack, a flake or a loss. Give each marker a damage type from a controlled vocabulary (crack, paint loss, flaking, corrosion, biological growth, water damage, previous repair and more) and a severity from minor to critical. The markers stay on the matching photo in the exported report.
+
+Condition reports in minutes
+Pick the report type: initial assessment, pre-treatment, post-treatment, outgoing or incoming loan, insurance, transport, periodic check or emergency. Rate the overall condition from excellent to critical, record the examiner and the date, and add notes and treatment recommendations.
+
+PDF reports ready to hand over
+Export a clean, multi-page PDF with the object record, the condition rating, the annotated photos, the damage list and your recommendations. Print it in English, in Greek, or bilingual Greek and English, then share it by Mail, AirDrop or Files.
+
+Every object, fully documented
+Register each object with its type, materials, dimensions, inventory number, owner, location, acquisition date and description, with photos from the camera or your library. Icons, paintings, wall paintings, sculpture, ceramics, metal, textiles, paper, wood, stone, glass, mosaics, archaeological finds and furniture all have their place.
+
+Projects and clients in order
+Group objects into projects with a status, dates and a budget, from first inquiry to completed. Keep your clients in one list: private collectors, museums, galleries, churches, monasteries, municipalities, archaeological services, foundations and insurers.
+
+Works offline, no account needed
+Everything is saved on your iPhone or iPad, so you can work wherever the object is. Tap Continue without an account and start documenting straight away.
+
+The app is available in English and Greek.

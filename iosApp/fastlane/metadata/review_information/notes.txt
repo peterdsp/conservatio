@@ -1,0 +1,16 @@
+Conservatio is a documentation tool for conservators of cultural heritage: they register objects, photograph them, mark damage on the photos and export a PDF condition report.
+
+No account is needed to review the app. On the first screen, tap "Continue without an account". Everything is stored on the device.
+
+A full walk-through takes about two minutes:
+1. Objects tab: tap + to add an object. Enter a title, add a photo with Camera or Gallery, and tap Save.
+2. Open the object, tap the ... button at the top right, then "New Report". Enter any examiner name (the report needs one to save).
+3. Under Photos, tap the photo, then tap anywhere on the photo to place a numbered damage marker and choose its type and severity. Go back and tap Save.
+4. In the object, tap ... and "Export PDF" to see the PDF condition report with the markers on the photo. The share button sends it to Mail, Files or AirDrop.
+5. Settings, Language: switch the app or the report language to Greek, or the report to bilingual Greek and English, and export again.
+
+Settings, "Load sample data" adds two example objects without photos, for a quick look at the lists.
+
+Signing in (Google, Apple or GitHub) is optional. It only connects the app to a Conservatio server for syncing records, and no feature depends on it.
+
+The camera and photo library are used only to add photos of the objects being documented. The app has no ads, no analytics and no tracking.
