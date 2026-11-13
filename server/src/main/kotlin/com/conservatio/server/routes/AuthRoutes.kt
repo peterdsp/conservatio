@@ -3,6 +3,11 @@ package com.conservatio.server.routes
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.conservatio.server.config.ErrorResponse
 import com.conservatio.server.config.generateToken
+import com.conservatio.server.db.ClientsTable
+import com.conservatio.server.db.ConditionReportsTable
+import com.conservatio.server.db.ConservationObjectsTable
+import com.conservatio.server.db.ProjectsTable
+import com.conservatio.server.db.TreatmentProposalsTable
 import com.conservatio.server.db.UsersTable
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -13,10 +18,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
+import java.io.File
 import java.util.*
 
 @Serializable
@@ -156,6 +164,51 @@ fun Route.authRoutes() {
                     return@put
                 }
                 call.respond(mapOf("displayName" to request.displayName))
+            }
+
+            // Permanently removes the account: uploaded images on disk, every
+            // record the user owns, then the user row. There is no undo.
+            delete("/account") {
+                val principal = call.principal<JWTPrincipal>()!!
+                val userId = UUID.fromString(principal.payload.getClaim("userId").asString())
+                val storagePath = call.application.environment.config.property("storage.path").getString()
+
+                val exists = transaction {
+                    UsersTable.selectAll().where { UsersTable.id eq userId }.firstOrNull() != null
+                }
+                if (!exists) {
+                    call.respond(HttpStatusCode.NotFound, ErrorResponse("User not found", 404))
+                    return@delete
+                }
+
+                // Image ids referenced by the user's records. Uploads live in the
+                // per-user directory; pre-quota uploads sit in the storage root.
+                val imageIds = transaction {
+                    val fromObjects = ConservationObjectsTable.select(ConservationObjectsTable.imageIds)
+                        .where { ConservationObjectsTable.userId eq userId }
+                        .map { it[ConservationObjectsTable.imageIds] }
+                    val fromReports = ConditionReportsTable.select(ConditionReportsTable.imageIds)
+                        .where { ConditionReportsTable.userId eq userId }
+                        .map { it[ConditionReportsTable.imageIds] }
+                    (fromObjects + fromReports).flatMap { it.split(",") }.filter { it.isNotBlank() }.toSet()
+                }
+                File(storagePath, userId.toString()).deleteRecursively()
+                for (imageId in imageIds) {
+                    val legacy = File(storagePath, imageId)
+                    // Only plain file names: never follow a path outside the root.
+                    if (legacy.parentFile == File(storagePath) && legacy.isFile) legacy.delete()
+                }
+
+                transaction {
+                    // Children before parents so the foreign keys stay satisfied.
+                    TreatmentProposalsTable.deleteWhere { TreatmentProposalsTable.userId eq userId }
+                    ConditionReportsTable.deleteWhere { ConditionReportsTable.userId eq userId }
+                    ProjectsTable.deleteWhere { ProjectsTable.userId eq userId }
+                    ConservationObjectsTable.deleteWhere { ConservationObjectsTable.userId eq userId }
+                    ClientsTable.deleteWhere { ClientsTable.userId eq userId }
+                    UsersTable.deleteWhere { UsersTable.id eq userId }
+                }
+                call.respond(HttpStatusCode.NoContent)
             }
         }
     }

@@ -2,7 +2,8 @@
 
 Reads iosApp/AppStore/screenshots/<lang>/<device>/*.png and writes
 iosApp/AppStore/marketing/<lang>/<device>/ at the exact App Store sizes:
-iPhone 6.9" 1320x2868 and iPad 13" 2064x2752.
+iPhone 6.9" 1320x2868, iPad 13" 2064x2752 and the iPhone Duo cover screen
+1398x2034.
 
 The frame uses the website's palette and type (frost and slate, Albert Sans,
 one teal accent), so the store page and conservatio.peterdsp.dev read as one
@@ -18,7 +19,12 @@ SRC = ROOT / "AppStore" / "screenshots"
 OUT = ROOT / "AppStore" / "marketing"
 FONT = pathlib.Path(__file__).resolve().parent / "fonts" / "AlbertSans.ttf"
 
-SIZES = {"iphone": (1320, 2868), "ipad": (2064, 2752)}
+SIZES = {"iphone": (1320, 2868), "ipad": (2064, 2752), "duo": (1398, 2034)}
+# The Duo's cover screen is a phone, squarer and shorter, so it takes the
+# phone's margins and corners with a smaller headline.
+PHONES = {"iphone", "duo"}
+TITLE_SCALE = {"iphone": 0.084, "ipad": 0.058, "duo": 0.072}
+LINE_SCALE = {"iphone": 0.036, "ipad": 0.025, "duo": 0.032}
 GROUND, SURFACE = (247, 249, 250), (236, 240, 242)
 INK, MUTED, ACCENT = (31, 48, 56), (93, 107, 114), (13, 116, 128)
 
@@ -68,10 +74,10 @@ def compose(shot_path, device, title, line):
     w, h = SIZES[device]
     canvas = background(w, h).convert("RGBA")
     d = ImageDraw.Draw(canvas)
-    pad = round(w * (0.08 if device == "iphone" else 0.1))
+    pad = round(w * (0.08 if device in PHONES else 0.1))
 
-    title_font = font(round(w * (0.084 if device == "iphone" else 0.058)), "SemiBold")
-    line_font = font(round(w * (0.036 if device == "iphone" else 0.025)), "Regular")
+    title_font = font(round(w * TITLE_SCALE[device]), "SemiBold")
+    line_font = font(round(w * LINE_SCALE[device]), "Regular")
     y = round(h * 0.055)
     bottom = y
     for text in title.split("\n"):
@@ -92,7 +98,7 @@ def compose(shot_path, device, title, line):
     # Fit the whole screen, tab bar included, with a margin at the bottom.
     scale = min((w - 2 * pad) / shot.width, (h - y - round(h * 0.04)) / shot.height)
     shot = shot.resize((round(shot.width * scale), round(shot.height * scale)), Image.LANCZOS)
-    radius = round(shot.width * (0.075 if device == "iphone" else 0.03))
+    radius = round(shot.width * (0.075 if device in PHONES else 0.03))
     card, mask = rounded(shot, radius)
 
     x = (w - card.width) // 2

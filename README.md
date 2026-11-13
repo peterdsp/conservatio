@@ -35,20 +35,20 @@ Built for private conservators, small museums, galleries, churches, archaeologic
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/ios-android-combined.png" alt="Conservatio on iOS and Android" width="700">
+  <img src="docs/screenshots/ios-android-combined.png" alt="Conservatio design mockups for iOS and Android" width="700">
 </p>
 
 <p align="center">
-  <em>iOS (iPhone 17) and Android (Pixel 8) running side by side</em>
+  <em>Design mockups of the iOS and Android dashboards</em>
 </p>
 
 ## What Conservatio Does
 
-**Condition Reports.** Structured damage checklists, controlled vocabulary, condition ratings, and annotated photos. Export professional branded PDFs in multiple languages.
+**Condition Reports.** Structured damage checklists, controlled vocabulary, condition ratings, and annotated photos. Export professional branded PDFs in English, Greek, or bilingual Greek/English (iOS).
 
 **Object Management.** Register conservation objects with type, materials, dimensions, photos, location, and ownership. Track the full lifecycle from acquisition to restoration.
 
-**Project Tracking.** Organize objects, reports, and clients into projects. Track status, timelines, budgets, and treatment progress.
+**Project Tracking.** Organize objects, reports, and clients into projects. Track status, timelines, and budgets.
 
 **Image Annotation.** Mark cracks, paint loss, corrosion, and other damage directly on photos. Each annotation links to damage type, severity, and notes.
 
@@ -60,19 +60,21 @@ Built for private conservators, small museums, galleries, churches, archaeologic
 
 | Platform | Technology | Status |
 |----------|-----------|--------|
-| **iOS** | SwiftUI, iOS 17+ | In development |
-| **Android** | Jetpack Compose, Material 3 | In development |
-| **Web** | Next.js, TypeScript, Tailwind | In development |
+| **iOS** | SwiftUI, iOS 17+ | Core features shipping (objects, reports, annotation, PDF, offline sync) |
+| **Android** | Jetpack Compose, Material 3 | In development (object cataloguing, bilingual UI) |
+| **Web** | Next.js, TypeScript, Tailwind | In development (CRUD dashboard) |
 | **Server** | Ktor, PostgreSQL, JWT Auth | Running on Raspberry Pi |
+
+See [docs/STATUS.md](docs/STATUS.md) for a detailed capability matrix of what ships today versus what is planned.
 
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/ios-flow-combined.png" alt="iOS App Flow" width="600">
+  <img src="docs/screenshots/ios-flow-combined.png" alt="iOS app design mockup" width="600">
 </p>
 
 <p align="center">
-  <em>Dashboard and Settings (iPhone 17, iOS 26.1)</em>
+  <em>Design mockup of the iOS dashboard and settings</em>
 </p>
 
 ## Who Is This For
@@ -87,7 +89,7 @@ Built for private conservators, small museums, galleries, churches, archaeologic
 
 | Phase | Features | Status |
 |-------|----------|--------|
-| **1** | Object profiles, condition reports, damage checklists, photo capture, PDF export, offline storage | In progress |
+| **1** | Object profiles, condition reports, damage checklists, photo capture, PDF export, offline storage | Shipping on iOS; in progress on Android and web |
 | **2** | Before/after comparison, report templates, team collaboration, client portal | Planned |
 | **3** | AI-assisted drafting, GIS for archaeological sites, environmental monitoring, Spectrum compliance | Future |
 
@@ -111,14 +113,14 @@ conservatio/
 | Android | Jetpack Compose, Material 3, Navigation |
 | Web | Next.js 14, React 18, TypeScript, Tailwind CSS |
 | Server | Ktor 3.0, Exposed ORM, PostgreSQL, JWT Auth |
-| Local DB | SQLDelight (offline-first) |
+| Local storage | On-device native stores per platform, with a durable sync outbox (iOS). SQLDelight schemas exist in the shared module but are not yet wired into the clients. |
 | Hosting | Self-hosted on Raspberry Pi 4, Docker Compose |
 
 ## License
 
-Copyright (c) 2026 Petros Dhespollari. All rights reserved.
+Copyright (c) 2026 Petros Dhespollari and Amalia Boura. All rights reserved.
 
-This software is proprietary. Source code is visible for transparency and educational review. Commercial use, redistribution, derivative works, and use in competing products are prohibited without written permission.
+This software is proprietary. Source code is visible for transparency and educational review. Commercial use, redistribution, derivative works, and use in competing products are prohibited without written permission. Amalia Boura is the conservation domain co-author (methodology, terminology, condition-report structure, and field requirements).
 
 For commercial licensing inquiries, contact via [peterdsp.dev](https://peterdsp.dev).
 

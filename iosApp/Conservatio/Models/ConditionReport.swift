@@ -10,6 +10,13 @@ struct ConditionReport: Identifiable, Codable {
     var damageAnnotations: [DamageAnnotation]
     var notes: String?
     var recommendations: String?
+    /// Treatments the object received before this examination, as told by the
+    /// owner or found in the records. Optional so reports saved before the
+    /// field existed still decode.
+    var previousInterventions: String?
+    /// The environment the examination took place in. Optional for the same
+    /// reason as `previousInterventions`.
+    var examinationConditions: ExaminationConditions?
     var imageIds: [String]
     var createdAt: Date
     var updatedAt: Date
@@ -24,6 +31,8 @@ struct ConditionReport: Identifiable, Codable {
         damageAnnotations: [DamageAnnotation] = [],
         notes: String? = nil,
         recommendations: String? = nil,
+        previousInterventions: String? = nil,
+        examinationConditions: ExaminationConditions? = nil,
         imageIds: [String] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -37,9 +46,53 @@ struct ConditionReport: Identifiable, Codable {
         self.damageAnnotations = damageAnnotations
         self.notes = notes
         self.recommendations = recommendations
+        self.previousInterventions = previousInterventions
+        self.examinationConditions = examinationConditions
         self.imageIds = imageIds
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+}
+
+/// Conditions under which an examination was carried out. Every field is
+/// optional; `isEmpty` is true when nothing was recorded so views and the PDF
+/// can skip the section entirely.
+struct ExaminationConditions: Codable, Equatable {
+    var lightSource: String?
+    /// Relative humidity in percent.
+    var relativeHumidity: Double?
+    /// Temperature in degrees Celsius.
+    var temperature: Double?
+    var notes: String?
+
+    init(
+        lightSource: String? = nil,
+        relativeHumidity: Double? = nil,
+        temperature: Double? = nil,
+        notes: String? = nil
+    ) {
+        self.lightSource = lightSource
+        self.relativeHumidity = relativeHumidity
+        self.temperature = temperature
+        self.notes = notes
+    }
+
+    var isEmpty: Bool {
+        (lightSource ?? "").isEmpty && relativeHumidity == nil && temperature == nil && (notes ?? "").isEmpty
+    }
+
+    /// One-line summary for list rows, for example "Daylight, RH 55%, 21 C".
+    var summary: String {
+        var parts: [String] = []
+        if let lightSource, !lightSource.isEmpty { parts.append(lightSource) }
+        if let relativeHumidity { parts.append("RH \(Self.format(relativeHumidity))%") }
+        if let temperature { parts.append("\(Self.format(temperature)) C") }
+        if let notes, !notes.isEmpty { parts.append(notes) }
+        return parts.joined(separator: ", ")
+    }
+
+    static func format(_ value: Double) -> String {
+        value == value.rounded() ? String(format: "%.0f", value) : String(format: "%.1f", value)
     }
 }
 

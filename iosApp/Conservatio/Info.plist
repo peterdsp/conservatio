@@ -16,15 +16,19 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>dev.peterdsp.conservatio.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>conservatio</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<!--
-	  Custom URL scheme that catches the OAuth redirect after
-	  ASWebAuthenticationSession finishes with Google / GitHub.
-	  Each provider's OAuth app must whitelist the matching
-	  conservatio://oauth-callback/<provider> URL as a redirect URI.
-	  Apple uses the native ASAuthorization flow and doesn't need this.
-	-->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -38,17 +42,6 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>dev.peterdsp.conservatio.oauth</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>conservatio</string>
-			</array>
-		</dict>
 	</array>
 </dict>
 </plist>

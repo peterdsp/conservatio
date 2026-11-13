@@ -30,7 +30,9 @@ data class CreateObjectRequest(
     val locationDescription: String? = null,
     val inventoryNumber: String? = null,
     val description: String? = null,
-    val imageIds: List<String> = emptyList()
+    val imageIds: List<String> = emptyList(),
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 @Serializable
@@ -50,6 +52,8 @@ data class ObjectResponse(
     val inventoryNumber: String? = null,
     val description: String? = null,
     val imageIds: List<String>,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val createdAt: String,
     val updatedAt: String
 )
@@ -105,6 +109,8 @@ fun Route.objectRoutes() {
                         it[inventoryNumber] = request.inventoryNumber
                         it[description] = request.description
                         it[imageIds] = request.imageIds.joinToString(",")
+                        it[latitude] = request.latitude
+                        it[longitude] = request.longitude
                         it[ConservationObjectsTable.userId] = UUID.fromString(userId)
                         it[createdAt] = now
                         it[updatedAt] = now
@@ -118,6 +124,7 @@ fun Route.objectRoutes() {
                     measurementUnit = request.measurementUnit, ownerName = request.ownerName,
                     locationDescription = request.locationDescription, inventoryNumber = request.inventoryNumber,
                     description = request.description, imageIds = request.imageIds,
+                    latitude = request.latitude, longitude = request.longitude,
                     createdAt = now.toString(), updatedAt = now.toString()
                 ))
             }
@@ -147,6 +154,8 @@ fun Route.objectRoutes() {
                         it[inventoryNumber] = request.inventoryNumber
                         it[description] = request.description
                         it[imageIds] = request.imageIds.joinToString(",")
+                        it[latitude] = request.latitude
+                        it[longitude] = request.longitude
                         it[updatedAt] = now
                     }
                 }
@@ -198,6 +207,8 @@ private fun ResultRow.toObjectResponse() = ObjectResponse(
     inventoryNumber = this[ConservationObjectsTable.inventoryNumber],
     description = this[ConservationObjectsTable.description],
     imageIds = this[ConservationObjectsTable.imageIds].split(",").filter { it.isNotBlank() },
+    latitude = this[ConservationObjectsTable.latitude],
+    longitude = this[ConservationObjectsTable.longitude],
     createdAt = this[ConservationObjectsTable.createdAt].toString(),
     updatedAt = this[ConservationObjectsTable.updatedAt].toString()
 )

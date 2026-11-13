@@ -62,6 +62,13 @@ class APIClient {
         token = nil
     }
 
+    /// Permanently deletes the signed-in account and everything it owns on the
+    /// server, then drops the local token. Local records stay on the device.
+    func deleteAccount() async throws {
+        try await delete("/api/auth/account")
+        token = nil
+    }
+
     // MARK: - Objects
 
     func fetchObjects() async throws -> [ServerObject] {
@@ -263,6 +270,10 @@ struct ServerObject: Codable, Identifiable {
     let imageIds: [String]?
     let createdAt: String?
     let updatedAt: String?
+    // Added after the first release; defaulted so older callers and payloads
+    // keep working.
+    var latitude: Double? = nil
+    var longitude: Double? = nil
 }
 
 struct CreateObjectRequest: Codable {
@@ -279,6 +290,8 @@ struct CreateObjectRequest: Codable {
     let inventoryNumber: String?
     let description: String?
     let imageIds: [String]
+    var latitude: Double? = nil
+    var longitude: Double? = nil
 }
 
 struct ServerClient: Codable, Identifiable {
@@ -345,6 +358,13 @@ struct ServerReport: Codable, Identifiable {
     let imageIds: [String]?
     let createdAt: String?
     let updatedAt: String?
+    // Added after the first release; defaulted so older callers and payloads
+    // keep working.
+    var previousInterventions: String? = nil
+    var lightSource: String? = nil
+    var relativeHumidity: Double? = nil
+    var temperature: Double? = nil
+    var examinationNotes: String? = nil
 }
 
 struct CreateReportRequest: Codable {
@@ -357,4 +377,13 @@ struct CreateReportRequest: Codable {
     let notes: String?
     let recommendations: String?
     let imageIds: [String]
+    /// Damage annotations serialized as a JSON string. The server stores this
+    /// verbatim as text; sending it keeps annotations from being lost on sync.
+    /// Defaults to an empty array for encoders that omit it.
+    let damageAnnotations: String
+    var previousInterventions: String? = nil
+    var lightSource: String? = nil
+    var relativeHumidity: Double? = nil
+    var temperature: Double? = nil
+    var examinationNotes: String? = nil
 }

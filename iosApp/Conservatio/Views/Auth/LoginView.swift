@@ -8,56 +8,26 @@ struct LoginView: View {
 
     var apiClient: APIClient
     var onSuccess: () -> Void
+    /// Called when the user chooses to work offline without an account. The app
+    /// is offline-first, so every record is created locally; sync only happens
+    /// once the user signs in later.
+    var onContinueOffline: (() -> Void)?
 
     var body: some View {
         ZStack {
-            // Ambient peach/blue/cream backdrop  --  same language as web.
-            LinearGradient(
-                colors: [
-                    Color(red: 0.98, green: 0.96, blue: 0.94),
-                    Color(red: 0.96, green: 0.91, blue: 0.88),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            // Soft radial highlights, peach + blue
-            GeometryReader { proxy in
-                Circle()
-                    .fill(Color(red: 1.0, green: 0.77, blue: 0.65).opacity(0.45))
-                    .frame(width: proxy.size.width * 0.9)
-                    .blur(radius: 80)
-                    .offset(x: -proxy.size.width * 0.35, y: -proxy.size.height * 0.3)
-                Circle()
-                    .fill(Color(red: 0.67, green: 0.77, blue: 0.86).opacity(0.45))
-                    .frame(width: proxy.size.width * 0.8)
-                    .blur(radius: 80)
-                    .offset(x: proxy.size.width * 0.35, y: -proxy.size.height * 0.2)
-            }
-            .ignoresSafeArea()
+            Color.conservatioBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
 
-                // Logo plaque in glass material
-                ZStack {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 88, height: 88)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                .stroke(Color.white.opacity(0.55), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.08), radius: 24, y: 12)
-                    Image(systemName: "shield.checkered")
-                        .font(.system(size: 36, weight: .medium))
-                        .foregroundStyle(Color.conservatioPrimary)
-                }
+                Image("Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 88, height: 88)
 
                 Text("Conservatio")
                     .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(Color.conservatioPrimary)
+                    .foregroundStyle(Color.conservatioText)
                     .padding(.top, 22)
 
                 VStack(spacing: 10) {
@@ -92,10 +62,33 @@ struct LoginView: View {
                         .padding(.horizontal, 32)
                 }
                 if isLoading && errorMessage == nil {
-                    Text("Finishing sign-in…")
+                    Text(t("login.finishingOauth"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .padding(.top, 12)
+                }
+
+                if let onContinueOffline {
+                    VStack(spacing: 6) {
+                        Button {
+                            onContinueOffline()
+                        } label: {
+                            Text(t("login.continueOffline"))
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Color.conservatioPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .disabled(isLoading)
+
+                        Text(t("login.offlineHint"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 18)
+                    .padding(.horizontal, 32)
                 }
 
                 Spacer()

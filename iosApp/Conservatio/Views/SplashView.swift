@@ -10,16 +10,17 @@ struct SplashView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                Image(systemName: "shield.lefthalf.filled")
-                    .font(.system(size: 64))
-                    .foregroundStyle(Color.conservatioPrimary)
+                Image("Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 88, height: 88)
                     .scaleEffect(logoScale)
                     .opacity(logoOpacity)
 
                 VStack(spacing: 6) {
                     Text("Conservatio")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(Color.conservatioPrimary)
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundStyle(Color.conservatioText)
 
                     Text("Document heritage. Protect history.")
                         .font(.conservatioBodyMedium)

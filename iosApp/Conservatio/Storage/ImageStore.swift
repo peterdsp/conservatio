@@ -26,9 +26,14 @@ class ImageStore {
     }
 
     func load(_ id: String) -> UIImage? {
-        let fileURL = imageDirectory.appendingPathComponent("\(id).jpg")
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
+        guard let data = data(id) else { return nil }
         return UIImage(data: data)
+    }
+
+    /// The stored JPEG bytes, untouched, for exports that ship the originals.
+    func data(_ id: String) -> Data? {
+        let fileURL = imageDirectory.appendingPathComponent("\(id).jpg")
+        return try? Data(contentsOf: fileURL)
     }
 
     func delete(_ id: String) {

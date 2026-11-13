@@ -5,9 +5,10 @@ struct AboutView: View {
         List {
             Section {
                 VStack(spacing: 12) {
-                    Image(systemName: "shield.lefthalf.filled")
-                        .font(.system(size: 48))
-                        .foregroundStyle(Color.conservatioPrimary)
+                    Image("Logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 64, height: 64)
 
                     Text("Conservatio")
                         .font(.conservatioHeadlineSmall)
@@ -49,7 +50,7 @@ struct AboutView: View {
                 HStack {
                     Text("License")
                     Spacer()
-                    Text("MIT")
+                    Text("Proprietary")
                         .foregroundStyle(.secondary)
                 }
             }

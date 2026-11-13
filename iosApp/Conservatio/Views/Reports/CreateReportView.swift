@@ -5,6 +5,12 @@ struct CreateReportView: View {
     let objectId: UUID
     var reportStore: ReportStore
     var existing: ConditionReport?
+    /// The object's photo ids, so damage markers can be placed on them and the
+    /// report can document those photos in its exported PDF.
+    var objectImageIds: [String] = []
+    /// "annotate" opens the first photo for marking as soon as the form
+    /// appears, for the debug launch keys.
+    var initialOpen: String? = nil
 
     @State private var reportType: ReportType
     @State private var overallCondition: ConditionRating
@@ -12,19 +18,34 @@ struct CreateReportView: View {
     @State private var examinationDate: Date
     @State private var notes: String
     @State private var recommendations: String
+    @State private var previousInterventions: String
+    @State private var lightSource: String
+    @State private var relativeHumidity: String
+    @State private var temperature: String
+    @State private var conditionNotes: String
     @State private var damageAnnotations: [DamageAnnotation]
     @State private var showAddDamage = false
+    @State private var openImageId: String?
 
-    init(objectId: UUID, reportStore: ReportStore, existing: ConditionReport? = nil) {
+    init(objectId: UUID, reportStore: ReportStore, existing: ConditionReport? = nil, objectImageIds: [String] = [],
+         initialOpen: String? = nil) {
         self.objectId = objectId
         self.reportStore = reportStore
         self.existing = existing
+        self.objectImageIds = objectImageIds
+        self.initialOpen = initialOpen
         _reportType = State(initialValue: existing?.reportType ?? .initialAssessment)
         _overallCondition = State(initialValue: existing?.overallCondition ?? .fair)
         _examiner = State(initialValue: existing?.examiner ?? "")
         _examinationDate = State(initialValue: existing?.examinationDate ?? Date())
         _notes = State(initialValue: existing?.notes ?? "")
         _recommendations = State(initialValue: existing?.recommendations ?? "")
+        _previousInterventions = State(initialValue: existing?.previousInterventions ?? "")
+        let conditions = existing?.examinationConditions
+        _lightSource = State(initialValue: conditions?.lightSource ?? "")
+        _relativeHumidity = State(initialValue: conditions?.relativeHumidity.map { String(format: "%g", $0) } ?? "")
+        _temperature = State(initialValue: conditions?.temperature.map { String(format: "%g", $0) } ?? "")
+        _conditionNotes = State(initialValue: conditions?.notes ?? "")
         _damageAnnotations = State(initialValue: existing?.damageAnnotations ?? [])
     }
 
@@ -54,6 +75,8 @@ struct CreateReportView: View {
                     TextField("Your name", text: $examiner)
                     DatePicker("Date", selection: $examinationDate, displayedComponents: .date)
                 }
+
+                photoAnnotationSection
 
                 Section {
                     if damageAnnotations.isEmpty {
@@ -86,6 +109,38 @@ struct CreateReportView: View {
                     Text("Damage")
                 }
 
+                Section {
+                    TextEditor(text: $previousInterventions)
+                        .frame(minHeight: 60)
+                } header: {
+                    Text("Previous Interventions")
+                } footer: {
+                    Text("Earlier treatments, repairs or restorations known for this object.")
+                }
+
+                Section("Examination Conditions") {
+                    TextField("Light source (e.g. daylight, LED, UV)", text: $lightSource)
+                    HStack {
+                        Text("Relative humidity")
+                        Spacer()
+                        TextField("%", text: $relativeHumidity)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 100)
+                        Text("%").foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Temperature")
+                        Spacer()
+                        TextField("C", text: $temperature)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 100)
+                        Text("C").foregroundStyle(.secondary)
+                    }
+                    TextField("Other conditions", text: $conditionNotes)
+                }
+
                 Section("Notes") {
                     TextEditor(text: $notes)
                         .frame(minHeight: 60)
@@ -115,7 +170,76 @@ struct CreateReportView: View {
                     damageAnnotations.append(annotation)
                 }
             }
+            .navigationDestination(item: $openImageId) { imageId in
+                if let image = ImageStore.shared.load(imageId) {
+                    annotationView(for: imageId, image: image)
+                }
+            }
+            .onAppear {
+                if initialOpen == "annotate" { openImageId = objectImageIds.first }
+            }
         }
+    }
+
+    private func annotationView(for imageId: String, image: UIImage) -> some View {
+        ImageAnnotationView(
+            image: image,
+            imageId: imageId,
+            annotations: $damageAnnotations
+        )
+        .navigationTitle("Annotate Photo")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Lets the conservator open each object photo and drop numbered damage
+    /// markers on it. Markers are stored as percentage coordinates against the
+    /// photo, so they render on the matching photo in the exported PDF.
+    @ViewBuilder
+    private var photoAnnotationSection: some View {
+        if !objectImageIds.isEmpty {
+            Section {
+                ForEach(objectImageIds, id: \.self) { imageId in
+                    if let image = ImageStore.shared.load(imageId) {
+                        NavigationLink {
+                            annotationView(for: imageId, image: image)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 56, height: 56)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                let count = markerCount(for: imageId)
+                                Text(count == 0
+                                     ? "Tap to place damage markers"
+                                     : "\(count) marker\(count == 1 ? "" : "s")")
+                                    .font(.conservatioBodyMedium)
+                                    .foregroundStyle(count == 0 ? .secondary : .primary)
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Photos")
+            } footer: {
+                Text("Open a photo to mark damage directly on it. Markers appear on the matching photo in the exported PDF.")
+            }
+        }
+    }
+
+    /// Nil when every condition field is blank, so empty reports stay compact.
+    private var examinationConditionsValue: ExaminationConditions? {
+        let conditions = ExaminationConditions(
+            lightSource: lightSource.isEmpty ? nil : lightSource,
+            relativeHumidity: Double(relativeHumidity.replacingOccurrences(of: ",", with: ".")),
+            temperature: Double(temperature.replacingOccurrences(of: ",", with: ".")),
+            notes: conditionNotes.isEmpty ? nil : conditionNotes
+        )
+        return conditions.isEmpty ? nil : conditions
+    }
+
+    private func markerCount(for imageId: String) -> Int {
+        damageAnnotations.filter { $0.imageId == imageId && $0.xPercent != nil }.count
     }
 
     private func saveReport() {
@@ -129,6 +253,9 @@ struct CreateReportView: View {
             damageAnnotations: damageAnnotations,
             notes: notes.isEmpty ? nil : notes,
             recommendations: recommendations.isEmpty ? nil : recommendations,
+            previousInterventions: previousInterventions.isEmpty ? nil : previousInterventions,
+            examinationConditions: examinationConditionsValue,
+            imageIds: existing?.imageIds.isEmpty == false ? existing!.imageIds : objectImageIds,
             createdAt: existing?.createdAt ?? Date(),
             updatedAt: Date()
         )

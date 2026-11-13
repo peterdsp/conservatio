@@ -12,6 +12,10 @@ struct ConservationObject: Identifiable, Codable {
     var inventoryNumber: String?
     var description: String?
     var imageIds: [String]
+    /// Site coordinates in decimal degrees (WGS 84). Optional so objects saved
+    /// before the field existed still decode.
+    var latitude: Double?
+    var longitude: Double?
     var createdAt: Date
     var updatedAt: Date
 
@@ -27,6 +31,8 @@ struct ConservationObject: Identifiable, Codable {
         inventoryNumber: String? = nil,
         description: String? = nil,
         imageIds: [String] = [],
+        latitude: Double? = nil,
+        longitude: Double? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -41,8 +47,16 @@ struct ConservationObject: Identifiable, Codable {
         self.inventoryNumber = inventoryNumber
         self.description = description
         self.imageIds = imageIds
+        self.latitude = latitude
+        self.longitude = longitude
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    /// "37.97154, 23.72638" for display and printing; nil without a fix.
+    var coordinateText: String? {
+        guard let latitude, let longitude else { return nil }
+        return String(format: "%.5f, %.5f", latitude, longitude)
     }
 }
 

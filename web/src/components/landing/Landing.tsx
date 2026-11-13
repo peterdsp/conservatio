@@ -99,7 +99,7 @@ export function Landing() {
             <div className="hero-top">
               <a className="hero-mark" href="/">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/favicon.svg" alt="" width={26} height={26} />
+                <img src="/assets/mark.svg" alt="" width={26} height={26} />
                 <span>Conservatio</span>
               </a>
               <span style={{ display: "flex", gap: "1.25rem" }}>
@@ -126,10 +126,7 @@ export function Landing() {
                 archaeological teams, and built to work with no signal at all.
               </p>
               <p className="devnote rise">
-                <b>Nothing is released yet.</b> Conservatio is in active development. There is no App
-                Store listing, no Play Store listing and no public build: the iOS, Android and web
-                clients run from source only. Everything below describes what is built and working in
-                the repository today, not what you can download.
+                <b>The iPhone and iPad app is on its way to the App Store.</b> A build is in TestFlight and the listing is being prepared. Android and the web client run from source only. Everything below describes what is built and working today.
               </p>
               <div className="hero-act rise">
                 <a className="btn" href="#platforms">

@@ -34,6 +34,9 @@ object ConservationObjectsTable : UUIDTable("conservation_objects") {
     val inventoryNumber = varchar("inventory_number", 100).nullable()
     val description = text("description").nullable()
     val imageIds = text("image_ids")
+    // Site coordinates in decimal degrees (WGS 84); null when not recorded.
+    val latitude = double("latitude").nullable()
+    val longitude = double("longitude").nullable()
     val userId = reference("user_id", UsersTable)
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
@@ -49,6 +52,12 @@ object ConditionReportsTable : UUIDTable("condition_reports") {
     val notes = text("notes").nullable()
     val recommendations = text("recommendations").nullable()
     val imageIds = text("image_ids")
+    val previousInterventions = text("previous_interventions").nullable()
+    val lightSource = varchar("light_source", 255).nullable()
+    // Relative humidity in percent, temperature in degrees Celsius.
+    val relativeHumidity = double("relative_humidity").nullable()
+    val temperature = double("temperature").nullable()
+    val examinationNotes = text("examination_notes").nullable()
     val userId = reference("user_id", UsersTable)
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")

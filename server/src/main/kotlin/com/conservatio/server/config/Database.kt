@@ -36,7 +36,7 @@ fun Application.configureDatabase() {
             ClientsTable,
             TreatmentProposalsTable
         )
-        // Online migration for OAuth columns on the existing users table.
+        // Online migrations for columns added after the tables first shipped.
         // SchemaUtils.create is a no-op when the table already exists, so we
         // ALTER it ourselves. Each statement is idempotent.
         val conn = TransactionManager.current().connection
@@ -49,6 +49,15 @@ fun Application.configureDatabase() {
               ON users (oauth_provider, oauth_subject)
               WHERE oauth_provider IS NOT NULL
             """.trimIndent(),
+            // Site location on objects.
+            "ALTER TABLE conservation_objects ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION NULL",
+            "ALTER TABLE conservation_objects ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION NULL",
+            // Previous interventions and examination conditions on reports.
+            "ALTER TABLE condition_reports ADD COLUMN IF NOT EXISTS previous_interventions TEXT NULL",
+            "ALTER TABLE condition_reports ADD COLUMN IF NOT EXISTS light_source VARCHAR(255) NULL",
+            "ALTER TABLE condition_reports ADD COLUMN IF NOT EXISTS relative_humidity DOUBLE PRECISION NULL",
+            "ALTER TABLE condition_reports ADD COLUMN IF NOT EXISTS temperature DOUBLE PRECISION NULL",
+            "ALTER TABLE condition_reports ADD COLUMN IF NOT EXISTS examination_notes TEXT NULL",
         )) {
             conn.prepareStatement(sql, false).executeUpdate()
         }

@@ -3,6 +3,11 @@ import SwiftUI
 struct ObjectsListView: View {
     var objectStore: ObjectStore
     var reportStore: ReportStore
+    /// "detail", "annotate" or "pdf" pushes the first object on appear, for
+    /// the debug launch keys; anything else leaves the list alone.
+    var initialOpen: String? = nil
+    @State private var openFirstObject = false
+    @State private var didOpenFirstObject = false
     @State private var showCreateObject = false
     @State private var editingObject: ConservationObject?
     @State private var searchText = ""
@@ -54,6 +59,17 @@ struct ObjectsListView: View {
                 }
             }
             .navigationTitle("Objects")
+            .navigationDestination(isPresented: $openFirstObject) {
+                if let object = objectStore.objects.first {
+                    ObjectDetailView(object: object, reportStore: reportStore, initialOpen: initialOpen)
+                }
+            }
+            .onAppear {
+                guard !didOpenFirstObject, ["detail", "annotate", "pdf"].contains(initialOpen ?? ""),
+                      !objectStore.objects.isEmpty else { return }
+                didOpenFirstObject = true
+                openFirstObject = true
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {

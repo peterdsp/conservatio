@@ -27,6 +27,12 @@ struct CreateObjectView: View {
     @State private var existingImageIds: [String]
     @State private var showCamera = false
 
+    @State private var latitude: Double?
+    @State private var longitude: Double?
+    @State private var isLocating = false
+    @State private var locationError: String?
+    @State private var locationFetcher = LocationFetcher()
+
     init(
         objectStore: ObjectStore,
         existing: ConservationObject? = nil,
@@ -49,6 +55,8 @@ struct CreateObjectView: View {
         _depth = State(initialValue: existing?.dimensions?.depth.map { v in String(format: "%g", v) } ?? "")
         _measurementUnit = State(initialValue: existing?.dimensions?.unit ?? .cm)
         _existingImageIds = State(initialValue: existing?.imageIds ?? [])
+        _latitude = State(initialValue: existing?.latitude)
+        _longitude = State(initialValue: existing?.longitude)
     }
 
     private var isEditing: Bool { existing != nil }
@@ -60,6 +68,7 @@ struct CreateObjectView: View {
                 materialsSection
                 dimensionsSection
                 locationSection
+                siteLocationSection
                 photosSection
                 notesSection
             }
@@ -73,7 +82,7 @@ struct CreateObjectView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(t("g.save")) { saveObject() }
-                        .disabled(title.isEmpty)
+                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .bold()
                 }
             }
@@ -151,6 +160,63 @@ struct CreateObjectView: View {
         Section("Location and Owner") {
             TextField("Owner name", text: $ownerName)
             TextField("Location description", text: $locationDescription)
+        }
+    }
+
+    /// One-shot GPS fix for where the object sits. The coordinates are kept
+    /// on the object and printed in the report; nothing tracks the device.
+    private var siteLocationSection: some View {
+        Section {
+            if let latitude, let longitude {
+                HStack {
+                    Label(String(format: "%.5f, %.5f", latitude, longitude), systemImage: "mappin.and.ellipse")
+                        .font(.conservatioBodyMedium)
+                    Spacer()
+                    Button(role: .destructive) {
+                        self.latitude = nil
+                        self.longitude = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+
+            Button {
+                Task { await useCurrentLocation() }
+            } label: {
+                HStack {
+                    Label("Use current location", systemImage: "location")
+                    Spacer()
+                    if isLocating { ProgressView() }
+                }
+            }
+            .disabled(isLocating)
+
+            if let locationError {
+                Text(locationError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        } header: {
+            Text("Location")
+        } footer: {
+            Text("Records the coordinates of the site. They appear on the object page and in the exported report.")
+        }
+    }
+
+    @MainActor
+    private func useCurrentLocation() async {
+        isLocating = true
+        locationError = nil
+        defer { isLocating = false }
+        do {
+            let coordinate = try await locationFetcher.currentCoordinate()
+            latitude = coordinate.latitude
+            longitude = coordinate.longitude
+        } catch {
+            locationError = error.localizedDescription
         }
     }
 
@@ -245,7 +311,7 @@ struct CreateObjectView: View {
 
         let object = ConservationObject(
             id: existing?.id ?? UUID(),
-            title: title,
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             objectType: objectType,
             materials: materials,
             dimensions: dimensions,
@@ -255,6 +321,8 @@ struct CreateObjectView: View {
             inventoryNumber: inventoryNumber.isEmpty ? nil : inventoryNumber,
             description: descriptionText.isEmpty ? nil : descriptionText,
             imageIds: imageIds,
+            latitude: latitude,
+            longitude: longitude,
             createdAt: existing?.createdAt ?? Date(),
             updatedAt: Date()
         )

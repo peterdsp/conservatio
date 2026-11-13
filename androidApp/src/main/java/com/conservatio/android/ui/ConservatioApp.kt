@@ -43,6 +43,14 @@ data class BottomNavItem(
 @Composable
 fun ConservatioApp() {
     ConservatioTheme {
+        WithLanguage {
+            ConservatioAppContent()
+        }
+    }
+}
+
+@Composable
+private fun ConservatioAppContent() {
         val navController = rememberNavController()
         val context = LocalContext.current
         val objectStore = remember { ObjectStore(context) }
@@ -52,11 +60,11 @@ fun ConservatioApp() {
         }
 
         val navItems = listOf(
-            BottomNavItem("Home", Icons.Filled.Home, Icons.Outlined.Home, Screen.Dashboard.route),
-            BottomNavItem("Objects", Icons.Filled.Inventory2, Icons.Outlined.Inventory2, Screen.Objects.route),
-            BottomNavItem("Projects", Icons.Filled.Folder, Icons.Outlined.Folder, Screen.Projects.route),
-            BottomNavItem("Clients", Icons.Filled.People, Icons.Outlined.People, Screen.Clients.route),
-            BottomNavItem("Settings", Icons.Filled.Settings, Icons.Outlined.Settings, Screen.Settings.route),
+            BottomNavItem(str("nav.dashboard"), Icons.Filled.Home, Icons.Outlined.Home, Screen.Dashboard.route),
+            BottomNavItem(str("nav.objects"), Icons.Filled.Inventory2, Icons.Outlined.Inventory2, Screen.Objects.route),
+            BottomNavItem(str("nav.projects"), Icons.Filled.Folder, Icons.Outlined.Folder, Screen.Projects.route),
+            BottomNavItem(str("nav.clients"), Icons.Filled.People, Icons.Outlined.People, Screen.Clients.route),
+            BottomNavItem(str("nav.settings"), Icons.Filled.Settings, Icons.Outlined.Settings, Screen.Settings.route),
         )
 
         val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -102,5 +110,4 @@ fun ConservatioApp() {
                 modifier = Modifier.padding(padding)
             )
         }
-    }
 }

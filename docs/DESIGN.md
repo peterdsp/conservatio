@@ -1,142 +1,59 @@
-# Design System
+# Conservatio design language
 
-## Design Philosophy
+One system for the app, the website, the store images and the PDF. Decided
+12 November 2026 with the new mark; the earlier terracotta, stone blue and
+gold palette and the glass surfaces are gone.
 
-Conservatio's design language communicates professionalism, trust, and respect for cultural heritage. The visual style should make conservators look more professional without adding friction to their workflow.
+## The mark
 
-**Principles:**
-1. **Professional, not corporate.** Warm and approachable, not cold enterprise software.
-2. **Content-first.** Photos and documentation are the primary content. UI should frame, not compete.
-3. **Offline-ready.** Visual states for synced, pending, and conflict. Users should always know their data status.
-4. **Accessible.** High contrast, clear typography, touch-friendly targets.
+A heavy C holding a small square: the bracket and the object, the thing being
+kept. The C is drawn as a 34 unit radius arc with a 16 unit stroke on a 100
+unit square, open to the right; the square is 16 units, set inside the bowl
+at (50, 42) so the mark never reads as a G at small sizes. Vector source:
+`site/assets/mark.svg`; wordmark: `site/assets/wordmark.svg`; favicon (ink
+tile): `site/favicon.svg` and `web/public/favicon.svg`; app icon (frost arc,
+verdigris square on an ink tile): `iosApp/Conservatio/Assets.xcassets/AppIcon.appiconset`,
+all sizes resized from the 1024 tile; in-app logo: `Logo.imageset` at 2x and 3x.
 
-## Color Palette
+## Colour
 
-### Primary: Terracotta
-Evokes heritage, craftsmanship, and the materials conservators work with.
-- Light: `#E8967A`
-- Default: `#C25B3A`
-- Dark: `#8B3D24`
+| Role | Light | Dark | Where |
+| --- | --- | --- | --- |
+| Ground | `#f7f9fa` | `#0f1a1e` | screen and page background |
+| Surface | `#ecf0f2` | `#1c2d34` | cards, rows, fields, panels |
+| Ink | `#1f3038` | `#e9eef0` | all primary text and icons |
+| Muted ink | `#5d6b72` | `#9aa8ae` | secondary labels, captions |
+| Accent, verdigris | `#0d7480` | `#3fb3a8` | the primary action and one detail per screen |
+| Attention | `#b06f12` | `#d9a04a` | fair condition |
+| Critical | `#9b2c2c` | `#d96b6b` | poor and critical condition |
 
-### Secondary: Stone Blue
-Professional and trustworthy. Used for secondary actions and informational elements.
-- Light: `#6999B8`
-- Default: `#3A6B8C`
-- Dark: `#1E4460`
+Verdigris is the patina on bronze, a conservation phenomenon, which is why it
+is the one hue. Surfaces separate by a step in tone, never by a line or a
+shadow at rest. Condition ratings are a word beside a gauge in ink; only fair
+and worse carry a hue.
 
-### Tertiary: Warm Gold
-Accent for highlights, badges, and calls to attention.
-- Light: `#EEC96E`
-- Default: `#D4A843`
-- Dark: `#9B7A2E`
+In code: `iosApp/Conservatio/Theme/ConservatioColors.swift` (dynamic light
+and dark), `site/styles.css` custom properties, `web/tailwind.config.ts`
+`primary` (verdigris), `secondary` (ink scale), `tertiary` (attention).
 
-### Neutrals
-- Background: `#FAF7F4` (warm off-white)
-- Surface: `#FFFFFF`
-- Surface Variant: `#F2EEEA`
-- Text: `#1C1B1F`
-- Text Secondary: `#49454F`
-- Outline: `#79747E`
+## Type
 
-### Condition Ratings
-- Excellent: `#2E7D32` (green)
-- Good: `#558B2F` (light green)
-- Fair: `#F9A825` (amber)
-- Poor: `#EF6C00` (orange)
-- Critical: `#C62828` (red)
+Website and store images: Albert Sans 400, 500, 600, five steps. App: the
+system face through `ConservatioTypography.swift`, so navigation and controls
+look like the platform. Headlines are two lines or fewer; no uppercase
+letter-spaced labels; no monospace outside code.
 
-## Typography
+## Surfaces and components
 
-### Mobile
-- **Android:** Material 3 type scale with Inter (sans) and Merriweather (serif for report headers)
-- **iOS:** SF Pro (system) with matching size scale
+- Panels: `glassPanel()` is now a flat surface step with continuous 16 pt
+  corners. `glassPanelDark()` is the one ink panel a screen may carry.
+- Buttons: `.glassPrimary` is a flat verdigris fill with a white label;
+  `.glassSecondary` is ink on surface. 12 pt corners, press darkens.
+- Fields and rows: surface step, 12 pt corners, no ring.
+- No ambient gradients, no blurred circles, no line-art backdrops.
 
-### Web
-- **Sans:** Inter (UI, labels, body)
-- **Serif:** Merriweather (report headers, object titles in detail views)
+## The PDF
 
-### Scale
-| Token | Size | Weight | Usage |
-|-------|------|--------|-------|
-| Headline Large | 32 | Bold | Page titles |
-| Headline Medium | 28 | Bold | Section headers |
-| Headline Small | 24 | SemiBold | Card titles |
-| Title Large | 22 | SemiBold | List headers |
-| Title Medium | 16 | SemiBold | Subsection headers |
-| Title Small | 14 | SemiBold | Labels with emphasis |
-| Body Large | 16 | Regular | Primary body text |
-| Body Medium | 14 | Regular | Secondary body text |
-| Body Small | 12 | Regular | Captions, metadata |
-| Label Large | 14 | Medium | Button text |
-| Label Medium | 12 | Medium | Chip text, tags |
-| Label Small | 11 | Medium | Timestamps, badges |
-
-## Spacing
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| XS | 4px | Inline icon gaps |
-| SM | 8px | Tight grouping |
-| MD | 16px | Standard padding |
-| LG | 24px | Section spacing |
-| XL | 32px | Major sections |
-| XXL | 48px | Page-level spacing |
-
-## Components
-
-### Condition Badge
-Rounded pill showing condition rating with color-coded background.
-```
-[Excellent] [Good] [Fair] [Poor] [Critical]
-  green      lime   amber  orange   red
-```
-
-### Object Card
-Card with:
-- Thumbnail image (square, rounded corners)
-- Object title (Title Medium)
-- Object type badge (Label Small)
-- Condition indicator dot
-- Last updated timestamp
-
-### Report Card
-Card with:
-- Report type label
-- Condition rating badge
-- Examiner name
-- Date
-- Image count indicator
-
-### Damage Annotation Marker
-Circular or rectangular overlay on images:
-- Border color matches DamageSeverity
-- Tap/click to expand damage details
-- Drag to reposition
-- Resize handles on corners
-
-## Figma References
-
-Design inspiration from Figma Community:
-- Material 3 Design Kit But Better (component foundations)
-- DashStack / Dashboard UI Kit by ByeWind (web dashboard patterns)
-- SaaS Dashboard CRM UI Kit (web layout patterns)
-
-## Platform Adaptations
-
-### Android
-- Material 3 components (M3 Buttons, Cards, NavigationBar, TopAppBar)
-- Dynamic Color (Material You) as optional setting
-- Bottom navigation with 5 tabs
-- FAB for primary action (new report, new object)
-
-### iOS
-- Native SwiftUI components (TabView, NavigationStack, List, Form)
-- SF Symbols for icons
-- Sheet presentations for creation flows
-- Pull-to-refresh for sync
-
-### Web
-- Custom Tailwind components matching the design tokens
-- Collapsible sidebar navigation
-- Data tables for object/project listings
-- Modal dialogs for quick creation
+Ink on white, the studio's letterhead (logo, name, address) in the header,
+the conservator's name, title and signature image in the footer. Same three
+colours, same type rules.

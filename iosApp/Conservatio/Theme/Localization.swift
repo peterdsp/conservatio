@@ -50,6 +50,9 @@ private enum Strings {
         "login.continueGitHub": "Continue with GitHub",
         "login.finishingOauth": "Finishing sign-in…",
         "login.errSignIn": "Sign-in failed. Try again.",
+        "login.continueOffline": "Continue without an account",
+        "login.offlineHint": "Work offline now. Your records stay on this device; sign in later to sync.",
+        "login.signInToSync": "Sign in to sync",
         // Dashboard
         "dash.welcome": "Welcome back",
         "dash.title": "Conservatio",
@@ -64,6 +67,7 @@ private enum Strings {
         "dash.newReport": "New Report",
         "dash.newProject": "New Project",
         "dash.recentObjects": "Recent Objects",
+        "dash.quickActions": "Quick actions",
         // Stat
         "stat.objects": "Objects",
         "stat.reports": "Reports",
@@ -123,6 +127,9 @@ private enum Strings {
         "login.continueGitHub": "Συνέχεια με GitHub",
         "login.finishingOauth": "Ολοκλήρωση σύνδεσης…",
         "login.errSignIn": "Αποτυχία σύνδεσης. Δοκίμασε ξανά.",
+        "login.continueOffline": "Συνέχεια χωρίς λογαριασμό",
+        "login.offlineHint": "Δούλεψε εκτός σύνδεσης τώρα. Οι καταχωρήσεις μένουν στη συσκευή. Συνδέσου αργότερα για συγχρονισμό.",
+        "login.signInToSync": "Σύνδεση για συγχρονισμό",
         // Dashboard
         "dash.welcome": "Καλώς ήρθατε",
         "dash.title": "Conservatio",
@@ -137,6 +144,7 @@ private enum Strings {
         "dash.newReport": "Νέα αναφορά",
         "dash.newProject": "Νέο έργο",
         "dash.recentObjects": "Πρόσφατα αντικείμενα",
+        "dash.quickActions": "Γρήγορες ενέργειες",
         // Stat
         "stat.objects": "Αντικείμενα",
         "stat.reports": "Αναφορές",

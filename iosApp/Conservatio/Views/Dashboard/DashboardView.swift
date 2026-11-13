@@ -8,10 +8,6 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Heritage monuments faded behind the glass content.
-                ConservatioHeritageBackdrop()
-                    .opacity(0.7)
-
                 ScrollView {
                     VStack(spacing: 16) {
                         welcomeSection
@@ -33,10 +29,9 @@ struct DashboardView: View {
 
     private var welcomeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(t("dash.welcome").uppercased())
-                .font(.system(size: 12, weight: .semibold))
-                .tracking(2.5)
-                .foregroundStyle(Color.conservatioPrimary)
+            Text(t("dash.welcome"))
+                .font(.conservatioLabelLarge)
+                .foregroundStyle(Color.conservatioTextSecondary)
             Text(t("dash.title"))
                 .font(.system(size: 32, weight: .bold))
                 .foregroundStyle(Color.conservatioText)
@@ -58,7 +53,7 @@ struct DashboardView: View {
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(t("dash.quickActions").nilIfEmpty ?? "Quick Actions")
+            Text(t("dash.quickActions"))
                 .font(.conservatioTitleMedium)
                 .foregroundStyle(Color.conservatioText)
 

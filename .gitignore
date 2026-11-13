@@ -37,3 +37,6 @@ web/tsconfig.tsbuildinfo
 # commit message instead; the sheet itself quotes the skill's own prose, which
 # contains em-dashes.
 .taste-skill/
+
+# Kotlin compiler session logs
+.kotlin/

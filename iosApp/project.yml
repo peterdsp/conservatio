@@ -28,6 +28,50 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
         INFOPLIST_KEY_NSCameraUsageDescription: "Conservatio needs camera access to photograph conservation objects and damage"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Conservatio needs photo library access to import object images"
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Conservatio uses your location to record where an object was examined"
         INFOPLIST_KEY_CFBundleDisplayName: "Conservatio"
     info:
       path: Conservatio/Info.plist
+      # xcodegen rewrites Info.plist on every generate, so keys that must
+      # survive live here rather than in the file.
+      properties:
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Custom URL scheme that catches the OAuth redirect after
+        # ASWebAuthenticationSession finishes with Google / GitHub. Each
+        # provider's OAuth app must whitelist conservatio://oauth-callback/<provider>.
+        CFBundleURLTypes:
+          - CFBundleURLName: dev.peterdsp.conservatio.oauth
+            CFBundleURLSchemes:
+              - conservatio
+    postCompileScripts:
+      - name: Copy sample photos (Debug only)
+        # Photographs for screenshots and manual testing, read by the
+        # debug_sample launch key. Release bundles never carry them.
+        script: |
+          if [ "$CONFIGURATION" = "Debug" ]; then
+            cp -R "$SRCROOT/Scripts/sample-photos" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/"
+          fi
+        basedOnDependencyAnalysis: false
+    scheme:
+      testTargets:
+        - ConservatioTests
+  ConservatioTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ConservatioTests
+    dependencies:
+      - target: Conservatio
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.peterdsp.conservatio.tests

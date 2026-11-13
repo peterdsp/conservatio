@@ -25,7 +25,32 @@ data class CreateReportRequest(
     val damageAnnotations: String = "[]",
     val notes: String? = null,
     val recommendations: String? = null,
-    val imageIds: List<String> = emptyList()
+    val imageIds: List<String> = emptyList(),
+    val previousInterventions: String? = null,
+    val lightSource: String? = null,
+    val relativeHumidity: Double? = null,
+    val temperature: Double? = null,
+    val examinationNotes: String? = null
+)
+
+@Serializable
+data class ReportResponse(
+    val id: String,
+    val objectId: String,
+    val reportType: String,
+    val overallCondition: String,
+    val examiner: String,
+    val examinationDate: String,
+    val notes: String? = null,
+    val recommendations: String? = null,
+    val imageIds: List<String>,
+    val previousInterventions: String? = null,
+    val lightSource: String? = null,
+    val relativeHumidity: Double? = null,
+    val temperature: Double? = null,
+    val examinationNotes: String? = null,
+    val createdAt: String,
+    val updatedAt: String
 )
 
 fun Route.reportRoutes() {
@@ -41,21 +66,7 @@ fun Route.reportRoutes() {
                         query.andWhere { ConditionReportsTable.objectId eq UUID.fromString(objectId) }
                     }
                     query.orderBy(ConditionReportsTable.examinationDate, SortOrder.DESC)
-                        .map { row ->
-                            mapOf(
-                                "id" to row[ConditionReportsTable.id].toString(),
-                                "objectId" to row[ConditionReportsTable.objectId].toString(),
-                                "reportType" to row[ConditionReportsTable.reportType],
-                                "overallCondition" to row[ConditionReportsTable.overallCondition],
-                                "examiner" to row[ConditionReportsTable.examiner],
-                                "examinationDate" to row[ConditionReportsTable.examinationDate].toString(),
-                                "notes" to (row[ConditionReportsTable.notes] ?: ""),
-                                "recommendations" to (row[ConditionReportsTable.recommendations] ?: ""),
-                                "imageIds" to row[ConditionReportsTable.imageIds].split(",").filter { it.isNotBlank() },
-                                "createdAt" to row[ConditionReportsTable.createdAt].toString(),
-                                "updatedAt" to row[ConditionReportsTable.updatedAt].toString()
-                            )
-                        }
+                        .map { it.toReportResponse() }
                 }
                 call.respond(reports)
             }
@@ -78,6 +89,11 @@ fun Route.reportRoutes() {
                         it[notes] = request.notes
                         it[recommendations] = request.recommendations
                         it[imageIds] = request.imageIds.joinToString(",")
+                        it[previousInterventions] = request.previousInterventions
+                        it[lightSource] = request.lightSource
+                        it[relativeHumidity] = request.relativeHumidity
+                        it[temperature] = request.temperature
+                        it[examinationNotes] = request.examinationNotes
                         it[ConditionReportsTable.userId] = UUID.fromString(userId)
                         it[createdAt] = now
                         it[updatedAt] = now
@@ -107,6 +123,11 @@ fun Route.reportRoutes() {
                         it[notes] = request.notes
                         it[recommendations] = request.recommendations
                         it[imageIds] = request.imageIds.joinToString(",")
+                        it[previousInterventions] = request.previousInterventions
+                        it[lightSource] = request.lightSource
+                        it[relativeHumidity] = request.relativeHumidity
+                        it[temperature] = request.temperature
+                        it[examinationNotes] = request.examinationNotes
                         it[updatedAt] = now
                     }
                 }
@@ -131,3 +152,22 @@ fun Route.reportRoutes() {
         }
     }
 }
+
+private fun ResultRow.toReportResponse() = ReportResponse(
+    id = this[ConditionReportsTable.id].toString(),
+    objectId = this[ConditionReportsTable.objectId].toString(),
+    reportType = this[ConditionReportsTable.reportType],
+    overallCondition = this[ConditionReportsTable.overallCondition],
+    examiner = this[ConditionReportsTable.examiner],
+    examinationDate = this[ConditionReportsTable.examinationDate].toString(),
+    notes = this[ConditionReportsTable.notes],
+    recommendations = this[ConditionReportsTable.recommendations],
+    imageIds = this[ConditionReportsTable.imageIds].split(",").filter { it.isNotBlank() },
+    previousInterventions = this[ConditionReportsTable.previousInterventions],
+    lightSource = this[ConditionReportsTable.lightSource],
+    relativeHumidity = this[ConditionReportsTable.relativeHumidity],
+    temperature = this[ConditionReportsTable.temperature],
+    examinationNotes = this[ConditionReportsTable.examinationNotes],
+    createdAt = this[ConditionReportsTable.createdAt].toString(),
+    updatedAt = this[ConditionReportsTable.updatedAt].toString()
+)

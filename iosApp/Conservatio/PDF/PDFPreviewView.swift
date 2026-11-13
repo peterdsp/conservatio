@@ -1,12 +1,18 @@
 import SwiftUI
 import UIKit
+import PDFKit
 
 struct PDFPreviewView: View {
     let pdfData: Data
     let fileName: String
+    /// Ids of the original photos to bundle when Export Settings asks for
+    /// "PDF + Images ZIP". Empty means the PDF is shared on its own.
+    var originalImageIds: [String] = []
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("exportFormat") private var exportFormat: String = "PDF"
     @State private var showShareSheet = false
+    @State private var shareItems: [Any] = []
 
     var body: some View {
         NavigationStack {
@@ -19,6 +25,15 @@ struct PDFPreviewView: View {
                     }
                     ToolbarItem(placement: .primaryAction) {
                         Button {
+                            // A named file shares better than raw bytes, and the
+                            // ZIP variant needs a file anyway.
+                            let file = ReportExport.shareFile(
+                                pdfData: pdfData,
+                                fileName: fileName,
+                                originalImageIds: originalImageIds,
+                                format: exportFormat
+                            )
+                            shareItems = file.map { [$0] } ?? [pdfData]
                             showShareSheet = true
                         } label: {
                             Image(systemName: "square.and.arrow.up")
@@ -26,83 +41,63 @@ struct PDFPreviewView: View {
                     }
                 }
                 .sheet(isPresented: $showShareSheet) {
-                    ShareSheet(items: [pdfData])
+                    ShareSheet(items: shareItems)
                 }
         }
     }
 }
 
+// MARK: - Export file
+
+/// Builds the file the share sheet hands out: the PDF alone, or a ZIP holding
+/// the PDF plus the original JPEGs when Export Settings is set to
+/// "PDF + Images ZIP" (`exportFormat == "PDF_ZIP"`).
+enum ReportExport {
+    static func shareFile(pdfData: Data, fileName: String, originalImageIds: [String], format: String) -> URL? {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("report-export", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        if format == "PDF_ZIP" {
+            var zip = ZipWriter()
+            zip.add("\(fileName).pdf", data: pdfData)
+            for id in originalImageIds {
+                if let data = ImageStore.shared.data(id) {
+                    zip.add("originals/\(id).jpg", data: data)
+                }
+            }
+            let url = dir.appendingPathComponent("\(fileName).zip")
+            guard (try? zip.makeData().write(to: url, options: .atomic)) != nil else { return nil }
+            return url
+        }
+
+        let url = dir.appendingPathComponent("\(fileName).pdf")
+        guard (try? pdfData.write(to: url, options: .atomic)) != nil else { return nil }
+        return url
+    }
+}
+
 // MARK: - PDF Display
 
+/// Renders the full multi-page document. Reports now span several pages (object
+/// summary, annotated photo documentation, treatment, notes), so PDFKit's
+/// paginated, scrollable view replaces the previous single-page image render.
 struct PDFKitView: UIViewRepresentable {
     let data: Data
 
-    func makeUIView(context: Context) -> PDFDisplayView {
-        let view = PDFDisplayView()
-        view.loadData(data)
+    func makeUIView(context: Context) -> PDFView {
+        let view = PDFView()
+        view.autoScales = true
+        view.displayMode = .singlePageContinuous
+        view.displayDirection = .vertical
+        view.backgroundColor = .systemGroupedBackground
+        view.document = PDFDocument(data: data)
         return view
     }
 
-    func updateUIView(_ uiView: PDFDisplayView, context: Context) {}
-}
-
-final class PDFDisplayView: UIView {
-    private let scrollView = UIScrollView()
-    private let imageView = UIImageView()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupViews()
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func setupViews() {
-        addSubview(scrollView)
-        scrollView.addSubview(imageView)
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.contentMode = .scaleAspectFit
-
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-
-    func loadData(_ data: Data) {
-        guard let provider = CGDataProvider(data: data as CFData),
-              let pdfDoc = CGPDFDocument(provider),
-              let page = pdfDoc.page(at: 1) else { return }
-
-        let pageRect = page.getBoxRect(.mediaBox)
-        let scale: CGFloat = 2.0
-        let scaledSize = CGSize(
-            width: pageRect.width * scale,
-            height: pageRect.height * scale
-        )
-
-        UIGraphicsBeginImageContextWithOptions(scaledSize, true, 0)
-        guard let context = UIGraphicsGetCurrentContext() else { return }
-
-        context.setFillColor(UIColor.white.cgColor)
-        context.fill(CGRect(origin: .zero, size: scaledSize))
-
-        context.translateBy(x: 0, y: scaledSize.height)
-        context.scaleBy(x: scale, y: -scale)
-        context.drawPDFPage(page)
-
-        let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        imageView.image = image
-        imageView.frame = CGRect(origin: .zero, size: scaledSize)
-        scrollView.contentSize = scaledSize
+    func updateUIView(_ uiView: PDFView, context: Context) {
+        if uiView.document?.dataRepresentation() != data {
+            uiView.document = PDFDocument(data: data)
+        }
     }
 }
 

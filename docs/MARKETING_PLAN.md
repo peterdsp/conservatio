@@ -10,9 +10,9 @@
 1. Built by someone who understands conservation, not a generic SaaS team
 2. Offline-first (works in churches, basements, excavation sites)
 3. Self-hosted option (your data never leaves your network)
-4. Multilingual reports (Greek, English, expandable)
+4. Multilingual reports (English, Greek, and bilingual Greek/English on iOS)
 5. Professional PDF export that makes conservators look more professional, not more bureaucratic
-6. Open source core
+6. Source-available core under a proprietary license
 
 ## Target audience (in launch order)
 
@@ -210,10 +210,10 @@
 "Museum-grade documentation at a fraction of the cost. No IT department required."
 
 ### For heritage authorities
-"A standardized, searchable digital inventory for your jurisdiction's cultural assets. Open source, self-hosted, your data stays yours."
+"A standardized, searchable digital inventory for your jurisdiction's cultural assets. Source-available, self-hosted, your data stays yours."
 
 ### For press
-"A Greek developer is building the open-source alternative to enterprise museum software, and it runs on a Raspberry Pi."
+"A Greek developer is building an affordable, self-hosted alternative to enterprise museum software, and it runs on a Raspberry Pi."
 
 ### For academics
 "An open, interoperable conservation documentation platform designed around professional ethics and international standards."

@@ -39,7 +39,8 @@ ENGLISH = ["en-US", "en-GB"]
 SUBMIT = os.environ.get("SUBMIT") == "1"
 API = "https://api.appstoreconnect.apple.com"
 # 6.9" iPhone shots (1320x2868) go in the 6.7" set; 13" iPad shots (2064x2752) in the 12.9" set.
-DISPLAY_TYPES = {"iphone": "APP_IPHONE_67", "ipad": "APP_IPAD_PRO_3GEN_129"}
+# iPhone Duo shots come from its cover screen, 1398x2034, one of its two sizes.
+DISPLAY_TYPES = {"iphone": "APP_IPHONE_67", "ipad": "APP_IPAD_PRO_3GEN_129", "duo": "APP_IPHONE_DUO"}
 
 
 def token():

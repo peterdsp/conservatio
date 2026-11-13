@@ -1,11 +1,31 @@
 import SwiftUI
+import MapKit
 
 struct ObjectDetailView: View {
     let object: ConservationObject
     var reportStore: ReportStore
-    @State private var showCreateReport = false
-    @State private var showPDFPreview = false
-    @State private var pdfData: Data?
+    /// "annotate" or "pdf" presents that sheet for the latest report once the
+    /// view is on screen, for the debug launch keys.
+    var initialOpen: String? = nil
+    @State private var activeSheet: ActiveSheet?
+
+    /// A single sheet driver. Two separate `.sheet(isPresented:)` modifiers on
+    /// one view (and presenting from a `Menu`) can race into a blank sheet, so
+    /// both the "new report" form and the PDF preview go through one
+    /// `.sheet(item:)`.
+    private enum ActiveSheet: Identifiable {
+        case newReport
+        case annotate(ConditionReport)
+        case pdfPreview(Data)
+
+        var id: String {
+            switch self {
+            case .newReport: return "newReport"
+            case .annotate: return "annotate"
+            case .pdfPreview: return "pdfPreview"
+            }
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -14,6 +34,9 @@ struct ObjectDetailView: View {
                 if !object.imageIds.isEmpty { imageGallerySection }
                 detailsSection
                 if let dims = object.dimensions { dimensionsSection(dims) }
+                if let latitude = object.latitude, let longitude = object.longitude {
+                    siteLocationSection(CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
+                }
                 reportsSection
             }
             .padding()
@@ -25,14 +48,14 @@ struct ObjectDetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button {
-                        showCreateReport = true
+                        activeSheet = .newReport
                     } label: {
                         Label("New Report", systemImage: "doc.badge.plus")
                     }
 
                     if let latestReport = reportStore.reports(for: object.id).first {
                         Button {
-                            generatePDF(for: latestReport)
+                            activeSheet = .pdfPreview(makePDFData(for: latestReport))
                         } label: {
                             Label("Export PDF", systemImage: "arrow.down.doc")
                         }
@@ -42,15 +65,30 @@ struct ObjectDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showCreateReport) {
-            CreateReportView(objectId: object.id, reportStore: reportStore)
-        }
-        .sheet(isPresented: $showPDFPreview) {
-            if let data = pdfData {
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .newReport:
+                CreateReportView(objectId: object.id, reportStore: reportStore, objectImageIds: object.imageIds)
+            case .annotate(let report):
+                CreateReportView(objectId: object.id, reportStore: reportStore, existing: report,
+                                 objectImageIds: object.imageIds, initialOpen: "annotate")
+            case .pdfPreview(let data):
                 PDFPreviewView(
                     pdfData: data,
-                    fileName: buildPDFFileName()
+                    fileName: buildPDFFileName(),
+                    originalImageIds: exportImageIds
                 )
+            }
+        }
+        .onAppear {
+            // Presented once the push has settled, as the deep link does.
+            guard let initialOpen, let latest = reportStore.reports(for: object.id).first else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                switch initialOpen {
+                case "annotate": activeSheet = .annotate(latest)
+                case "pdf": activeSheet = .pdfPreview(makePDFData(for: latest))
+                default: break
+                }
             }
         }
     }
@@ -147,13 +185,42 @@ struct ObjectDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
+    /// Read-only map of the recorded site, with the coordinates underneath.
+    private func siteLocationSection(_ coordinate: CLLocationCoordinate2D) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Site Location")
+                .font(.conservatioTitleSmall)
+
+            Map(initialPosition: .region(MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            ))) {
+                Marker(object.title, coordinate: coordinate)
+                    .tint(Color.conservatioPrimary)
+            }
+            .mapControlVisibility(.hidden)
+            .allowsHitTesting(false)
+            .frame(height: 160)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            if let coordinates = object.coordinateText {
+                Text(coordinates)
+                    .font(.conservatioBodySmall)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .background(Color.conservatioSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
     private var reportsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Condition Reports")
                     .font(.conservatioTitleMedium)
                 Spacer()
-                Button("Add") { showCreateReport = true }
+                Button("Add") { activeSheet = .newReport }
                     .font(.conservatioLabelLarge)
             }
 
@@ -177,16 +244,26 @@ struct ObjectDetailView: View {
 
     // MARK: - PDF Export
 
-    private func generatePDF(for report: ConditionReport) {
-        let images: [UIImage] = object.imageIds.compactMap { ImageStore.shared.load($0) }
+    /// The photos the latest report documents, falling back to the object's
+    /// photos for older reports saved before photos were attached.
+    private var exportImageIds: [String] {
+        let report = reportStore.reports(for: object.id).first
+        let ids = report?.imageIds ?? []
+        return ids.isEmpty ? object.imageIds : ids
+    }
+
+    private func makePDFData(for report: ConditionReport) -> Data {
+        let ids = report.imageIds.isEmpty ? object.imageIds : report.imageIds
+        let photos: [ReportPhoto] = ids.compactMap { id in
+            ImageStore.shared.load(id).map { ReportPhoto(id: id, image: $0) }
+        }
         let generator = PDFReportGenerator()
-        pdfData = generator.generateReport(
+        return generator.generateReport(
             object: object,
             report: report,
-            objectImages: images,
+            photos: photos,
             conservatorName: report.examiner.isEmpty ? "Conservator" : report.examiner
         )
-        showPDFPreview = true
     }
 
     private func buildPDFFileName() -> String {
@@ -247,6 +324,17 @@ struct ReportCard: View {
                 Text(report.examinationDate.formatted(date: .abbreviated, time: .omitted))
                     .font(.conservatioBodySmall)
                     .foregroundStyle(.secondary)
+                if let conditions = report.examinationConditions, !conditions.isEmpty {
+                    Text(conditions.summary)
+                        .font(.conservatioBodySmall)
+                        .foregroundStyle(.secondary)
+                }
+                if let interventions = report.previousInterventions, !interventions.isEmpty {
+                    Text("Previous interventions: \(interventions)")
+                        .font(.conservatioBodySmall)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
             }
             Spacer()
             ConditionBadge(rating: report.overallCondition)

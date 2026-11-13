@@ -20,6 +20,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -27,6 +29,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,12 +57,19 @@ fun DashboardScreen(
     val objects by objectStore.objects.collectAsState()
     val reports by objectStore.reports.collectAsState()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    fun comingSoon(message: String) {
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         ConservatioAmbientBackground()
         ConservatioHeritageBackdrop()
 
         Scaffold(
             containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
                     title = { Text(str("dash.title"), fontWeight = FontWeight.Bold) },
@@ -95,14 +107,17 @@ fun DashboardScreen(
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         QuickActionCard(str("dash.newObject"), Icons.Outlined.Add, ConservatioColors.primary, Modifier.weight(1f)) { onNavigateToNewObject() }
-                        QuickActionCard(str("dash.takePhoto"), Icons.Outlined.CameraAlt, ConservatioColors.secondary, Modifier.weight(1f)) {}
+                        // Photo capture lives inside object creation on Android, so route there.
+                        QuickActionCard(str("dash.takePhoto"), Icons.Outlined.CameraAlt, ConservatioColors.secondary, Modifier.weight(1f)) { onNavigateToNewObject() }
                     }
                 }
 
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        QuickActionCard(str("dash.newReport"), Icons.Outlined.NoteAdd, ConservatioColors.tertiary, Modifier.weight(1f)) {}
-                        QuickActionCard(str("dash.newProject"), Icons.Outlined.CreateNewFolder, ConservatioColors.primaryDark, Modifier.weight(1f)) {}
+                        // Reports and projects are not yet available on Android; give honest feedback
+                        // instead of a control that silently does nothing.
+                        QuickActionCard(str("dash.newReport"), Icons.Outlined.NoteAdd, ConservatioColors.tertiary, Modifier.weight(1f)) { comingSoon(str("comingSoon.reportsAndroid")) }
+                        QuickActionCard(str("dash.newProject"), Icons.Outlined.CreateNewFolder, ConservatioColors.primaryDark, Modifier.weight(1f)) { comingSoon(str("comingSoon.projectsAndroid")) }
                     }
                 }
 

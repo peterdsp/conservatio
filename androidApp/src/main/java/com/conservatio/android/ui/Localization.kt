@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 
 /**
@@ -15,18 +16,27 @@ import androidx.compose.ui.platform.LocalContext
  * `i18n.ts` and iOS `Localization.swift` so all three platforms share the
  * same translation keys.
  *
- * Stored in SharedPreferences under "app.language". Toggle via
- * Settings; default is English.
+ * The selected app language is persisted in the "conservatio"
+ * SharedPreferences under [KEY_APP_LANGUAGE]; the report language (used
+ * only for PDF export) lives under [KEY_REPORT_LANGUAGE]. Toggle either
+ * from Settings > Language; default is English.
  */
 object Strings {
+    /** Shared prefs file used across the app. */
+    const val PREFS = "conservatio"
+    /** Key holding the app UI language. Must match [LanguageScreen]. */
+    const val KEY_APP_LANGUAGE = "app_language"
+    /** Key holding the export/report language. */
+    const val KEY_REPORT_LANGUAGE = "report_language"
+
     fun current(context: Context): String =
-        context.getSharedPreferences("conservatio", Context.MODE_PRIVATE)
-            .getString("app.language", "en") ?: "en"
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_APP_LANGUAGE, "en") ?: "en"
 
     fun set(context: Context, code: String) {
-        context.getSharedPreferences("conservatio", Context.MODE_PRIVATE)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
-            .putString("app.language", code)
+            .putString(KEY_APP_LANGUAGE, code)
             .apply()
     }
 
@@ -85,6 +95,9 @@ object Strings {
         "settings.dangerTitle" to "Local data",
         "settings.clearAll" to "Clear all data",
         "settings.loadSample" to "Load sample data",
+        // Coming soon
+        "comingSoon.reportsAndroid" to "Reports are coming soon on Android. Use the web or iOS app to write reports.",
+        "comingSoon.projectsAndroid" to "Projects are coming soon on Android. Use the web or iOS app to manage projects.",
     )
 
     private val el = mapOf(
@@ -139,6 +152,9 @@ object Strings {
         "settings.dangerTitle" to "Τοπικά δεδομένα",
         "settings.clearAll" to "Διαγραφή όλων",
         "settings.loadSample" to "Φόρτωση δείγματος",
+        // Coming soon
+        "comingSoon.reportsAndroid" to "Οι αναφορές έρχονται σύντομα στο Android. Χρησιμοποίησε την εφαρμογή web ή iOS για αναφορές.",
+        "comingSoon.projectsAndroid" to "Τα έργα έρχονται σύντομα στο Android. Χρησιμοποίησε την εφαρμογή web ή iOS για διαχείριση έργων.",
     )
 
     private val table: Map<String, Map<String, String>> = mapOf(
@@ -150,6 +166,15 @@ object Strings {
 /** CompositionLocal exposing the active language to Composable trees. */
 val LocalLanguageCode = compositionLocalOf { "en" }
 
+/**
+ * CompositionLocal exposing a setter that changes the app language live.
+ * Calling it both persists the choice and updates [LocalLanguageCode], so
+ * every `str(…)` in the tree recomposes into the new language immediately.
+ */
+val LocalSetLanguage = staticCompositionLocalOf<(String) -> Unit> {
+    error("LocalSetLanguage used outside WithLanguage")
+}
+
 /** Read a translated string from inside a Composable. */
 @Composable
 fun str(key: String): String {
@@ -158,15 +183,25 @@ fun str(key: String): String {
 }
 
 /**
- * Wrap your app's root with this to make `str("…")` available everywhere.
- * Re-reads the saved language on each composition so toggles in Settings
- * propagate immediately.
+ * Wrap your app's root with this to make `str("…")` available everywhere
+ * and to let Settings switch languages at runtime.
+ *
+ * The active code is held in Compose state seeded from the persisted
+ * preference, so toggling the language via [LocalSetLanguage] propagates to
+ * the whole tree without an app restart, and the choice survives relaunches
+ * because [LocalSetLanguage] also writes it back through [Strings.set].
  */
 @Composable
 fun WithLanguage(content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val code by remember { mutableStateOf(Strings.current(context)) }
-    CompositionLocalProvider(LocalLanguageCode provides code) {
+    var code by remember { mutableStateOf(Strings.current(context)) }
+    CompositionLocalProvider(
+        LocalLanguageCode provides code,
+        LocalSetLanguage provides { newCode ->
+            Strings.set(context, newCode)
+            code = newCode
+        },
+    ) {
         content()
     }
 }
