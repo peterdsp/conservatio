@@ -207,6 +207,22 @@ button, input { font: inherit; color: inherit; }
 .credits { margin-top: 1.5rem; font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 80ch; }
 .credits a { color: inherit; }
 
+/* ---------- from the same maker: the Lidhra card ---------- */
+.lidhra-card { padding-inline: var(--margin); padding-bottom: clamp(3rem, 7vh, 5rem); }
+.lidhra-card .lc-in { width: min(var(--col), 100%); margin-left: max(var(--margin), 14vw); background: var(--surface); padding: clamp(1.25rem, 2.6vw, 2rem); }
+.lidhra-card .lc-eyebrow { font-size: var(--step-small); color: var(--muted); font-weight: 500; }
+.lidhra-card .lc-body { margin-top: 1rem; display: flex; gap: clamp(1rem, 2vw, 1.5rem); align-items: flex-start; }
+.lidhra-card .lc-icon { width: 64px; height: 64px; flex: none; border-radius: 14px; }
+.lidhra-card h2 { font-size: var(--step-lead); letter-spacing: -0.02em; line-height: 1.2; }
+.lidhra-card .lc-text p { margin-top: 0.4rem; max-width: 46ch; color: var(--muted); }
+.lidhra-card .lc-act { margin-top: 1.25rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
+.lidhra-card .lc-badge { display: inline-block; line-height: 0; }
+.lidhra-card .lc-badge img { height: 40px; width: auto; }
+.lidhra-card .lc-badge:hover { opacity: 0.88; }
+@media (max-width: 1100px) {
+.lidhra-card .lc-in { margin-left: 0; } }
+@media (max-width: 480px) {
+.lidhra-card .lc-body { flex-direction: column; } }
 /* ---------- motion ---------- */
 .mask { overflow: hidden; }
 .mask > span { display: block; transform: translateY(105%); }

@@ -541,6 +541,50 @@ export function Landing() {
             </div>
           </div>
         </section>
+        {/* from the same maker: one quiet card for Lidhra */}
+        <section className="lidhra-card" aria-labelledby="lidhra-card-title">
+          <div className="lc-in">
+            <p className="lc-eyebrow">From the same maker</p>
+            <div className="lc-body">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="lc-icon"
+                src="/assets/lidhra/lidhra-icon.webp"
+                alt="Lidhra app icon"
+                width={64}
+                height={64}
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="lc-text">
+                <h2 id="lidhra-card-title">Lidhra</h2>
+                <p>
+                  Your library, everywhere: films and series sorted with posters and Next up,
+                  played on the fly or cast to a TV.
+                </p>
+                <div className="lc-act">
+                  <a
+                    className="lc-badge"
+                    href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504"
+                    rel="noopener"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/assets/lidhra/app-store-badge-black.svg"
+                      alt="Download on the App Store"
+                      width={120}
+                      height={40}
+                      loading="lazy"
+                    />
+                  </a>
+                  <a className="tlink" href="https://lidhra.peterdsp.dev/" rel="noopener">
+                    lidhra.peterdsp.dev
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className="foot">
