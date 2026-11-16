@@ -541,48 +541,29 @@ export function Landing() {
             </div>
           </div>
         </section>
-        {/* from the same maker: one quiet card for Lidhra */}
-        <section className="lidhra-card" aria-labelledby="lidhra-card-title">
-          <div className="lc-in">
-            <p className="lc-eyebrow">From the same maker</p>
-            <div className="lc-body">
+        {/* Lidhra, from the same maker: available now while Conservatio is not */}
+        <section className="lidhra-promo" aria-labelledby="lidhra-promo-title" lang="en">
+          <div className="lidhra-promo__inner">
+          <div className="lidhra-promo__copy">
+            <h2 className="lidhra-promo__title" id="lidhra-promo-title">Your films and series, sorted and ready to play</h2>
+            <p className="lidhra-promo__text">Lidhra gathers your downloads into one library with posters, seasons and Up Next, then plays them on the spot or sends them to your TV.</p>
+            <div className="lidhra-promo__facts">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="lc-icon"
-                src="/assets/lidhra/lidhra-icon.webp"
-                alt="Lidhra app icon"
-                width={64}
-                height={64}
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="lc-text">
-                <h2 id="lidhra-card-title">Lidhra</h2>
-                <p>
-                  Your library, everywhere: films and series sorted with posters and Next up,
-                  played on the fly or cast to a TV.
-                </p>
-                <div className="lc-act">
-                  <a
-                    className="lc-badge"
-                    href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504"
-                    rel="noopener"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/assets/lidhra/app-store-badge-black.svg"
-                      alt="Download on the App Store"
-                      width={120}
-                      height={40}
-                      loading="lazy"
-                    />
-                  </a>
-                  <a className="tlink" href="https://lidhra.peterdsp.dev/" rel="noopener">
-                    lidhra.peterdsp.dev
-                  </a>
-                </div>
-              </div>
+              <img className="lidhra-promo__icon" src="/assets/lidhra/lidhra-icon.webp" width={44} height={44} alt="Lidhra app icon" loading="lazy" decoding="async" />
+              <p><strong>Lidhra for iPhone, iPad, Mac, Apple TV and Vision Pro</strong><br />One purchase, no subscription.</p>
             </div>
+            <div className="lidhra-promo__actions">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <a className="lidhra-promo__badge" href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504?ct=conservatio&mt=8" rel="noopener"><img src="/assets/lidhra/app-store-badge-black.svg" width={120} height={40} alt="Download Lidhra on the App Store" loading="lazy" decoding="async" /></a>
+              <a className="lidhra-promo__more" href="https://lidhra.peterdsp.dev/" rel="noopener">See how Lidhra works</a>
+            </div>
+          </div>
+          <figure className="lidhra-promo__shots">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="lidhra-promo__library" src="/assets/lidhra/lidhra-library-1200.webp" srcSet="/assets/lidhra/lidhra-library-640.webp 640w, /assets/lidhra/lidhra-library-1200.webp 1200w" sizes="(min-width: 900px) 560px, 92vw" width={1200} height={600} alt="Lidhra library on Apple TV: a grid of film and series posters with filters for films, series and genres" loading="lazy" decoding="async" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="lidhra-promo__phone" src="/assets/lidhra/lidhra-play-360.webp" srcSet="/assets/lidhra/lidhra-play-240.webp 240w, /assets/lidhra/lidhra-play-360.webp 360w" sizes="(min-width: 900px) 150px, 26vw" width={360} height={570} alt="Lidhra on iPhone: a saved film with Play in Lidhra and Cast to TV buttons" loading="lazy" decoding="async" />
+          </figure>
           </div>
         </section>
       </main>
