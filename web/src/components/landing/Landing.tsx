@@ -545,8 +545,8 @@ export function Landing() {
         <section className="lidhra-promo" aria-labelledby="lidhra-promo-title" lang="en">
           <div className="lidhra-promo__inner">
           <div className="lidhra-promo__copy">
-            <h2 className="lidhra-promo__title" id="lidhra-promo-title">Your films and series, sorted and ready to play</h2>
-            <p className="lidhra-promo__text">Lidhra gathers your downloads into one library with posters, seasons and Up Next, then plays them on the spot or sends them to your TV.</p>
+            <h2 className="lidhra-promo__title" id="lidhra-promo-title">The debrid download manager for iPhone, Mac and Apple TV</h2>
+            <p className="lidhra-promo__text">Paste a magnet or a link and Lidhra fetches it through Real-Debrid, AllDebrid, TorBox or six other services, then downloads it natively and resumes where it stopped. Finished files wait in a library, ready to play or cast to a TV.</p>
             <div className="lidhra-promo__facts">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="lidhra-promo__icon" src="/assets/lidhra/lidhra-icon.webp" width={44} height={44} alt="Lidhra app icon" loading="lazy" decoding="async" />
@@ -560,9 +560,9 @@ export function Landing() {
           </div>
           <figure className="lidhra-promo__shots">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="lidhra-promo__library" src="/assets/lidhra/lidhra-library-1200.webp" srcSet="/assets/lidhra/lidhra-library-640.webp 640w, /assets/lidhra/lidhra-library-1200.webp 1200w" sizes="(min-width: 900px) 560px, 92vw" width={1200} height={600} alt="Lidhra library on Apple TV: a grid of film and series posters with filters for films, series and genres" loading="lazy" decoding="async" />
+            <img className="lidhra-promo__library" src="/assets/lidhra/lidhra-transfers-1200.webp" srcSet="/assets/lidhra/lidhra-transfers-640.webp 640w, /assets/lidhra/lidhra-transfers-1200.webp 1200w" sizes="(min-width: 900px) 560px, 92vw" width={1200} height={600} alt="Lidhra on Mac: downloads coming to the device and files ready in the debrid cloud, with progress bars" loading="lazy" decoding="async" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="lidhra-promo__phone" src="/assets/lidhra/lidhra-play-360.webp" srcSet="/assets/lidhra/lidhra-play-240.webp 240w, /assets/lidhra/lidhra-play-360.webp 360w" sizes="(min-width: 900px) 150px, 26vw" width={360} height={570} alt="Lidhra on iPhone: a saved film with Play in Lidhra and Cast to TV buttons" loading="lazy" decoding="async" />
+            <img className="lidhra-promo__phone" src="/assets/lidhra/lidhra-add-360.webp" srcSet="/assets/lidhra/lidhra-add-240.webp 240w, /assets/lidhra/lidhra-add-360.webp 360w" sizes="(min-width: 900px) 150px, 26vw" width={360} height={570} alt="Lidhra on iPhone: the Add a transfer sheet, with a field for a magnet or an https link" loading="lazy" decoding="async" />
           </figure>
           </div>
         </section>
