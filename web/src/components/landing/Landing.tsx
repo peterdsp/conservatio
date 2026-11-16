@@ -2,73 +2,117 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/* The page's one live thing: the loupe. It reads the pointer off a real
-   photograph of a wall painting and prints the position at the report's own
-   1:2 scale, plus the recorded observation nearest the pointer. */
+/* The page's one live thing is the app's own annotation screen: the same
+   icon photograph, the same numbered markers, the same controlled
+   vocabulary. Tap the photo to add a marker, set its type and severity, and
+   switch the language the report prints in. */
 
-type Mark = {
-  id: string;
-  left: number;
-  top: number;
-  type: string;
-  sev: string;
-  area: string;
+type Kind = "CRACK" | "FLAKING" | "PAINT_LOSS" | "CORROSION";
+type Sev = "MINOR" | "MODERATE" | "SEVERE" | "CRITICAL";
+type Lang = "en" | "el" | "both";
+
+type Marker = { x: number; y: number; kind: Kind; sev: Sev; note: string };
+
+const KINDS: Record<Kind, { en: string; el: string }> = {
+  CRACK: { en: "Crack", el: "Ρωγμή" },
+  FLAKING: { en: "Flaking", el: "Αποφλοίωση" },
+  PAINT_LOSS: { en: "Paint loss", el: "Απώλεια χρώματος" },
+  CORROSION: { en: "Corrosion", el: "Διάβρωση" },
 };
 
-const MARKS: Mark[] = [
-  { id: "loss", left: 46, top: 35, type: "Paint loss", sev: "Poor", area: "0.23" },
-  { id: "crack", left: 71, top: 56, type: "Active cracking", sev: "Fair", area: "0.08" },
-  { id: "efflor", left: 33, top: 74, type: "Surface efflorescence", sev: "Fair", area: "0.41" },
+const SEVS: Record<Sev, { en: string; el: string }> = {
+  MINOR: { en: "Minor", el: "Ήπια" },
+  MODERATE: { en: "Moderate", el: "Μέτρια" },
+  SEVERE: { en: "Severe", el: "Σοβαρή" },
+  CRITICAL: { en: "Critical", el: "Κρίσιμη" },
+};
+
+const HEAD = { en: "Annotations", el: "Σημειώσεις", both: "Σημειώσεις / Annotations" };
+
+// The three markers from the app's own annotation screen, at the same places.
+const START: Marker[] = [
+  { x: 10.8, y: 58, kind: "FLAKING", sev: "SEVERE", note: "Lifting paint along the left edge of the mantle" },
+  { x: 88, y: 44, kind: "PAINT_LOSS", sev: "MODERATE", note: "Gold ground lost around the upper right angel" },
+  { x: 50, y: 95, kind: "CRACK", sev: "MINOR", note: "Craquelure across the lower border" },
 ];
 
-// The object is 145 x 210 cm, the report's own dimensions; the readout halves
-// them for the 1:2 plate scale.
-const OBJ_W = 145;
-const OBJ_H = 210;
+const MAX = 6;
+
+function word(v: { en: string; el: string }, lang: Lang) {
+  if (lang === "en") return v.en;
+  if (lang === "el") return v.el;
+  return `${v.el} / ${v.en}`;
+}
+
+const OUTPUTS = [
+  {
+    id: "pdf",
+    name: "The PDF report",
+    line: "The object, its rating, the annotated photos and the damage list, in English, Greek or both, under your own letterhead.",
+    src: "2-pdf",
+    alt: "Conservatio on iPhone: the report preview of a bilingual Greek and English condition report for a Byzantine icon",
+  },
+  {
+    id: "object",
+    name: "The object record",
+    line: "Owner, location, materials, dimensions and every condition report the object has had.",
+    src: "3-detail",
+    alt: "Conservatio on iPhone: the record of the Icon of the Virgin Hodegetria, with owner, location, dimensions and a pre-treatment report",
+  },
+  {
+    id: "objects",
+    name: "Every object",
+    line: "Icons, ceramics, stone, metal, textiles, paper and wood, each with its inventory number and photo.",
+    src: "4-objects",
+    alt: "Conservatio on iPhone: the Objects list with an icon, a lekythos, a marble relief, a bronze lamp, a silk textile and a gospel leaf",
+  },
+  {
+    id: "projects",
+    name: "Projects and clients",
+    line: "From the first inquiry to completed, with status, dates and budget for each client.",
+    src: "5-projects",
+    alt: "Conservatio on iPhone: the Projects list, from an inquiry for textile remounting to a completed gospel leaf consolidation",
+  },
+];
 
 export function Landing() {
-  const [active, setActive] = useState<Mark>(MARKS[0]);
-  const [pos, setPos] = useState("tap or move across");
-  const [recorded, setRecorded] = useState(false);
-  const loupeRef = useRef<HTMLDivElement>(null);
-  const xRef = useRef<HTMLBRElement | null>(null);
-  const yRef = useRef<HTMLBRElement | null>(null);
+  const [marks, setMarks] = useState<Marker[]>(START);
+  const [sel, setSel] = useState(0);
+  const [lang, setLang] = useState<Lang>("en");
+  const [out, setOut] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const read = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const box = loupeRef.current;
-    if (!box) return;
-    const r = box.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width;
-    const py = (e.clientY - r.top) / r.height;
-    if (px < 0 || px > 1 || py < 0 || py > 1) return;
-    if (xRef.current) xRef.current.style.left = `${px * 100}%`;
-    if (yRef.current) yRef.current.style.top = `${py * 100}%`;
-    setPos(`${((px * OBJ_W) / 2).toFixed(1)} × ${((py * OBJ_H) / 2).toFixed(1)} cm`);
-    let best = active;
-    let bd = Infinity;
-    for (const m of MARKS) {
-      const dx = m.left / 100 - px;
-      const dy = m.top / 100 - py;
-      const d = dx * dx + dy * dy;
-      if (d < bd) {
-        bd = d;
-        best = m;
-      }
-    }
-    if (bd < 0.045) setActive(best);
-  }, [active]);
+  const current = marks[sel];
 
-  /* Entrances. The page renders in full without them. */
+  const add = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if ((e.target as HTMLElement).closest("button")) return;
+      const r = e.currentTarget.getBoundingClientRect();
+      const x = ((e.clientX - r.left) / r.width) * 100;
+      const y = ((e.clientY - r.top) / r.height) * 100;
+      if (marks.length >= MAX) return;
+      setMarks((m) => [...m, { x, y, kind: "CRACK", sev: "MINOR", note: "New observation" }]);
+      setSel(marks.length);
+    },
+    [marks.length]
+  );
+
+  const update = (patch: Partial<Marker>) =>
+    setMarks((m) => m.map((k, i) => (i === sel ? { ...k, ...patch } : k)));
+
+  const reset = () => {
+    setMarks(START);
+    setSel(0);
+  };
+
+  /* Entrances. The page reads in full without them. */
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    const targets = root.querySelectorAll("section, .plate .note, .rows, .slip, figure");
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!("IntersectionObserver" in window) || reduce) {
-      targets.forEach((t) => t.classList.add("in"));
-      return;
-    }
+    if (reduce || !("IntersectionObserver" in window)) return;
+    root.classList.add("moving");
+    const targets = root.querySelectorAll(".rise");
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -78,11 +122,9 @@ export function Landing() {
           }
         });
       },
-      { rootMargin: "0px 0px -10% 0px", threshold: 0.06 }
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }
     );
     targets.forEach((t) => io.observe(t));
-    const hero = root.querySelector(".hero");
-    if (hero) hero.classList.add("in");
     return () => io.disconnect();
   }, []);
 
@@ -92,550 +134,397 @@ export function Landing() {
         Skip to content
       </a>
 
+      <header className="bar">
+        <a className="bar-mark" href="/" aria-label="Conservatio, home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/mark.svg" alt="" width={24} height={24} />
+          <span>Conservatio</span>
+        </a>
+        <nav aria-label="Sections">
+          <a href="#mark">Annotate</a>
+          <a href="#report">The report</a>
+          <a href="#get">Get it</a>
+          <a href="#questions">Questions</a>
+        </nav>
+        <a className="bar-act" href="/app">
+          Open the web app
+        </a>
+      </header>
+
       <main id="main">
-        {/* hero: a control that reads the page */}
-        <section className="hero">
-          <div className="hero-l">
-            <div className="hero-top">
-              <a className="hero-mark" href="/">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/assets/mark.svg" alt="" width={26} height={26} />
-                <span>Conservatio</span>
-              </a>
-              <span style={{ display: "flex", gap: "1.25rem" }}>
-                <a className="tlink" href="/app">
-                  Open the web app
-                </a>
-                <a className="tlink" href="https://github.com/peterdsp/conservatio">
-                  GitHub
-                </a>
-              </span>
-            </div>
-            <div className="hero-bottom">
-              <h1>
-                <span className="mask">
-                  <span>Condition reports for</span>
-                </span>
-                <span className="mask">
-                  <span>cultural heritage.</span>
-                </span>
-              </h1>
-              <p className="sub rise">
-                Structured condition reports, damage marked directly on the photograph, and a
-                bilingual PDF at the end. Built for conservators, museums, churches and
-                archaeological teams, and built to work with no signal at all.
-              </p>
-              <p className="devnote rise">
-                <b>The iPhone and iPad app is on its way to the App Store.</b> A build is in TestFlight and the listing is being prepared. Android and the web client run from source only. Everything below describes what is built and working today.
-              </p>
-              <div className="hero-act rise">
-                <a className="btn" href="#platforms">
-                  See what runs today
-                </a>
-                <a className="tlink" href="#report">
-                  How a report is made
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className="hero-r">
-            <div className="loupe">
-              <div
-                className="loupe-img"
-                ref={loupeRef}
-                data-ui=""
-                onPointerMove={read}
-                onPointerDown={read}
-                onPointerLeave={() => setPos("tap or move across")}
-              >
+        {/* The split stage: the object stays on the bench while the page reads. */}
+        <div className="stage" id="mark">
+          <div className="stage-l">
+            <div className="bench" data-ui="">
+              <div className="photo" onClick={add}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/assets/2987-fresco-in-the-church-of-the.jpg"
-                  alt="Byzantine wall painting of an angel in the Monastery of Daphni, Athens, with paint loss, surface efflorescence and cracking"
-                  width={1920}
-                  height={2560}
-                  decoding="async"
+                  src="/assets/app/icon-1085.webp"
+                  srcSet="/assets/app/icon-640.webp 640w, /assets/app/icon-1085.webp 1085w"
+                  sizes="(min-width: 900px) 34vw, 60vw"
+                  width={1085}
+                  height={1400}
+                  alt="Byzantine icon of the Theotokos Hodegetria, egg tempera and gold leaf on panel, with numbered damage markers"
                 />
-                <span className="xhair" aria-hidden="true">
-                  <b className="vx" ref={xRef} />
-                  <b className="hz" ref={yRef} />
-                </span>
-                {MARKS.map((m) => (
+                {marks.map((m, i) => (
                   <button
-                    key={m.id}
+                    key={i}
                     type="button"
-                    className="mark"
-                    style={{ left: `${m.left}%`, top: `${m.top}%` }}
-                    aria-pressed={active.id === m.id}
-                    onClick={() => setActive(m)}
+                    className={`pin s-${m.sev.toLowerCase()}`}
+                    style={{ left: `${m.x}%`, top: `${m.y}%` }}
+                    aria-pressed={sel === i}
+                    aria-label={`Marker ${i + 1}: ${KINDS[m.kind].en}, ${SEVS[m.sev].en}`}
+                    onClick={() => setSel(i)}
                   >
-                    <i />
-                    <span className="sr">{`${m.type}, ${m.sev.toLowerCase()}`}</span>
+                    {i + 1}
                   </button>
                 ))}
               </div>
-              <div className="loupe-read">
-                <dl>
-                  <dt>Damage</dt>
-                  <dd>{active.type}</dd>
-                  <dt>Condition</dt>
-                  <dd>{active.sev}</dd>
-                  <dt>Affected area</dt>
-                  <dd>{active.area} m²</dd>
-                  <dt>Pointer, at 1:2</dt>
-                  <dd>{pos}</dd>
-                </dl>
+              <div className="legend" aria-live="polite">
+                <p className="legend-h">
+                  <span>{HEAD[lang]}</span>
+                  <span>{marks.length}</span>
+                </p>
+                <ul>
+                  {marks.map((m, i) => (
+                    <li key={i} className={sel === i ? "on" : ""}>
+                      <button type="button" onClick={() => setSel(i)}>
+                        <i className={`dot-n s-${m.sev.toLowerCase()}`}>{i + 1}</i>
+                        <span className="lg-t">
+                          <b>{word(KINDS[m.kind], lang)}</b>
+                          <span>{m.note}</span>
+                        </span>
+                        <span className={`chip s-${m.sev.toLowerCase()}`}>{word(SEVS[m.sev], lang)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="loupe-cap">
-                Three recorded observations on a wall painting in the Monastery of Daphni, Athens.
-                Tap a marker, or move across the photograph to read the position off it.
-              </p>
             </div>
           </div>
-        </section>
 
-        {/* showcase: one observation, three states */}
-        <section className="lit" id="screens">
-          <h2>One observation, three times.</h2>
-          <div className="states">
-            <div className="state">
-              <span className="word">Photographed</span>
-              <div data-ui="">
-                <div className="ui-bar">
-                  <span>IMG_2347.JPG</span>
-                  <span className="chip">attached</span>
-                </div>
-                <div className="ui-main">
-                  <div className="r">
-                    <span>Wall painting, north wall</span>
-                    <span className="sev">no observation yet</span>
-                  </div>
+          <div className="stage-r">
+            <section className="hero" aria-labelledby="title">
+              <h1 id="title" className="name">
+                conservatio
+                <span className="sr">, condition reports for cultural heritage</span>
+              </h1>
+              <div className="hero-copy">
+                <p className="lead rise">
+                  Photograph a heritage object, mark the damage on the photo, and hand over a
+                  PDF condition report.
+                </p>
+                <p className="note rise">
+                  For iPhone and iPad, coming to the App Store. The web companion is open now.
+                </p>
+                <div className="acts rise">
+                  <a className="btn" href="#mark-it">
+                    Try it on this icon
+                  </a>
+                  <a className="btn btn-2" href="/app">
+                    Open the web app
+                  </a>
                 </div>
               </div>
-              <p className="says">
-                A photograph on its own is evidence of nothing. It needs to say what is wrong with
-                the object and how much of it.
-              </p>
-            </div>
+            </section>
 
-            <div className="state live">
-              <span className="word">Annotated</span>
-              <div data-ui="">
-                <div className="ui-bar">
-                  <span>IMG_2347.JPG</span>
-                  <span className="chip">{recorded ? "2 observations" : "1 observation"}</span>
-                </div>
-                <div className="ui-main">
-                  <div className="r">
-                    <span>Damage type</span>
-                    <span className="sev">Loss of paint and plaster</span>
-                  </div>
-                  <div className="r">
-                    <span>Severity</span>
-                    <span className="sev">Poor</span>
-                  </div>
-                  <div className="r">
-                    <span>Measured extent</span>
-                    <span className="sev">0.23 m²</span>
-                  </div>
-                  <div className="r">
-                    <span>{recorded ? "Recorded by" : "Note"}</span>
-                    <span className="sev">
-                      {recorded ? "E. Papadopoulou, today" : "detachment risk along upper layer"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button className="act" type="button" onClick={() => setRecorded((v) => !v)}>
-                {recorded ? "Undo" : "Record the observation"}
-              </button>
-              <p className="says">
-                Marked on the photograph itself, with a type from a controlled list, a severity and
-                a measured extent. This is the step that makes the rest automatic.
-              </p>
-            </div>
+            <section className="blocks" id="mark-it" aria-labelledby="mark-h">
+              <h2 id="mark-h" className="rise">
+                Mark it where it is.
+              </h2>
 
-            <div className="state">
-              <span className="word">Reported</span>
-              <div data-ui="">
-                <div className="ui-bar">
-                  <span>CR-2024-0457 · condition summary</span>
-                  <span className="chip">PDF</span>
-                </div>
-                <div className="ui-main">
-                  <div className="r">
-                    <span>Loss of paint and plaster (0.23 m²)</span>
-                    <span className="sev">Poor</span>
-                  </div>
-                  <div className="r">
-                    <span>Active cracking cluster with micro-cracking</span>
-                    <span className="sev">Poor</span>
-                  </div>
-                  <div className="r">
-                    <span>Surface soiling and localised efflorescence</span>
-                    <span className="sev">Fair</span>
-                  </div>
-                  <div className="gauge" aria-hidden="true">
-                    <i style={{ width: "28%" }} />
+              <div className="block">
+                <h3 className="rise">Tap the photo to add a marker.</h3>
+                <p className="rise">
+                  Each marker is numbered and carries a damage type from a fixed list, a severity
+                  and a note. Pick one on the icon and change it here.
+                </p>
+                <div className="ctl rise" role="group" aria-label={`Damage type for marker ${sel + 1}`}>
+                  <span className="ctl-l">Marker {sel + 1}, damage</span>
+                  <div className="seg">
+                    {(Object.keys(KINDS) as Kind[]).map((k) => (
+                      <button key={k} type="button" aria-pressed={current.kind === k} onClick={() => update({ kind: k })}>
+                        {KINDS[k].en}
+                      </button>
+                    ))}
                   </div>
                 </div>
+                <div className="ctl rise" role="group" aria-label={`Severity for marker ${sel + 1}`}>
+                  <span className="ctl-l">Severity</span>
+                  <div className="seg">
+                    {(Object.keys(SEVS) as Sev[]).map((s) => (
+                      <button key={s} type="button" aria-pressed={current.sev === s} onClick={() => update({ sev: s })}>
+                        {SEVS[s].en}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="readout rise" aria-hidden="true">
+                  <i className={`dot-n s-${current.sev.toLowerCase()}`}>{sel + 1}</i>
+                  {word(KINDS[current.kind], lang)}, {word(SEVS[current.sev], lang)}
+                </p>
+                <p className="small rise">
+                  {marks.length < MAX ? `${MAX - marks.length} more markers fit in this demo. ` : "That is the demo's limit. "}
+                  <button type="button" className="tlink" onClick={reset}>
+                    Start over
+                  </button>
+                </p>
               </div>
-              <p className="says">
-                The same observation, printed into the condition report with its rating and its
-                place in the overall condition. Nobody retyped it.
-              </p>
-            </div>
+
+              <div className="block">
+                <h3 className="rise">The report prints it in Greek, English or both.</h3>
+                <p className="rise">
+                  Damage types, severities and headings are translated. Your own notes stay as you
+                  wrote them.
+                </p>
+                <div className="ctl rise" role="group" aria-label="Report language">
+                  <span className="ctl-l">Report language</span>
+                  <div className="seg">
+                    <button type="button" aria-pressed={lang === "en"} onClick={() => setLang("en")}>
+                      English
+                    </button>
+                    <button type="button" aria-pressed={lang === "el"} onClick={() => setLang("el")} lang="el">
+                      Ελληνικά
+                    </button>
+                    <button type="button" aria-pressed={lang === "both"} onClick={() => setLang("both")}>
+                      Both
+                    </button>
+                  </div>
+                </div>
+                <p className="readout rise" aria-hidden="true">
+                  <i className={`dot-n s-${current.sev.toLowerCase()}`}>{sel + 1}</i>
+                  {word(KINDS[current.kind], lang)}, {word(SEVS[current.sev], lang)}
+                </p>
+              </div>
+
+              <div className="block">
+                <h3 className="rise">It works with no signal.</h3>
+                <p className="rise">
+                  Everything is saved on the iPhone or iPad, with no account needed. Churches,
+                  storerooms and excavation trenches are where the objects are.
+                </p>
+                <figure className="rise">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/assets/app/metamorphosis-1200.webp"
+                    alt="The small Byzantine Church of the Metamorphosis in Athens, stone walls under a tiled dome"
+                    width={1200}
+                    height={797}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <figcaption>The Church of the Metamorphosis, Athens.</figcaption>
+                </figure>
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
 
-        {/* how it works: the itinerary slip */}
-        <section className="band" id="report">
-          <div className="slip-wrap">
-            <div>
-              <h2 className="rise">From first look to signed report.</h2>
-              <p className="intro rise">
-                A condition report is a sequence, not a form. Conservatio keeps the sequence and
-                takes the retyping out of it, so the document at the end matches what was actually
-                on the wall.
-              </p>
-            </div>
-            <div>
-              <figure className="rise" style={{ margin: "0 0 2rem" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/assets/report-preview.jpeg"
-                  alt="A printed Conservatio condition report on a conservator's desk, with an annotated fresco photograph beside the object details, condition summary and recommended treatment"
-                  width={1535}
-                  height={1024}
-                  loading="lazy"
-                  decoding="async"
-                />
-                <figcaption
-                  style={{
-                    marginTop: 12,
-                    fontSize: 13,
-                    color: "var(--muted)",
-                    lineHeight: 1.5,
-                  }}
+        {/* What you hand over: the app's own screens. */}
+        <section className="outputs" id="report" aria-labelledby="report-h">
+          <div className="out-l">
+            <h2 id="report-h" className="rise">
+              What you hand over.
+            </h2>
+            <div className="out-names rise" role="tablist" aria-label="App screens">
+              {OUTPUTS.map((o, i) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${o.id}`}
+                  aria-selected={out === i}
+                  aria-controls="out-stage"
+                  onClick={() => setOut(i)}
                 >
-                  The exported report. Sample content: the object, the conservator and the report
-                  number are invented for this page.
-                </figcaption>
-              </figure>
-              <div className="slip rise">
-                <h3>On site</h3>
-                <Line what="Photograph the object" val="camera" />
-                <Line what="Mark damage on the photo" val="on the spot" />
-                <Line what="Rate each observation" val="controlled list" />
-                <Line what="Measure and note the extent" val="m²" />
-                <h3>Back at the desk</h3>
-                <Line what="Review the object record" val="any device" />
-                <Line what="Write the treatment proposal" val="structured" />
-                <Line what="Attach photographs" val="22 files" />
-                <h3>To the client</h3>
-                <Line what="Export the PDF" val="EN · EL · both" />
-                <Line what="File it under the project" val="automatic" />
-                <div className="total">
-                  <span>A report you can hand over</span>
-                  <span>same day</span>
-                </div>
-              </div>
+                  {o.name}
+                </button>
+              ))}
             </div>
-          </div>
-        </section>
-
-        {/* features: the plate with margin notes */}
-        <section className="band sur" id="features">
-          <div className="plate">
-            <h2 className="rise">What the app holds.</h2>
-            <div className="l">
-              <Note title="Condition reports">
-                Structured checklists, controlled vocabulary and damage rating. The Word template is
-                replaced, not reproduced.
-              </Note>
-              <Note title="Image annotation">
-                Cracks, paint loss and corrosion marked on the photograph itself. Each mark carries
-                a type, a severity and a note.
-              </Note>
-              <Note title="Treatment notes">
-                Recommended steps and observations recorded inside the report. Structured proposals
-                with materials and costs are on the roadmap.
-              </Note>
-            </div>
-            <div className="panel rise" data-ui="">
-              <div className="ui-bar">
-                <span>Condition report</span>
-                <span className="chip">CR-2024-0457</span>
-              </div>
-              <div className="ui-main">
-                <dl className="f">
-                  <dt>Title</dt>
-                  <dd>Wall painting (fresco)</dd>
-                  <dt>Date</dt>
-                  <dd>Late 18th century</dd>
-                  <dt>Location</dt>
-                  <dd>Church of St Nicholas, Thessaloniki</dd>
-                  <dt>Technique</dt>
-                  <dd>Fresco on lime plaster</dd>
-                  <dt>Dimensions</dt>
-                  <dd>145 × 210 cm</dd>
-                  <dt>Conservator</dt>
-                  <dd>E. Papadopoulou</dd>
-                </dl>
-              </div>
-              <div className="ui-bar">
-                <span>Observations</span>
-                <span className="chip">4</span>
-              </div>
-              <div className="ui-main">
-                <Row a="Loss of paint and plaster" b="0.23 m²" />
-                <Row a="Active cracking cluster" b="Poor" />
-                <Row a="Detachment risk, upper layer" b="Poor" />
-                <Row a="Surface soiling, efflorescence" b="Fair" />
-              </div>
-              <div className="ui-bar">
-                <span>Recommended treatment</span>
-                <span className="chip">5 steps</span>
-              </div>
-              <div className="ui-main">
-                <Row a="Stabilisation of active cracking" b="1" />
-                <Row a="Consolidation of detached plaster" b="2" />
-                <Row a="Infilling with lime plaster" b="3" />
-                <Row a="Reversible retouching" b="4" />
-                <Row a="Environmental monitoring" b="5" />
-              </div>
-              <div className="ui-bar">
-                <span>Condition rating</span>
-                <span className="chip">Poor</span>
-              </div>
-              <div className="ui-main">
-                <div className="gauge" aria-hidden="true">
-                  <i style={{ width: "28%" }} />
-                </div>
-                <div className="r" style={{ paddingTop: 10 }}>
-                  <span>Export</span>
-                  <span className="sev">EN · EL · bilingual</span>
-                </div>
-              </div>
-            </div>
-            <div className="r">
-              <Note title="Project management">
-                Objects, clients and reports grouped into projects, with status, timeline and budget
-                in one place.
-              </Note>
-              <Note title="Offline first">
-                Churches, basements and excavation sites have no signal. Everything is written
-                locally and syncs when you reconnect.
-              </Note>
-              <Note title="Bilingual export">
-                Condition report PDFs in English, Greek or both. Headings, labels and dates are
-                translated; your own text stays as written.
-              </Note>
-            </div>
-          </div>
-        </section>
-
-        {/* list: what runs where, honestly */}
-        <section className="band" id="platforms">
-          <div className="colpic">
-            <div>
-              <h2 className="rise">Where it runs today.</h2>
-              <p className="intro rise">
-                None of this is released. iOS is the most complete client, Android and the web
-                companion are behind it, and this list says exactly how far each one has got in the
-                repository.
-              </p>
-              <div className="rows rise">
-                <p className="grp">iOS, native SwiftUI, runs from source</p>
-                <PRow label="Object cataloguing" value="built" />
-                <PRow label="Camera capture and on-site annotation" value="built" />
-                <PRow label="Condition reports" value="built" />
-                <PRow label="Offline storage and sync" value="built" />
-                <PRow label="Bilingual PDF export" value="built" />
-                <p className="grp">Android, Jetpack Compose and Material 3, runs from source</p>
-                <PRow label="Object cataloguing" value="built" />
-                <PRow label="Photo attachment" value="built" />
-                <PRow label="Bilingual interface" value="built" />
-                <PRow label="Condition reports and annotation" value="in progress" dot="soon" />
-                <PRow label="PDF export" value="in progress" dot="soon" />
-                <p className="grp">Web, desktop companion, the only part you can open today</p>
-                <PRow label="Browse and edit objects, projects, clients" value="built" />
-                <PRow label="No install needed" value="browser" dot="part" />
-                <PRow label="PDF export" value="mobile only" dot="soon" />
-              </div>
-            </div>
-            <figure className="rise">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/assets/kastoria-4.jpg"
-                alt="Painted interior of a Byzantine church in Kastoria, Greece"
-                width={1920}
-                height={1284}
-                loading="lazy"
-                decoding="async"
-              />
-              <figcaption>
-                Kastoria. The kind of interior where a report is written standing up, with no signal
-                and one hand free.
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
-        {/* proof: who this is for */}
-        <section className="band" id="whom">
-          <div className="colpic">
-            <div>
-              <h2 className="rise">Who it is for.</h2>
-              <p className="intro rise">
-                Conservatio fills the gap between a folder of Word files and an enterprise
-                collections system. It is sized for the people who actually hold the scalpel.
-              </p>
-              <div className="whom rise" style={{ marginTop: "2.5rem" }}>
-                <span className="lead">Written for</span>
-                <span className="n">private conservators</span>
-                <span className="n">small museums</span>
-                <span className="n">churches and heritage sites</span>
-                <span className="n">galleries</span>
-                <span className="n">archaeological teams</span>
-              </div>
-              <p className="intro rise" style={{ marginTop: "2.5rem" }}>
-                Private conservators get fast reports and professional PDFs with less admin. Small
-                museums get affordable object inventory, condition history and maintenance tracking.
-                Churches and heritage sites get a simple photo-based record, a maintenance calendar
-                and a restoration history.
-              </p>
-            </div>
-            <figure className="rise">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/assets/lascar-church-of-metamorphosis-4517753626.jpg"
-                alt="Painted vault and walls of the Church of the Metamorphosis"
-                width={1920}
-                height={1275}
-                loading="lazy"
-                decoding="async"
-              />
-              <figcaption>
-                Church of the Metamorphosis. Parish records of this kind are the gap between a Word
-                file and an enterprise system.
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
-        {/* cta: a plain sentence and one action */}
-        <section className="cta">
-          <div className="col">
-            <p className="rise">
-              The code is published for transparency and personal evaluation. Read it, run it, and
-              tell me what a real condition report needs that this does not have yet.
+            <p className="out-line rise" aria-live="polite">
+              {OUTPUTS[out].line}
             </p>
-            <div className="act rise">
-              <a className="btn" href="/app">
-                Open the web companion
-              </a>
-              <a className="tlink" href="https://github.com/peterdsp/conservatio">
-                View on GitHub
-              </a>
+          </div>
+          <div className="out-stage" id="out-stage" role="tabpanel" aria-labelledby={`tab-${OUTPUTS[out].id}`}>
+            {OUTPUTS.map((o, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={o.id}
+                className={out === i ? "on" : ""}
+                src={`/assets/app/${o.src}-660.webp`}
+                srcSet={`/assets/app/${o.src}-440.webp 440w, /assets/app/${o.src}-660.webp 660w`}
+                sizes="(min-width: 900px) 380px, 78vw"
+                width={660}
+                height={1434}
+                alt={o.alt}
+                aria-hidden={out !== i}
+                loading="eager"
+                decoding="async"
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* How to get it, set like a menu. */}
+        <section className="get" id="get" aria-labelledby="get-h">
+          <h2 id="get-h" className="rise">
+            How to get it.
+          </h2>
+          <div className="get-cols">
+            <div className="grp rise">
+              <h3>iPhone and iPad</h3>
+              <div className="item">
+                <p className="row">
+                  <span>Conservatio</span>
+                  <span>Coming soon</span>
+                </p>
+                <p className="desc">One purchase, no subscription. A build is in TestFlight and the App Store listing is being prepared.</p>
+              </div>
+            </div>
+            <div className="grp rise">
+              <h3>Today</h3>
+              <div className="item">
+                <p className="row">
+                  <a href="/app">Web companion</a>
+                  <span>Free</span>
+                </p>
+                <p className="desc">Objects, projects and clients in the browser. PDF export stays on the iPhone and iPad.</p>
+              </div>
+              <div className="item">
+                <p className="row">
+                  <span>Android</span>
+                  <span>From source</span>
+                </p>
+                <p className="desc">Cataloguing and photos work. Reports and PDF export are in progress.</p>
+              </div>
+              <div className="item">
+                <p className="row">
+                  <a href="https://github.com/peterdsp/conservatio">Source code</a>
+                  <span>GitHub</span>
+                </p>
+                <p className="desc">Published for transparency and personal evaluation.</p>
+              </div>
             </div>
           </div>
         </section>
-        {/* Lidhra, from the same maker: available now while Conservatio is not */}
+
+        {/* Questions, as reading text. */}
+        <section className="faq" id="questions" aria-labelledby="faq-h">
+          <h2 id="faq-h" className="rise">
+            Questions.
+          </h2>
+          <div className="faq-text rise">
+            <p>
+              <b>Do I need an account?</b> No. Tap Continue without an account and start
+              documenting. Sign-in is only there for sync.
+            </p>
+            <p>
+              <b>Does it work offline?</b> Fully. Objects, photos, markers and reports are saved on
+              the device, and the PDF is made there too.
+            </p>
+            <p>
+              <b>What goes into a report?</b> The object record, the purpose of examination, the
+              examiner and date, the overall rating, the annotated photos, the damage list and the
+              recommended treatment.
+            </p>
+            <p>
+              <b>Which report types?</b> Initial assessment, pre-treatment, post-treatment,
+              outgoing and incoming loan, insurance, transport, periodic check and emergency.
+            </p>
+            <p>
+              <b>Can it carry my studio&apos;s name?</b> Yes. The PDF takes your logo, name,
+              address and signature, on A4 or Letter.
+            </p>
+            <p>
+              <b>Which languages?</b> The app is in English and Greek, and the report prints in
+              either or both on the same page.
+            </p>
+            <p>
+              <b>Who is it for?</b> Private conservators, small museums, galleries, churches and
+              archaeological teams who are done with Word templates and retyping.
+            </p>
+          </div>
+        </section>
+
+        {/* Lidhra, from the same maker. */}
         <section className="lidhra-promo" aria-labelledby="lidhra-promo-title" lang="en">
-          <div className="lidhra-promo__inner">
           <div className="lidhra-promo__copy">
-            <h2 className="lidhra-promo__title" id="lidhra-promo-title">The debrid download manager for iPhone, Mac and Apple TV</h2>
-            <p className="lidhra-promo__text">Paste a magnet or a link and Lidhra fetches it through Real-Debrid, AllDebrid, TorBox or six other services, then downloads it natively and resumes where it stopped. Finished files wait in a library, ready to play or cast to a TV.</p>
-            <div className="lidhra-promo__facts">
+            <h2 className="lidhra-promo__title rise" id="lidhra-promo-title">
+              The debrid download manager for iPhone, Mac and Apple TV
+            </h2>
+            <p className="lidhra-promo__text rise">
+              Paste a magnet or a link and Lidhra fetches it through Real-Debrid, AllDebrid, TorBox
+              or six other services, then downloads it natively and resumes where it stopped.
+              Finished files wait in a library, ready to play or cast to a TV.
+            </p>
+            <div className="lidhra-promo__facts rise">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="lidhra-promo__icon" src="/assets/lidhra/lidhra-icon.webp" width={44} height={44} alt="Lidhra app icon" loading="lazy" decoding="async" />
-              <p><strong>Lidhra for iPhone, iPad, Mac, Apple TV and Vision Pro</strong><br />One purchase, no subscription.</p>
+              <img className="lidhra-promo__icon" src="/assets/lidhra/lidhra-icon.webp" width={48} height={48} alt="Lidhra app icon" loading="lazy" decoding="async" />
+              <p>
+                <strong>For iPhone, iPad, Mac, Apple TV and Vision Pro</strong>
+                <br />
+                One purchase, no subscription.
+              </p>
             </div>
-            <div className="lidhra-promo__actions">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <a className="lidhra-promo__badge" href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504?ct=conservatio&mt=8" rel="noopener"><img src="/assets/lidhra/app-store-badge-black.svg" width={120} height={40} alt="Download Lidhra on the App Store" loading="lazy" decoding="async" /></a>
-              <a className="lidhra-promo__more" href="https://lidhra.peterdsp.dev/" rel="noopener">See how Lidhra works</a>
+            <div className="lidhra-promo__actions rise">
+              <a className="lidhra-promo__badge" href="https://apps.apple.com/app/lidhra-debrid-downloader/id6790952504?ct=conservatio&mt=8" rel="noopener">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/assets/lidhra/app-store-badge-black.svg" width={120} height={40} alt="Download Lidhra on the App Store" loading="lazy" decoding="async" />
+              </a>
+              <a className="tlink" href="https://lidhra.peterdsp.dev/" rel="noopener">
+                See how Lidhra works
+              </a>
             </div>
           </div>
-          <figure className="lidhra-promo__shots">
+          <figure className="lidhra-promo__shots rise">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="lidhra-promo__library" src="/assets/lidhra/lidhra-transfers-1200.webp" srcSet="/assets/lidhra/lidhra-transfers-640.webp 640w, /assets/lidhra/lidhra-transfers-1200.webp 1200w" sizes="(min-width: 900px) 560px, 92vw" width={1200} height={600} alt="Lidhra on Mac: downloads coming to the device and files ready in the debrid cloud, with progress bars" loading="lazy" decoding="async" />
+            <img className="lidhra-promo__library" src="/assets/lidhra/lidhra-transfers-1200.webp" srcSet="/assets/lidhra/lidhra-transfers-640.webp 640w, /assets/lidhra/lidhra-transfers-1200.webp 1200w" sizes="(min-width: 900px) 50vw, 92vw" width={1200} height={600} alt="Lidhra on Mac: downloads coming to the device and files ready in the debrid cloud, with progress bars" loading="lazy" decoding="async" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="lidhra-promo__phone" src="/assets/lidhra/lidhra-add-360.webp" srcSet="/assets/lidhra/lidhra-add-240.webp 240w, /assets/lidhra/lidhra-add-360.webp 360w" sizes="(min-width: 900px) 150px, 26vw" width={360} height={570} alt="Lidhra on iPhone: the Add a transfer sheet, with a field for a magnet or an https link" loading="lazy" decoding="async" />
+            <img className="lidhra-promo__phone" src="/assets/lidhra/lidhra-add-360.webp" srcSet="/assets/lidhra/lidhra-add-240.webp 240w, /assets/lidhra/lidhra-add-360.webp 360w" sizes="(min-width: 900px) 160px, 28vw" width={360} height={570} alt="Lidhra on iPhone: the Add a transfer sheet, with a field for a magnet or an https link" loading="lazy" decoding="async" />
           </figure>
-          </div>
         </section>
       </main>
 
       <footer className="foot">
-        <div className="in">
-          <span>Conservation documentation</span>
-          <nav>
+        <figure className="foot-pic">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/app/daphni-1200.webp"
+            alt="Byzantine wall painting of an angel in the Monastery of Daphni, Athens, with paint loss and cracking"
+            width={1200}
+            height={1600}
+            loading="lazy"
+            decoding="async"
+          />
+        </figure>
+        <div className="foot-r">
+          <a className="bar-mark" href="/">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/assets/mark.svg" alt="" width={24} height={24} />
+            <span>Conservatio</span>
+          </a>
+          <nav className="foot-menu" aria-label="Footer">
             <a href="/app">Web app</a>
             <a href="https://github.com/peterdsp/conservatio">GitHub</a>
             <a href="https://github.com/peterdsp/conservatio/releases">Releases</a>
-            <a href="https://peterdsp.dev">peterdsp.dev</a>
+            <a href="/support.html">Support</a>
+            <a href="/privacy.html">Privacy</a>
           </nav>
-          <span>© 2026 Petros Dhespollari</span>
+          <div className="foot-small">
+            <p>
+              Made by Petros Dhespollari, <a href="https://peterdsp.dev">peterdsp.dev</a>
+            </p>
+            <p className="credits">
+              Pictures: the Theotokos Hodegetria icon, Finnish National Gallery, public domain;{" "}
+              <a href="https://commons.wikimedia.org/w/index.php?curid=174845629">Fresco in the church of the Monastery of Daphni</a> by Giovanni Dall&rsquo;Orto,{" "}
+              <a href="https://creativecommons.org/licenses/by-sa/2.5/it/deed.en/">CC BY-SA 2.5</a>;{" "}
+              <a href="https://commons.wikimedia.org/w/index.php?curid=31951912">Church of the Metamorphosis</a> by Jorge L&aacute;scar,{" "}
+              <a href="https://creativecommons.org/licenses/by/2.0/">CC BY 2.0</a>. Via Wikimedia Commons.
+            </p>
+            <p>&copy; 2026 Petros Dhespollari</p>
+          </div>
         </div>
-        <p className="credits">
-          Pictures:{" "}
-          <a href="https://commons.wikimedia.org/w/index.php?curid=174845629">
-            “Fresco in the church of the Monastery of Daphni (Athens)”
-          </a>{" "}
-          by Giovanni Dall’Orto,{" "}
-          <a href="https://creativecommons.org/licenses/by-sa/2.5/it/deed.en/">CC BY-SA 2.5</a>;{" "}
-          <a href="https://commons.wikimedia.org/w/index.php?curid=125931969">“Kastoria (4)”</a> by
-          TijsB, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC BY-SA 2.0</a>;{" "}
-          <a href="https://commons.wikimedia.org/w/index.php?curid=31951912">
-            “Lascar Church of metamorphosis”
-          </a>{" "}
-          by Jorge Láscar,{" "}
-          <a href="https://creativecommons.org/licenses/by/2.0/">CC BY 2.0</a>. All via Wikimedia
-          Commons.
-        </p>
       </footer>
-    </div>
-  );
-}
-
-function Line({ what, val }: { what: string; val: string }) {
-  return (
-    <div className="line">
-      <span className="what">{what}</span>
-      <span className="dots" />
-      <span className="val">{val}</span>
-    </div>
-  );
-}
-
-function Note({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="note rise">
-      <b>{title}</b>
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function Row({ a, b }: { a: string; b: string }) {
-  return (
-    <div className="r">
-      <span>{a}</span>
-      <span className="sev">{b}</span>
-    </div>
-  );
-}
-
-function PRow({ label, value, dot }: { label: string; value: string; dot?: "soon" | "part" }) {
-  return (
-    <div className="row">
-      <span className="nm">
-        <i className={dot} />
-        {label}
-      </span>
-      <span className="v">{value}</span>
     </div>
   );
 }
